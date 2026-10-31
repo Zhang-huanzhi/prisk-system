@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
-import subprocess
 from pathlib import Path
 from typing import Any
+
+from ..dataset import parse_unified_diff, read_diff_text
 
 
 HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(?P<start>\d+)(?:,(?P<count>\d+))? @@")
@@ -19,6 +20,27 @@ DATA_RE = re.compile(
     r"\b(?:Session|commit|rollback|transaction|select|insert|update|delete|repository|db)\b",
     re.IGNORECASE,
 )
+
+
+def main() -> None:
+    """兼容旧版 main.py 的命令行入口。"""
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(description="分析 Git 仓库两个提交之间的后端代码变更并生成风险报告。")
+    parser.add_argument("--repo", required=True, type=Path, help="实验仓库路径")
+    parser.add_argument("--base", required=True, help="基础提交、分支或标签")
+    parser.add_argument("--head", required=True, help="待分析提交、分支或标签")
+    parser.add_argument("--output", type=Path, help="可选的 JSON 报告输出路径")
+    args = parser.parse_args()
+    print("警告：main.py 是兼容入口，正式分支审计请使用 python -m prisk.web_cli。")
+    report = analyze_repository(args.repo, args.base, args.head)
+    content = json.dumps(report, ensure_ascii=False, indent=2)
+    print(content)
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(content + "\n", encoding="utf-8")
+        print(f"报告已写入: {args.output}")
 
 
 def analyze_repository(repo: Path, base: str, head: str) -> dict[str, Any]:
@@ -44,49 +66,37 @@ def analyze_repository(repo: Path, base: str, head: str) -> dict[str, Any]:
 
 
 def _read_diff(repo: Path, base: str, head: str) -> str:
-    result = subprocess.run(
-        ["git", "diff", "--find-renames", "--unified=0", f"{base}..{head}"],
-        cwd=repo,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
-    if result.returncode:
-        detail = result.stderr.strip() or "无法读取 Git 差异"
-        raise RuntimeError(detail)
-    return result.stdout
+    try:
+        return read_diff_text(repo, base, head)
+    except RuntimeError:
+        raise
 
 
 def _parse_diff(diff: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], set[str]]:
-    files: list[dict[str, Any]] = []
+    parsed_files = parse_unified_diff(diff)
+    files: list[dict[str, Any]] = [
+        {
+            "path": item["new_path"] or item["old_path"],
+            "change_type": item["status"],
+        }
+        for item in parsed_files
+    ]
     added_lines: list[dict[str, Any]] = []
-    changed_paths: set[str] = set()
-    current_path: str | None = None
-    next_line = 0
-
-    for raw_line in diff.splitlines():
-        file_match = DIFF_FILE_RE.match(raw_line)
-        if file_match:
-            current_path = file_match.group(2)
-            changed_paths.add(current_path)
-            files.append({"path": current_path, "change_type": "modified"})
-            next_line = 0
+    changed_paths: set[str] = {
+        str(item["new_path"] or item["old_path"])
+        for item in parsed_files
+        if item["new_path"] or item["old_path"]
+    }
+    for item in parsed_files:
+        path = item["new_path"] or item["old_path"]
+        if not path:
             continue
-
-        hunk_match = HUNK_RE.match(raw_line)
-        if hunk_match:
-            next_line = int(hunk_match.group("start"))
-            continue
-
-        if current_path is None or not raw_line.startswith(("+", "-", " ")):
-            continue
-        if raw_line.startswith("+") and not raw_line.startswith("+++"):
-            added_lines.append({"path": current_path, "line": next_line, "content": raw_line[1:]})
-            next_line += 1
-        elif raw_line.startswith(" "):
-            next_line += 1
+        for hunk in item["hunks"]:
+            for line in hunk["lines"]:
+                if line["kind"] == "add":
+                    added_lines.append(
+                        {"path": path, "line": line["new_line"], "content": line["text"]}
+                    )
 
     return files, added_lines, changed_paths
 

@@ -1,6 +1,15 @@
 .venv/
+.uv-cache/
 .idea/
 __pycache__/
 *.py[cod]
-reports/*.json
-reports/*.html
+*.egg-info/
+reports/
+*.tsbuildinfo
+.npm-cache/
+apps/web/node_modules/
+apps/web/.next/
+apps/web/.npm-cache/
+apps/web/next-env.d.ts
+tests/_tmp/
+tests/_runtime/
