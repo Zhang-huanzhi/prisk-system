@@ -1,0 +1,37 @@
+{
+  "schema_version": "stage05.v1",
+  "input_path": "backend\\data\\frozen-netbox\\stage04-structure-objects.jsonl",
+  "input_sha256": "7bb4d97c48d6e28cd0ec0fcf18ed82735e00d10717933452371920d2e13be66d",
+  "input_records": 120,
+  "status_counts": {
+    "excluded": 21,
+    "ok": 99
+  },
+  "finding_count": 1153,
+  "evidence_count": 12416,
+  "evidence_completeness": 1.0,
+  "rule_evidence_usability": {
+    "auth.permission_structure_changed": {
+      "evidence": 1721,
+      "usable_evidence": 1721,
+      "ratio": 1.0
+    },
+    "config.exception_structure_changed": {
+      "evidence": 563,
+      "usable_evidence": 563,
+      "ratio": 1.0
+    },
+    "data.transaction_structure_changed": {
+      "evidence": 10127,
+      "usable_evidence": 10127,
+      "ratio": 1.0
+    },
+    "interface.signature_changed": {
+      "evidence": 5,
+      "usable_evidence": 5,
+      "ratio": 1.0
+    }
+  },
+  "degraded_pr_count": 3,
+  "output_path": "backend\\data\\frozen-netbox\\stage05-rule-results.jsonl"
+}

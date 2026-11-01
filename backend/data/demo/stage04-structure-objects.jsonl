@@ -1,0 +1,1 @@
+{"status":"ok","pr_number":12,"files":[{"path":"src/example.py","parse_status":{"base":"ok","head":"ok"},"errors":[],"nodes":[{"node_id":"head:call:validate_input:1","kind":"call","name":"validate_input","qualified_name":"validate_input","source_segment":"validate_input()","start_line":10,"end_line":10,"changed_lines":[10]}]}]}

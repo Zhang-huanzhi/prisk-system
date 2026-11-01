@@ -1,0 +1,28 @@
+{
+  "schema_version": "stage07.report.v1",
+  "input_paths": [
+    "../../03-PR数据基础设施/artifacts/stage03-change-objects.jsonl",
+    "../../04-代码结构与变更表示/artifacts/stage04-structure-objects.jsonl",
+    "../../05-最小规则引擎/artifacts/stage05-rule-results.jsonl"
+  ],
+  "input_sha256": {
+    "../../03-PR数据基础设施/artifacts/stage03-change-objects.jsonl": "4de09be05d9390f7f096685ea5bbcdf5dcc5b614ef5ecacfc30dadba27aa5923",
+    "../../04-代码结构与变更表示/artifacts/stage04-structure-objects.jsonl": "7bb4d97c48d6e28cd0ec0fcf18ed82735e00d10717933452371920d2e13be66d",
+    "../../05-最小规则引擎/artifacts/stage05-rule-results.jsonl": "8399721dcfd9262b120640a09ea659dd5bfcd47181ed410af27198cdb011178f"
+  },
+  "input_records": 120,
+  "status_counts": {
+    "excluded": 21,
+    "ok": 99
+  },
+  "risk_level_counts": {
+    "high": 31,
+    "low": 34,
+    "medium": 34
+  },
+  "finding_count": 1153,
+  "evidence_count": 12416,
+  "scoring": "fixed transparent weights and thresholds; not calibrated defect probability",
+  "output_path": "stage07-scored-reports.jsonl",
+  "archival_status": "Stage 05 full output and Stage 07 scored output are absent from the source workspace."
+}

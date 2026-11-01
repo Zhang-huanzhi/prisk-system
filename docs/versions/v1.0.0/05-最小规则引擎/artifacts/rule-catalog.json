@@ -1,0 +1,41 @@
+{
+  "schema_version": "stage05.v1",
+  "rules": [
+    {
+      "rule_id": "interface.signature_changed",
+      "scene": "interface",
+      "severity": "medium",
+      "trigger": "API、serializer、view 或 URL Python 文件出现 signature_changed",
+      "evidence_type": "structural_change",
+      "suggested_action": "复核参数、返回结构、调用方和异常行为",
+      "limitations": "只表示接口相关结构变化，不判断兼容性或真实缺陷"
+    },
+    {
+      "rule_id": "auth.permission_structure_changed",
+      "scene": "auth",
+      "severity": "high",
+      "trigger": "权限/认证路径、权限装饰器或权限调用节点发生变化",
+      "evidence_type": "structural_change",
+      "suggested_action": "复核不同角色的访问边界和未授权响应",
+      "limitations": "不推断实际授权结果"
+    },
+    {
+      "rule_id": "data.transaction_structure_changed",
+      "scene": "data_transaction",
+      "severity": "medium",
+      "trigger": "model、migration 或事务/数据库调用节点发生变化",
+      "evidence_type": "structural_change",
+      "suggested_action": "复核事务边界、提交回滚路径和数据一致性",
+      "limitations": "不执行数据库或运行时事务验证"
+    },
+    {
+      "rule_id": "config.exception_structure_changed",
+      "scene": "config_exception",
+      "severity": "medium",
+      "trigger": "settings、configuration 文件或异常处理节点发生变化",
+      "evidence_type": "structural_change",
+      "suggested_action": "复核默认配置、异常分支和错误响应",
+      "limitations": "不判断部署环境中的实际配置值"
+    }
+  ]
+}

@@ -1,0 +1,191 @@
+{
+  "queried_at": "2026-10-28T14:50:45.311149+00:00",
+  "seed": 20261028,
+  "windows": [
+    "2016-01-01..2018-12-31",
+    "2019-01-01..2020-12-31",
+    "2021-01-01..2022-12-31",
+    "2023-01-01..2024-12-31",
+    "2025-01-01..2026-10-28"
+  ],
+  "selected_count": 120,
+  "author_count": 50,
+  "recovered_count": 120,
+  "analyzable_count": 99,
+  "exclusions": {
+    "docs_only": 21
+  },
+  "size_bands": {
+    "small": 40,
+    "medium": 40,
+    "large": 40
+  },
+  "windows_selected": {
+    "2016-01-01..2018-12-31": 26,
+    "2019-01-01..2020-12-31": 24,
+    "2021-01-01..2022-12-31": 24,
+    "2023-01-01..2024-12-31": 23,
+    "2025-01-01..2026-10-28": 23
+  },
+  "scenes": {
+    "api": {
+      "count": 45,
+      "signals": [
+        "graphql_path",
+        "rest_api_path"
+      ],
+      "signal_counts": {
+        "rest_api_path": 42,
+        "graphql_path": 10
+      },
+      "qualifying_signals": [
+        "graphql_path",
+        "rest_api_path"
+      ],
+      "diversity_keys": [
+        "netbox/circuits",
+        "netbox/core",
+        "netbox/dcim",
+        "netbox/extras",
+        "netbox/ipam",
+        "netbox/netbox",
+        "netbox/secrets",
+        "netbox/tenancy",
+        "netbox/users",
+        "netbox/virtualization",
+        "netbox/vpn",
+        "netbox/wireless"
+      ],
+      "parse_rate": 0.9555555555555556,
+      "parse_attempted": 45,
+      "labels": {
+        "not_flagged": 36,
+        "needs_attention": 9
+      },
+      "decision": "纳入"
+    },
+    "auth": {
+      "count": 26,
+      "signals": [
+        "permission_diff",
+        "permission_path",
+        "users_path"
+      ],
+      "signal_counts": {
+        "permission_diff": 16,
+        "users_path": 15,
+        "permission_path": 5,
+        "auth_path": 1
+      },
+      "qualifying_signals": [
+        "permission_diff",
+        "permission_path",
+        "users_path"
+      ],
+      "diversity_keys": [
+        "netbox/dcim",
+        "netbox/extras",
+        "netbox/ipam",
+        "netbox/netbox",
+        "netbox/users",
+        "netbox/utilities",
+        "netbox/virtualization"
+      ],
+      "parse_rate": 1.0,
+      "parse_attempted": 26,
+      "labels": {
+        "not_flagged": 22,
+        "needs_attention": 2,
+        "uncertain": 2
+      },
+      "decision": "纳入"
+    },
+    "data_transaction": {
+      "count": 44,
+      "signals": [
+        "atomic_or_rollback",
+        "migration_path",
+        "model_path"
+      ],
+      "signal_counts": {
+        "migration_path": 26,
+        "model_path": 35,
+        "atomic_or_rollback": 4
+      },
+      "qualifying_signals": [
+        "atomic_or_rollback",
+        "migration_path",
+        "model_path"
+      ],
+      "diversity_keys": [
+        "netbox/circuits",
+        "netbox/core",
+        "netbox/dcim",
+        "netbox/extras",
+        "netbox/ipam",
+        "netbox/netbox",
+        "netbox/secrets",
+        "netbox/tenancy",
+        "netbox/users",
+        "netbox/utilities",
+        "netbox/virtualization",
+        "netbox/vpn",
+        "netbox/wireless"
+      ],
+      "parse_rate": 0.9318181818181818,
+      "parse_attempted": 44,
+      "labels": {
+        "not_flagged": 37,
+        "uncertain": 3,
+        "needs_attention": 4
+      },
+      "decision": "纳入"
+    },
+    "config_exception": {
+      "count": 38,
+      "signals": [
+        "configuration_path",
+        "exception_path",
+        "settings_path"
+      ],
+      "signal_counts": {
+        "configuration_path": 11,
+        "settings_path": 37,
+        "exception_path": 3
+      },
+      "qualifying_signals": [
+        "configuration_path",
+        "exception_path",
+        "settings_path"
+      ],
+      "diversity_keys": [
+        "netbox/dcim",
+        "netbox/netbox",
+        "netbox/utilities"
+      ],
+      "parse_rate": 0.9210526315789473,
+      "parse_attempted": 38,
+      "labels": {
+        "not_flagged": 34,
+        "needs_attention": 3,
+        "uncertain": 1
+      },
+      "decision": "纳入"
+    }
+  },
+  "business_changed": 99,
+  "test_cochanged": 48,
+  "passes_sampling_gate": true,
+  "included_scenes": [
+    "api",
+    "auth",
+    "data_transaction",
+    "config_exception"
+  ],
+  "parse_note": "语法检查使用 Python 标准库 ast.parse，解析的是目标版本上的 .py 文件。框架级结构对齐不在这一阶段。",
+  "label_note": "needs_attention 表示审查者的非客套行内评论指向某个文件，且之后有提交改了该文件。只有评论、无法对应到后续文件时记为 uncertain。合并后修复只在 PR 标题或提交标题以 Revert 开头时记为 true，模板里的 revert option 不算。",
+  "bot_rule": "抽样排除作者名包含 dependabot 或 renovate 的 PR。",
+  "merged_total": 4287,
+  "analyzable_rate": 0.825,
+  "estimated_analyzable": 3537
+}

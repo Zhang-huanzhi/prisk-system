@@ -1,0 +1,30 @@
+{
+  "schema_version": "stage04.v1",
+  "input_path": "../../03-PR数据基础设施/artifacts/stage03-change-objects.jsonl",
+  "input_sha256": "4de09be05d9390f7f096685ea5bbcdf5dcc5b614ef5ecacfc30dadba27aa5923",
+  "repo": "netbox-community/netbox",
+  "selection_limit": 3,
+  "input_records": 120,
+  "selected_records": 3,
+  "status_counts": {
+    "ok": 3
+  },
+  "parse_status_counts": {
+    "degraded": 2,
+    "ok": 23
+  },
+  "node_count": 408,
+  "structural_change_count": 326,
+  "selected_pr_numbers": [
+    179,
+    19,
+    226
+  ],
+  "pilot_pr_numbers": [
+    179,
+    19,
+    226
+  ],
+  "output_path": "pilot-stage04-structure-objects.jsonl",
+  "output_sha256": "fc5708030b46cd3f756b52d1347f15deac9e6bd48926e87ad36f949b98dc179f"
+}

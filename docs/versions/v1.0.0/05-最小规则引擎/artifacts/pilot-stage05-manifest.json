@@ -1,0 +1,31 @@
+{
+  "schema_version": "stage05.v1",
+  "input_path": "../../04-代码结构与变更表示/artifacts/stage04-structure-objects.jsonl",
+  "input_sha256": "7bb4d97c48d6e28cd0ec0fcf18ed82735e00d10717933452371920d2e13be66d",
+  "input_records": 3,
+  "status_counts": {
+    "ok": 3
+  },
+  "finding_count": 17,
+  "evidence_count": 180,
+  "evidence_completeness": 1.0,
+  "rule_evidence_usability": {
+    "auth.permission_structure_changed": {
+      "evidence": 14,
+      "usable_evidence": 14,
+      "ratio": 1.0
+    },
+    "config.exception_structure_changed": {
+      "evidence": 46,
+      "usable_evidence": 46,
+      "ratio": 1.0
+    },
+    "data.transaction_structure_changed": {
+      "evidence": 120,
+      "usable_evidence": 120,
+      "ratio": 1.0
+    }
+  },
+  "degraded_pr_count": 1,
+  "output_path": "pilot-stage05-rule-results.jsonl"
+}

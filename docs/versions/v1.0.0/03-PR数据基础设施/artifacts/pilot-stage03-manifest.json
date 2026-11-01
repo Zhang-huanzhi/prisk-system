@@ -1,0 +1,28 @@
+{
+  "schema_version": "stage03.v1",
+  "input_path": "../../02-PR采样&定风险场景/artifacts/netbox-survey.jsonl",
+  "input_sha256": "8d2fc0cdabcafee9f6147563b2c16ceac1a82aa8f284625f0e10fed56a90c272",
+  "repo": "netbox-community/netbox",
+  "selection_limit": 3,
+  "input_records": 120,
+  "selected_records": 3,
+  "status_counts": {
+    "ok": 3
+  },
+  "validation_mismatch_count": 1,
+  "validation_mismatch_pr_numbers": [
+    226
+  ],
+  "selected_pr_numbers": [
+    179,
+    19,
+    226
+  ],
+  "pilot_pr_numbers": [
+    179,
+    19,
+    226
+  ],
+  "output_path": "pilot-stage03-change-objects.jsonl",
+  "output_sha256": "d745e89e962b760e51f504c9c21d09815bc86eb3d9907c629740b794b1a5375d"
+}

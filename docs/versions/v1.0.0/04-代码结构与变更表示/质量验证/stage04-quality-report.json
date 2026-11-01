@@ -1,0 +1,3386 @@
+{
+  "schema_version": "stage04-quality.v1",
+  "audit_method": "automatic_consistency_checks_with_manual_review_queue",
+  "selected_pr_numbers": [
+    226,
+    269,
+    309,
+    453,
+    1757,
+    107,
+    19,
+    179,
+    569,
+    587,
+    1664,
+    1789
+  ],
+  "selected_record_count": 12,
+  "minimum_prs": 12,
+  "changes_per_pr_reviewed": 5,
+  "metrics": {
+    "python_files": 146,
+    "parsed_files": 142,
+    "degraded_files": 4,
+    "degraded_errors_with_location": 8,
+    "degraded_errors_missing_location": 0,
+    "nodes": 2850,
+    "structural_changes": 2041,
+    "file_path_accuracy": 1.0,
+    "node_kind_accuracy": 1.0,
+    "qualified_name_coverage": 1.0,
+    "node_line_mapping_accuracy": 1.0,
+    "change_type_accuracy": 1.0,
+    "change_line_mapping_accuracy": 1.0,
+    "duplicate_node_rate": 0.0,
+    "duplicate_structural_change_rate": 0.0,
+    "call_touched_ratio": 0.0392,
+    "call_change_ratio": 0.5247
+  },
+  "automatic_gate": {
+    "pass": true,
+    "thresholds": {
+      "node_kind_accuracy": 0.85,
+      "file_path_accuracy": 0.9,
+      "node_line_mapping_accuracy": 0.9,
+      "change_type_accuracy": 0.9,
+      "change_line_mapping_accuracy": 0.9,
+      "duplicate_node_rate_max": 0.1
+    }
+  },
+  "manual_review_required": true,
+  "manual_review_items": [
+    {
+      "pr_number": 19,
+      "path": "netbox/utilities/tables.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            24
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "kwargs.pop",
+            "keyword_names": []
+          },
+          "end_col": 43,
+          "end_line": 24,
+          "fingerprint": "85d3469d3021cdd6cd06b52253c0221ef613397ffe926e13e9ad78df5324dd0d",
+          "kind": "call",
+          "match_key": "call:ToggleColumn.__init__:kwargs.pop",
+          "name": "kwargs.pop",
+          "node_id": "head:call:call:ToggleColumn.__init__:kwargs.pop:1",
+          "qualified_name": "ToggleColumn.__init__",
+          "source_segment": "kwargs.pop('default', '')",
+          "start_col": 18,
+          "start_line": 24
+        },
+        "before": null,
+        "evidence_lines": [
+          24
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 43,
+          "end_line": 24,
+          "start_col": 18,
+          "start_line": 24
+        },
+        "match_key": "call:ToggleColumn.__init__:kwargs.pop",
+        "node_id": "head:call:call:ToggleColumn.__init__:kwargs.pop:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 19,
+      "path": "netbox/utilities/tables.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            25
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "kwargs.pop",
+            "keyword_names": []
+          },
+          "end_col": 46,
+          "end_line": 25,
+          "fingerprint": "5ccd22b42a8c71d06e241e10d26e46618e31bff9b8141549a0ee3a09078a7170",
+          "kind": "call",
+          "match_key": "call:ToggleColumn.__init__:kwargs.pop",
+          "name": "kwargs.pop",
+          "node_id": "head:call:call:ToggleColumn.__init__:kwargs.pop:2",
+          "qualified_name": "ToggleColumn.__init__",
+          "source_segment": "kwargs.pop('visible', False)",
+          "start_col": 18,
+          "start_line": 25
+        },
+        "before": null,
+        "evidence_lines": [
+          25
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 46,
+          "end_line": 25,
+          "start_col": 18,
+          "start_line": 25
+        },
+        "match_key": "call:ToggleColumn.__init__:kwargs.pop",
+        "node_id": "head:call:call:ToggleColumn.__init__:kwargs.pop:2",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 19,
+      "path": "netbox/utilities/tables.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            26
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "super",
+            "keyword_names": []
+          },
+          "end_col": 33,
+          "end_line": 26,
+          "fingerprint": "b2cc4cb776b343c6802cb34d99bab4401c098c0c8eaf3d40f14717ee8fc9f2ea",
+          "kind": "call",
+          "match_key": "call:ToggleColumn.__init__:super",
+          "name": "super",
+          "node_id": "head:call:call:ToggleColumn.__init__:super:1",
+          "qualified_name": "ToggleColumn.__init__",
+          "source_segment": "super(ToggleColumn, self)",
+          "start_col": 8,
+          "start_line": 26
+        },
+        "before": null,
+        "evidence_lines": [
+          26
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 33,
+          "end_line": 26,
+          "start_col": 8,
+          "start_line": 26
+        },
+        "match_key": "call:ToggleColumn.__init__:super",
+        "node_id": "head:call:call:ToggleColumn.__init__:super:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 19,
+      "path": "netbox/utilities/tables.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            26
+          ],
+          "details": {
+            "args_count": 1,
+            "callee": "super(ToggleColumn, self).__init__",
+            "keyword_names": [
+              "default",
+              "visible",
+              null
+            ]
+          },
+          "end_col": 93,
+          "end_line": 26,
+          "fingerprint": "11978f2a8a24031f73190d725b18bdb46c38b3f28e4960101c84876804479cee",
+          "kind": "call",
+          "match_key": "call:ToggleColumn.__init__:super(ToggleColumn, self).__init__",
+          "name": "super(ToggleColumn, self).__init__",
+          "node_id": "head:call:call:ToggleColumn.__init__:super(ToggleColumn, self).__init__:1",
+          "qualified_name": "ToggleColumn.__init__",
+          "source_segment": "super(ToggleColumn, self).__init__(*args, default=default, visible=visible, **kwargs)",
+          "start_col": 8,
+          "start_line": 26
+        },
+        "before": null,
+        "evidence_lines": [
+          26
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 93,
+          "end_line": 26,
+          "start_col": 8,
+          "start_line": 26
+        },
+        "match_key": "call:ToggleColumn.__init__:super(ToggleColumn, self).__init__",
+        "node_id": "head:call:call:ToggleColumn.__init__:super(ToggleColumn, self).__init__:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 19,
+      "path": "netbox/utilities/tables.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            22,
+            23,
+            24,
+            25,
+            26
+          ],
+          "details": {
+            "bases": [
+              "tables.CheckBoxColumn"
+            ],
+            "decorators": []
+          },
+          "end_col": 84,
+          "end_line": 30,
+          "fingerprint": "c202860af4bbdb58a175788dc8fa149777785c70fda434adc2f654d4f38ccbe4",
+          "kind": "class",
+          "match_key": "class:ToggleColumn",
+          "name": "ToggleColumn",
+          "node_id": "head:class:class:ToggleColumn:1",
+          "qualified_name": "ToggleColumn",
+          "source_segment": "class ToggleColumn(tables.CheckBoxColumn):\n\n    def __init__(self, *args, **kwargs):\n        default = kwargs.pop('default', '')\n        visible = kwargs.pop('visible', False)\n        super(ToggleColumn, self).__init__(*args, default=default, visible=visible, **kwargs)\n\n    @property\n    def header(self):\n        return mark_safe('<input type=\"checkbox\" name=\"_all\" title=\"Select all\" />')",
+          "start_col": 0,
+          "start_line": 21
+        },
+        "before": {
+          "changed_lines": [
+            22,
+            23
+          ],
+          "details": {
+            "bases": [
+              "tables.CheckBoxColumn"
+            ],
+            "decorators": []
+          },
+          "end_col": 84,
+          "end_line": 27,
+          "fingerprint": "8f93d49e5dd8bbdf293a4ecff026e7764010861e29cafb488d82636bcbd95986",
+          "kind": "class",
+          "match_key": "class:ToggleColumn",
+          "name": "ToggleColumn",
+          "node_id": "base:class:class:ToggleColumn:1",
+          "qualified_name": "ToggleColumn",
+          "source_segment": "class ToggleColumn(tables.CheckBoxColumn):\n    default = ''\n    visible = False\n\n    @property\n    def header(self):\n        return mark_safe('<input type=\"checkbox\" name=\"_all\" title=\"Select all\" />')",
+          "start_col": 0,
+          "start_line": 21
+        },
+        "evidence_lines": [
+          22,
+          23,
+          24,
+          25,
+          26
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 84,
+          "end_line": 30,
+          "start_col": 0,
+          "start_line": 21
+        },
+        "match_key": "class:ToggleColumn",
+        "node_id": "head:class:class:ToggleColumn:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 107,
+      "path": "netbox/netbox/configuration.docker.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            12
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "os.environ.get",
+            "keyword_names": []
+          },
+          "end_col": 52,
+          "end_line": 12,
+          "fingerprint": "b53d17ad575132eb5a269134de18b7a269564370efb37356a7ac3bc7f55ab7a7",
+          "kind": "call",
+          "match_key": "call:<module>:os.environ.get",
+          "name": "os.environ.get",
+          "node_id": "head:call:call:<module>:os.environ.get:1",
+          "qualified_name": "<module>",
+          "source_segment": "os.environ.get('ALLOWED_HOSTS', '')",
+          "start_col": 17,
+          "start_line": 12
+        },
+        "before": null,
+        "evidence_lines": [
+          12
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 52,
+          "end_line": 12,
+          "start_col": 17,
+          "start_line": 12
+        },
+        "match_key": "call:<module>:os.environ.get",
+        "node_id": "head:call:call:<module>:os.environ.get:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 107,
+      "path": "netbox/netbox/configuration.docker.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            16
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "os.environ.get",
+            "keyword_names": []
+          },
+          "end_col": 47,
+          "end_line": 16,
+          "fingerprint": "25bc15ae1a742237eaf3109c76cfd5cceb3f003452c91828d752822ff9731830",
+          "kind": "call",
+          "match_key": "call:<module>:os.environ.get",
+          "name": "os.environ.get",
+          "node_id": "head:call:call:<module>:os.environ.get:2",
+          "qualified_name": "<module>",
+          "source_segment": "os.environ.get('DB_NAME', 'netbox')",
+          "start_col": 12,
+          "start_line": 16
+        },
+        "before": null,
+        "evidence_lines": [
+          16
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 47,
+          "end_line": 16,
+          "start_col": 12,
+          "start_line": 16
+        },
+        "match_key": "call:<module>:os.environ.get",
+        "node_id": "head:call:call:<module>:os.environ.get:2",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 107,
+      "path": "netbox/netbox/configuration.docker.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            17
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "os.environ.get",
+            "keyword_names": []
+          },
+          "end_col": 41,
+          "end_line": 17,
+          "fingerprint": "b6c34d65fd1f9f7653b760c80e2fed1502779023313911b444c0082162a79d76",
+          "kind": "call",
+          "match_key": "call:<module>:os.environ.get",
+          "name": "os.environ.get",
+          "node_id": "head:call:call:<module>:os.environ.get:3",
+          "qualified_name": "<module>",
+          "source_segment": "os.environ.get('DB_USER', '')",
+          "start_col": 12,
+          "start_line": 17
+        },
+        "before": null,
+        "evidence_lines": [
+          17
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 41,
+          "end_line": 17,
+          "start_col": 12,
+          "start_line": 17
+        },
+        "match_key": "call:<module>:os.environ.get",
+        "node_id": "head:call:call:<module>:os.environ.get:3",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 107,
+      "path": "netbox/netbox/configuration.docker.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            18
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "os.environ.get",
+            "keyword_names": []
+          },
+          "end_col": 49,
+          "end_line": 18,
+          "fingerprint": "2952ca79fc0b5855fab110985517b4ef82ac4864d416c9248d03aaa7871409e8",
+          "kind": "call",
+          "match_key": "call:<module>:os.environ.get",
+          "name": "os.environ.get",
+          "node_id": "head:call:call:<module>:os.environ.get:4",
+          "qualified_name": "<module>",
+          "source_segment": "os.environ.get('DB_PASSWORD', '')",
+          "start_col": 16,
+          "start_line": 18
+        },
+        "before": null,
+        "evidence_lines": [
+          18
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 49,
+          "end_line": 18,
+          "start_col": 16,
+          "start_line": 18
+        },
+        "match_key": "call:<module>:os.environ.get",
+        "node_id": "head:call:call:<module>:os.environ.get:4",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 107,
+      "path": "netbox/netbox/configuration.docker.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            19
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "os.environ.get",
+            "keyword_names": []
+          },
+          "end_col": 50,
+          "end_line": 19,
+          "fingerprint": "f47dc0b97d42b0e311b40e0e600dc2fe97cbbcb3055d491b14b1d6fcaa5951df",
+          "kind": "call",
+          "match_key": "call:<module>:os.environ.get",
+          "name": "os.environ.get",
+          "node_id": "head:call:call:<module>:os.environ.get:5",
+          "qualified_name": "<module>",
+          "source_segment": "os.environ.get('DB_HOST', 'localhost')",
+          "start_col": 12,
+          "start_line": 19
+        },
+        "before": null,
+        "evidence_lines": [
+          19
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 50,
+          "end_line": 19,
+          "start_col": 12,
+          "start_line": 19
+        },
+        "match_key": "call:<module>:os.environ.get",
+        "node_id": "head:call:call:<module>:os.environ.get:5",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 179,
+      "path": "netbox/dcim/tables.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            308
+          ],
+          "details": {
+            "bases": [
+              "BaseTable"
+            ],
+            "decorators": []
+          },
+          "end_col": 71,
+          "end_line": 309,
+          "fingerprint": "64146041e13ddba5a2f396bdfafe471ec1cb5adf50b13a784a4aad8d25f8b418",
+          "kind": "class",
+          "match_key": "class:InterfaceConnectionTable",
+          "name": "InterfaceConnectionTable",
+          "node_id": "head:class:class:InterfaceConnectionTable:1",
+          "qualified_name": "InterfaceConnectionTable",
+          "source_segment": "class InterfaceConnectionTable(BaseTable):\n    device_a = tables.LinkColumn('dcim:device', accessor=Accessor('interface_a.device'),\n                                 args=[Accessor('interface_a.device.pk')], verbose_name='Device A')\n    interface_a = tables.Column(verbose_name='Interface A')\n    device_b = tables.LinkColumn('dcim:device', accessor=Accessor('interface_b.device'),\n                                 args=[Accessor('interface_b.device.pk')], verbose_name='Device B')\n    interface_b = tables.Column(verbose_name='Interface B')\n\n    class Meta(BaseTable.Meta):\n        model = Interface\n        fields = ('device_a', 'interface_a', 'device_b', 'interface_b')",
+          "start_col": 0,
+          "start_line": 299
+        },
+        "before": {
+          "changed_lines": [
+            308
+          ],
+          "details": {
+            "bases": [
+              "BaseTable"
+            ],
+            "decorators": []
+          },
+          "end_col": 71,
+          "end_line": 309,
+          "fingerprint": "eb2e067c5dbc9f2a6ddc10932ecf403f77be637e7916c8647596537c690102a7",
+          "kind": "class",
+          "match_key": "class:InterfaceConnectionTable",
+          "name": "InterfaceConnectionTable",
+          "node_id": "base:class:class:InterfaceConnectionTable:1",
+          "qualified_name": "InterfaceConnectionTable",
+          "source_segment": "class InterfaceConnectionTable(BaseTable):\n    device_a = tables.LinkColumn('dcim:device', accessor=Accessor('interface_a.device'),\n                                 args=[Accessor('interface_a.device.pk')], verbose_name='Device A')\n    interface_a = tables.Column(verbose_name='Interface A')\n    device_b = tables.LinkColumn('dcim:device', accessor=Accessor('interface_b.device'),\n                                 args=[Accessor('interface_b.device.pk')], verbose_name='Device B')\n    interface_b = tables.Column(verbose_name='Interface B')\n\n    class Meta(BaseTable.Meta):\n        model = PowerPort\n        fields = ('device_a', 'interface_a', 'device_b', 'interface_b')",
+          "start_col": 0,
+          "start_line": 299
+        },
+        "evidence_lines": [
+          308
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 71,
+          "end_line": 309,
+          "start_col": 0,
+          "start_line": 299
+        },
+        "match_key": "class:InterfaceConnectionTable",
+        "node_id": "head:class:class:InterfaceConnectionTable:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 179,
+      "path": "netbox/dcim/tables.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            308
+          ],
+          "details": {
+            "bases": [
+              "BaseTable.Meta"
+            ],
+            "decorators": []
+          },
+          "end_col": 71,
+          "end_line": 309,
+          "fingerprint": "d4a7f1eb120d61c33838d0fd9073489e9108f9ff4d4d983017c282539f1a8452",
+          "kind": "class",
+          "match_key": "class:InterfaceConnectionTable.Meta",
+          "name": "Meta",
+          "node_id": "head:class:class:InterfaceConnectionTable.Meta:1",
+          "qualified_name": "InterfaceConnectionTable.Meta",
+          "source_segment": "class Meta(BaseTable.Meta):\n        model = Interface\n        fields = ('device_a', 'interface_a', 'device_b', 'interface_b')",
+          "start_col": 4,
+          "start_line": 307
+        },
+        "before": {
+          "changed_lines": [
+            308
+          ],
+          "details": {
+            "bases": [
+              "BaseTable.Meta"
+            ],
+            "decorators": []
+          },
+          "end_col": 71,
+          "end_line": 309,
+          "fingerprint": "0153edf4b206197810a041cae6810db87a8d78f2f4edc16f1ebc0bfad7712e0d",
+          "kind": "class",
+          "match_key": "class:InterfaceConnectionTable.Meta",
+          "name": "Meta",
+          "node_id": "base:class:class:InterfaceConnectionTable.Meta:1",
+          "qualified_name": "InterfaceConnectionTable.Meta",
+          "source_segment": "class Meta(BaseTable.Meta):\n        model = PowerPort\n        fields = ('device_a', 'interface_a', 'device_b', 'interface_b')",
+          "start_col": 4,
+          "start_line": 307
+        },
+        "evidence_lines": [
+          308
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 71,
+          "end_line": 309,
+          "start_col": 4,
+          "start_line": 307
+        },
+        "match_key": "class:InterfaceConnectionTable.Meta",
+        "node_id": "head:class:class:InterfaceConnectionTable.Meta:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 179,
+      "path": "netbox/dcim/tables.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            308
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "InterfaceConnectionTable.Meta",
+            "value_fingerprint": "de61b7893f4ed9258aba5d81b88eebbd5a16801a27f77562ba7604ad25564dc8"
+          },
+          "end_col": 25,
+          "end_line": 308,
+          "fingerprint": "271d26e2231a6c0a52d05a9d33b57de65e8c2891187dcd42b208da63db3014bb",
+          "kind": "field",
+          "match_key": "field:InterfaceConnectionTable.Meta.model",
+          "name": "model",
+          "node_id": "head:field:field:InterfaceConnectionTable.Meta.model:1",
+          "qualified_name": "InterfaceConnectionTable.Meta.model",
+          "source_segment": "model = Interface",
+          "start_col": 8,
+          "start_line": 308
+        },
+        "before": {
+          "changed_lines": [
+            308
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "InterfaceConnectionTable.Meta",
+            "value_fingerprint": "f12748fcddecfcae2bc31c151c3d9750e459da8b7c54cbb89ee24cce524557cd"
+          },
+          "end_col": 25,
+          "end_line": 308,
+          "fingerprint": "89cd2f3b324fd960f6ce1737127793c728a562110e5ca320bc2748f9965cd80c",
+          "kind": "field",
+          "match_key": "field:InterfaceConnectionTable.Meta.model",
+          "name": "model",
+          "node_id": "base:field:field:InterfaceConnectionTable.Meta.model:1",
+          "qualified_name": "InterfaceConnectionTable.Meta.model",
+          "source_segment": "model = PowerPort",
+          "start_col": 8,
+          "start_line": 308
+        },
+        "evidence_lines": [
+          308
+        ],
+        "kind": "field",
+        "location": {
+          "end_col": 25,
+          "end_line": 308,
+          "start_col": 8,
+          "start_line": 308
+        },
+        "match_key": "field:InterfaceConnectionTable.Meta.model",
+        "node_id": "head:field:field:InterfaceConnectionTable.Meta.model:1",
+        "type": "field_modified"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 226,
+      "path": "netbox/dcim/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            92
+          ],
+          "details": {
+            "args_count": 1,
+            "callee": "Count",
+            "keyword_names": [
+              "distinct"
+            ]
+          },
+          "end_col": 71,
+          "end_line": 92,
+          "fingerprint": "c69f977860f2e46affff8bf3c4cd4aa6c07e0ec5dccecf57d3f7b40a4565b94e",
+          "kind": "call",
+          "match_key": "call:DeviceTypeAdmin.get_queryset:Count",
+          "name": "Count",
+          "node_id": "head:call:call:DeviceTypeAdmin.get_queryset:Count:6",
+          "qualified_name": "DeviceTypeAdmin.get_queryset",
+          "source_segment": "Count('devicebay_templates', distinct=True)",
+          "start_col": 28,
+          "start_line": 92
+        },
+        "before": null,
+        "evidence_lines": [
+          92
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 71,
+          "end_line": 92,
+          "start_col": 28,
+          "start_line": 92
+        },
+        "match_key": "call:DeviceTypeAdmin.get_queryset:Count",
+        "node_id": "head:call:call:DeviceTypeAdmin.get_queryset:Count:6",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 226,
+      "path": "netbox/dcim/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            92
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "DeviceType.objects.annotate",
+            "keyword_names": [
+              "console_port_count",
+              "cs_port_count",
+              "power_port_count",
+              "power_outlet_count",
+              "interface_count",
+              "devicebay_count"
+            ]
+          },
+          "end_col": 9,
+          "end_line": 93,
+          "fingerprint": "fc11b4fdde900dd859b334053d90174068051f27d523617d7ddc83541bbc2896",
+          "kind": "call",
+          "match_key": "call:DeviceTypeAdmin.get_queryset:DeviceType.objects.annotate",
+          "name": "DeviceType.objects.annotate",
+          "node_id": "head:call:call:DeviceTypeAdmin.get_queryset:DeviceType.objects.annotate:1",
+          "qualified_name": "DeviceTypeAdmin.get_queryset",
+          "source_segment": "DeviceType.objects.annotate(\n            console_port_count=Count('console_port_templates', distinct=True),\n            cs_port_count=Count('cs_port_templates', distinct=True),\n            power_port_count=Count('power_port_templates', distinct=True),\n            power_outlet_count=Count('power_outlet_templates', distinct=True),\n            interface_count=Count('interface_templates', distinct=True),\n            devicebay_count=Count('devicebay_templates', distinct=True),\n        )",
+          "start_col": 15,
+          "start_line": 86
+        },
+        "before": null,
+        "evidence_lines": [
+          92
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 9,
+          "end_line": 93,
+          "start_col": 15,
+          "start_line": 86
+        },
+        "match_key": "call:DeviceTypeAdmin.get_queryset:DeviceType.objects.annotate",
+        "node_id": "head:call:call:DeviceTypeAdmin.get_queryset:DeviceType.objects.annotate:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 226,
+      "path": "netbox/dcim/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            175
+          ],
+          "details": {
+            "bases": [
+              "admin.ModelAdmin"
+            ],
+            "decorators": [
+              "admin.register(Device)"
+            ]
+          },
+          "end_col": 98,
+          "end_line": 183,
+          "fingerprint": "7a33d1fb42e0c952e1bd415536c9026f95f09d1c793112fbbaedb19f9d04ac66",
+          "kind": "class",
+          "match_key": "class:DeviceAdmin",
+          "name": "DeviceAdmin",
+          "node_id": "head:class:class:DeviceAdmin:1",
+          "qualified_name": "DeviceAdmin",
+          "source_segment": "class DeviceAdmin(admin.ModelAdmin):\n    inlines = [\n        ConsolePortAdmin,\n        ConsoleServerPortAdmin,\n        PowerPortAdmin,\n        PowerOutletAdmin,\n        InterfaceAdmin,\n        DeviceBayAdmin,\n        ModuleAdmin,\n    ]\n    list_display = ['display_name', 'device_type', 'device_role', 'primary_ip', 'rack', 'position', 'serial']\n    list_filter = ['device_role']\n\n    def get_queryset(self, request):\n        qs = super(DeviceAdmin, self).get_queryset(request)\n        return qs.select_related('device_type__manufacturer', 'device_role', 'primary_ip', 'rack')",
+          "start_col": 0,
+          "start_line": 168
+        },
+        "before": null,
+        "evidence_lines": [
+          175
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 98,
+          "end_line": 183,
+          "start_col": 0,
+          "start_line": 168
+        },
+        "match_key": "class:DeviceAdmin",
+        "node_id": "head:class:class:DeviceAdmin:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 226,
+      "path": "netbox/dcim/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            156,
+            157,
+            158,
+            159
+          ],
+          "details": {
+            "bases": [
+              "admin.TabularInline"
+            ],
+            "decorators": []
+          },
+          "end_col": 42,
+          "end_line": 159,
+          "fingerprint": "b1582965037660aca1ef6d52cafb6326275a1d557a8dd0c9a4f63b871f53c9df",
+          "kind": "class",
+          "match_key": "class:DeviceBayAdmin",
+          "name": "DeviceBayAdmin",
+          "node_id": "head:class:class:DeviceBayAdmin:1",
+          "qualified_name": "DeviceBayAdmin",
+          "source_segment": "class DeviceBayAdmin(admin.TabularInline):\n    model = DeviceBay\n    fk_name = 'device'\n    readonly_fields = ['installed_device']",
+          "start_col": 0,
+          "start_line": 156
+        },
+        "before": null,
+        "evidence_lines": [
+          156,
+          157,
+          158,
+          159
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 42,
+          "end_line": 159,
+          "start_col": 0,
+          "start_line": 156
+        },
+        "match_key": "class:DeviceBayAdmin",
+        "node_id": "head:class:class:DeviceBayAdmin:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 226,
+      "path": "netbox/dcim/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            64,
+            65
+          ],
+          "details": {
+            "bases": [
+              "admin.TabularInline"
+            ],
+            "decorators": []
+          },
+          "end_col": 29,
+          "end_line": 65,
+          "fingerprint": "e01ed7b5e35f8b086e688e8186d8e6a669459f52d285e2fbd60c7388891959a1",
+          "kind": "class",
+          "match_key": "class:DeviceBayTemplateAdmin",
+          "name": "DeviceBayTemplateAdmin",
+          "node_id": "head:class:class:DeviceBayTemplateAdmin:1",
+          "qualified_name": "DeviceBayTemplateAdmin",
+          "source_segment": "class DeviceBayTemplateAdmin(admin.TabularInline):\n    model = DeviceBayTemplate",
+          "start_col": 0,
+          "start_line": 64
+        },
+        "before": null,
+        "evidence_lines": [
+          64,
+          65
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 29,
+          "end_line": 65,
+          "start_col": 0,
+          "start_line": 64
+        },
+        "match_key": "class:DeviceBayTemplateAdmin",
+        "node_id": "head:class:class:DeviceBayTemplateAdmin:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 269,
+      "path": "netbox/dcim/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            92
+          ],
+          "details": {
+            "args_count": 1,
+            "callee": "Count",
+            "keyword_names": [
+              "distinct"
+            ]
+          },
+          "end_col": 72,
+          "end_line": 92,
+          "fingerprint": "af28fd7f1b574f0ffc37f0477b59400640f92a46565038d9d0e2d7204460ced5",
+          "kind": "call",
+          "match_key": "call:DeviceTypeAdmin.get_queryset:Count",
+          "name": "Count",
+          "node_id": "head:call:call:DeviceTypeAdmin.get_queryset:Count:6",
+          "qualified_name": "DeviceTypeAdmin.get_queryset",
+          "source_segment": "Count('device_bay_templates', distinct=True)",
+          "start_col": 28,
+          "start_line": 92
+        },
+        "before": {
+          "changed_lines": [
+            92
+          ],
+          "details": {
+            "args_count": 1,
+            "callee": "Count",
+            "keyword_names": [
+              "distinct"
+            ]
+          },
+          "end_col": 71,
+          "end_line": 92,
+          "fingerprint": "c69f977860f2e46affff8bf3c4cd4aa6c07e0ec5dccecf57d3f7b40a4565b94e",
+          "kind": "call",
+          "match_key": "call:DeviceTypeAdmin.get_queryset:Count",
+          "name": "Count",
+          "node_id": "base:call:call:DeviceTypeAdmin.get_queryset:Count:6",
+          "qualified_name": "DeviceTypeAdmin.get_queryset",
+          "source_segment": "Count('devicebay_templates', distinct=True)",
+          "start_col": 28,
+          "start_line": 92
+        },
+        "evidence_lines": [
+          92
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 72,
+          "end_line": 92,
+          "start_col": 28,
+          "start_line": 92
+        },
+        "match_key": "call:DeviceTypeAdmin.get_queryset:Count",
+        "node_id": "head:call:call:DeviceTypeAdmin.get_queryset:Count:6",
+        "type": "call_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 269,
+      "path": "netbox/dcim/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            92
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "DeviceType.objects.annotate",
+            "keyword_names": [
+              "console_port_count",
+              "cs_port_count",
+              "power_port_count",
+              "power_outlet_count",
+              "interface_count",
+              "devicebay_count"
+            ]
+          },
+          "end_col": 9,
+          "end_line": 93,
+          "fingerprint": "149df8156177ca304405a9fcfaa1fc8228f481296489beaa1c9942f94963e17e",
+          "kind": "call",
+          "match_key": "call:DeviceTypeAdmin.get_queryset:DeviceType.objects.annotate",
+          "name": "DeviceType.objects.annotate",
+          "node_id": "head:call:call:DeviceTypeAdmin.get_queryset:DeviceType.objects.annotate:1",
+          "qualified_name": "DeviceTypeAdmin.get_queryset",
+          "source_segment": "DeviceType.objects.annotate(\n            console_port_count=Count('console_port_templates', distinct=True),\n            cs_port_count=Count('cs_port_templates', distinct=True),\n            power_port_count=Count('power_port_templates', distinct=True),\n            power_outlet_count=Count('power_outlet_templates', distinct=True),\n            interface_count=Count('interface_templates', distinct=True),\n            devicebay_count=Count('device_bay_templates', distinct=True),\n        )",
+          "start_col": 15,
+          "start_line": 86
+        },
+        "before": {
+          "changed_lines": [
+            92
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "DeviceType.objects.annotate",
+            "keyword_names": [
+              "console_port_count",
+              "cs_port_count",
+              "power_port_count",
+              "power_outlet_count",
+              "interface_count",
+              "devicebay_count"
+            ]
+          },
+          "end_col": 9,
+          "end_line": 93,
+          "fingerprint": "fc11b4fdde900dd859b334053d90174068051f27d523617d7ddc83541bbc2896",
+          "kind": "call",
+          "match_key": "call:DeviceTypeAdmin.get_queryset:DeviceType.objects.annotate",
+          "name": "DeviceType.objects.annotate",
+          "node_id": "base:call:call:DeviceTypeAdmin.get_queryset:DeviceType.objects.annotate:1",
+          "qualified_name": "DeviceTypeAdmin.get_queryset",
+          "source_segment": "DeviceType.objects.annotate(\n            console_port_count=Count('console_port_templates', distinct=True),\n            cs_port_count=Count('cs_port_templates', distinct=True),\n            power_port_count=Count('power_port_templates', distinct=True),\n            power_outlet_count=Count('power_outlet_templates', distinct=True),\n            interface_count=Count('interface_templates', distinct=True),\n            devicebay_count=Count('devicebay_templates', distinct=True),\n        )",
+          "start_col": 15,
+          "start_line": 86
+        },
+        "evidence_lines": [
+          92
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 9,
+          "end_line": 93,
+          "start_col": 15,
+          "start_line": 86
+        },
+        "match_key": "call:DeviceTypeAdmin.get_queryset:DeviceType.objects.annotate",
+        "node_id": "head:call:call:DeviceTypeAdmin.get_queryset:DeviceType.objects.annotate:1",
+        "type": "call_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 269,
+      "path": "netbox/dcim/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            92
+          ],
+          "details": {
+            "bases": [
+              "admin.ModelAdmin"
+            ],
+            "decorators": [
+              "admin.register(DeviceType)"
+            ]
+          },
+          "end_col": 39,
+          "end_line": 111,
+          "fingerprint": "46bc1389aa42dce188837d06dbb98fbbf9d786a596b8c8d68063877cf0c28b44",
+          "kind": "class",
+          "match_key": "class:DeviceTypeAdmin",
+          "name": "DeviceTypeAdmin",
+          "node_id": "head:class:class:DeviceTypeAdmin:1",
+          "qualified_name": "DeviceTypeAdmin",
+          "source_segment": "class DeviceTypeAdmin(admin.ModelAdmin):\n    prepopulated_fields = {\n        'slug': ['model'],\n    }\n    inlines = [\n        ConsolePortTemplateAdmin,\n        ConsoleServerPortTemplateAdmin,\n        PowerPortTemplateAdmin,\n        PowerOutletTemplateAdmin,\n        InterfaceTemplateAdmin,\n        DeviceBayTemplateAdmin,\n    ]\n    list_display = ['model', 'manufacturer', 'slug', 'u_height', 'console_ports', 'console_server_ports', 'power_ports',\n                    'power_outlets', 'interfaces', 'device_bays']\n    list_filter = ['manufacturer']\n\n    def get_queryset(self, request):\n        return DeviceType.objects.annotate(\n            console_port_count=Count('console_port_templates', distinct=True),\n            cs_port_count=Count('cs_port_templates', distinct=True),\n            power_port_count=Count('power_port_templates', distinct=True),\n            power_outlet_count=Count('power_outlet_templates', distinct=True),\n            interface_count=Count('interface_templates', distinct=True),\n            devicebay_count=Count('device_bay_templates', distinct=True),\n        )\n\n    def console_ports(self, instance):\n        return instance.console_port_count\n\n    def console_server_ports(self, instance):\n        return instance.cs_port_count\n\n    def power_ports(self, instance):\n        return instance.power_port_count\n\n    def power_outlets(self, instance):\n        return instance.power_outlet_count\n\n    def interfaces(self, instance):\n        return instance.interface_count\n\n    def device_bays(self, instance):\n        return instance.devicebay_count",
+          "start_col": 0,
+          "start_line": 69
+        },
+        "before": {
+          "changed_lines": [
+            92
+          ],
+          "details": {
+            "bases": [
+              "admin.ModelAdmin"
+            ],
+            "decorators": [
+              "admin.register(DeviceType)"
+            ]
+          },
+          "end_col": 39,
+          "end_line": 111,
+          "fingerprint": "55b64b0eab756b190fbbc9f75a05f9fb50cb35eb82c6f8c83032333227c07492",
+          "kind": "class",
+          "match_key": "class:DeviceTypeAdmin",
+          "name": "DeviceTypeAdmin",
+          "node_id": "base:class:class:DeviceTypeAdmin:1",
+          "qualified_name": "DeviceTypeAdmin",
+          "source_segment": "class DeviceTypeAdmin(admin.ModelAdmin):\n    prepopulated_fields = {\n        'slug': ['model'],\n    }\n    inlines = [\n        ConsolePortTemplateAdmin,\n        ConsoleServerPortTemplateAdmin,\n        PowerPortTemplateAdmin,\n        PowerOutletTemplateAdmin,\n        InterfaceTemplateAdmin,\n        DeviceBayTemplateAdmin,\n    ]\n    list_display = ['model', 'manufacturer', 'slug', 'u_height', 'console_ports', 'console_server_ports', 'power_ports',\n                    'power_outlets', 'interfaces', 'device_bays']\n    list_filter = ['manufacturer']\n\n    def get_queryset(self, request):\n        return DeviceType.objects.annotate(\n            console_port_count=Count('console_port_templates', distinct=True),\n            cs_port_count=Count('cs_port_templates', distinct=True),\n            power_port_count=Count('power_port_templates', distinct=True),\n            power_outlet_count=Count('power_outlet_templates', distinct=True),\n            interface_count=Count('interface_templates', distinct=True),\n            devicebay_count=Count('devicebay_templates', distinct=True),\n        )\n\n    def console_ports(self, instance):\n        return instance.console_port_count\n\n    def console_server_ports(self, instance):\n        return instance.cs_port_count\n\n    def power_ports(self, instance):\n        return instance.power_port_count\n\n    def power_outlets(self, instance):\n        return instance.power_outlet_count\n\n    def interfaces(self, instance):\n        return instance.interface_count\n\n    def device_bays(self, instance):\n        return instance.devicebay_count",
+          "start_col": 0,
+          "start_line": 69
+        },
+        "evidence_lines": [
+          92
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 39,
+          "end_line": 111,
+          "start_col": 0,
+          "start_line": 69
+        },
+        "match_key": "class:DeviceTypeAdmin",
+        "node_id": "head:class:class:DeviceTypeAdmin:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 269,
+      "path": "netbox/dcim/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            92
+          ],
+          "details": {
+            "decorators": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": null,
+                  "has_default": false,
+                  "kind": "positional",
+                  "name": "self"
+                },
+                {
+                  "annotation": null,
+                  "has_default": false,
+                  "kind": "positional",
+                  "name": "request"
+                }
+              ],
+              "returns": null
+            }
+          },
+          "end_col": 9,
+          "end_line": 93,
+          "fingerprint": "522298a2e8ad82c0c341c05dcffcd52e6730e68d41f9fd002e7d3362443ccbdc",
+          "kind": "function",
+          "match_key": "function:DeviceTypeAdmin.get_queryset",
+          "name": "get_queryset",
+          "node_id": "head:function:function:DeviceTypeAdmin.get_queryset:1",
+          "qualified_name": "DeviceTypeAdmin.get_queryset",
+          "source_segment": "def get_queryset(self, request):\n        return DeviceType.objects.annotate(\n            console_port_count=Count('console_port_templates', distinct=True),\n            cs_port_count=Count('cs_port_templates', distinct=True),\n            power_port_count=Count('power_port_templates', distinct=True),\n            power_outlet_count=Count('power_outlet_templates', distinct=True),\n            interface_count=Count('interface_templates', distinct=True),\n            devicebay_count=Count('device_bay_templates', distinct=True),\n        )",
+          "start_col": 4,
+          "start_line": 85
+        },
+        "before": {
+          "changed_lines": [
+            92
+          ],
+          "details": {
+            "decorators": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": null,
+                  "has_default": false,
+                  "kind": "positional",
+                  "name": "self"
+                },
+                {
+                  "annotation": null,
+                  "has_default": false,
+                  "kind": "positional",
+                  "name": "request"
+                }
+              ],
+              "returns": null
+            }
+          },
+          "end_col": 9,
+          "end_line": 93,
+          "fingerprint": "2e2aa03e485ce43d2e9f49303e78cd117f684ead2fdb3659744d27e162b0c366",
+          "kind": "function",
+          "match_key": "function:DeviceTypeAdmin.get_queryset",
+          "name": "get_queryset",
+          "node_id": "base:function:function:DeviceTypeAdmin.get_queryset:1",
+          "qualified_name": "DeviceTypeAdmin.get_queryset",
+          "source_segment": "def get_queryset(self, request):\n        return DeviceType.objects.annotate(\n            console_port_count=Count('console_port_templates', distinct=True),\n            cs_port_count=Count('cs_port_templates', distinct=True),\n            power_port_count=Count('power_port_templates', distinct=True),\n            power_outlet_count=Count('power_outlet_templates', distinct=True),\n            interface_count=Count('interface_templates', distinct=True),\n            devicebay_count=Count('devicebay_templates', distinct=True),\n        )",
+          "start_col": 4,
+          "start_line": 85
+        },
+        "evidence_lines": [
+          92
+        ],
+        "kind": "function",
+        "location": {
+          "end_col": 9,
+          "end_line": 93,
+          "start_col": 4,
+          "start_line": 85
+        },
+        "match_key": "function:DeviceTypeAdmin.get_queryset",
+        "node_id": "head:function:function:DeviceTypeAdmin.get_queryset:1",
+        "type": "function_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 269,
+      "path": "netbox/dcim/api/serializers.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            224
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "DeviceIPAddressNestedSerializer",
+            "keyword_names": []
+          },
+          "end_col": 51,
+          "end_line": 224,
+          "fingerprint": "c303ced2f87cc2da5bc9ff9f00d42aa77651dd83eac7488acf6aecfb3de72ad2",
+          "kind": "call",
+          "match_key": "call:DeviceSerializer:DeviceIPAddressNestedSerializer",
+          "name": "DeviceIPAddressNestedSerializer",
+          "node_id": "head:call:call:DeviceSerializer:DeviceIPAddressNestedSerializer:2",
+          "qualified_name": "DeviceSerializer",
+          "source_segment": "DeviceIPAddressNestedSerializer()",
+          "start_col": 18,
+          "start_line": 224
+        },
+        "before": null,
+        "evidence_lines": [
+          224
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 51,
+          "end_line": 224,
+          "start_col": 18,
+          "start_line": 224
+        },
+        "match_key": "call:DeviceSerializer:DeviceIPAddressNestedSerializer",
+        "node_id": "head:call:call:DeviceSerializer:DeviceIPAddressNestedSerializer:2",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 309,
+      "path": "netbox/ipam/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            60
+          ],
+          "details": {
+            "args_count": 1,
+            "callee": "admin.register",
+            "keyword_names": []
+          },
+          "end_col": 26,
+          "end_line": 60,
+          "fingerprint": "42f4e427eec07d64ec0ea3f64b44137bdbf114433eb128d1e172c393a8cdd65d",
+          "kind": "call",
+          "match_key": "call:<module>:admin.register",
+          "name": "admin.register",
+          "node_id": "head:call:call:<module>:admin.register:7",
+          "qualified_name": "<module>",
+          "source_segment": "admin.register(VLANGroup)",
+          "start_col": 1,
+          "start_line": 60
+        },
+        "before": null,
+        "evidence_lines": [
+          60
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 26,
+          "end_line": 60,
+          "start_col": 1,
+          "start_line": 60
+        },
+        "match_key": "call:<module>:admin.register",
+        "node_id": "head:call:call:<module>:admin.register:7",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 309,
+      "path": "netbox/ipam/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            61,
+            62,
+            63,
+            64,
+            65
+          ],
+          "details": {
+            "bases": [
+              "admin.ModelAdmin"
+            ],
+            "decorators": [
+              "admin.register(VLANGroup)"
+            ]
+          },
+          "end_col": 5,
+          "end_line": 65,
+          "fingerprint": "46d2889d56345a26b76861f7d9f8a3f05f1d833b203c2fdaecbc88f6dc74eb00",
+          "kind": "class",
+          "match_key": "class:VLANGroupAdmin",
+          "name": "VLANGroupAdmin",
+          "node_id": "head:class:class:VLANGroupAdmin:1",
+          "qualified_name": "VLANGroupAdmin",
+          "source_segment": "class VLANGroupAdmin(admin.ModelAdmin):\n    list_display = ['name', 'site', 'slug']\n    prepopulated_fields = {\n        'slug': ['name'],\n    }",
+          "start_col": 0,
+          "start_line": 61
+        },
+        "before": null,
+        "evidence_lines": [
+          61,
+          62,
+          63,
+          64,
+          65
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 5,
+          "end_line": 65,
+          "start_col": 0,
+          "start_line": 61
+        },
+        "match_key": "class:VLANGroupAdmin",
+        "node_id": "head:class:class:VLANGroupAdmin:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 309,
+      "path": "netbox/ipam/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            60
+          ],
+          "details": {
+            "expression": "admin.register(VLANGroup)",
+            "index": 0,
+            "owner": "VLANGroupAdmin"
+          },
+          "end_col": 26,
+          "end_line": 60,
+          "fingerprint": "42f4e427eec07d64ec0ea3f64b44137bdbf114433eb128d1e172c393a8cdd65d",
+          "kind": "decorator",
+          "match_key": "decorator:VLANGroupAdmin:0",
+          "name": "admin.register(VLANGroup)",
+          "node_id": "head:decorator:decorator:VLANGroupAdmin:0:1",
+          "qualified_name": "VLANGroupAdmin.@0",
+          "source_segment": "admin.register(VLANGroup)",
+          "start_col": 1,
+          "start_line": 60
+        },
+        "before": null,
+        "evidence_lines": [
+          60
+        ],
+        "kind": "decorator",
+        "location": {
+          "end_col": 26,
+          "end_line": 60,
+          "start_col": 1,
+          "start_line": 60
+        },
+        "match_key": "decorator:VLANGroupAdmin:0",
+        "node_id": "head:decorator:decorator:VLANGroupAdmin:0:1",
+        "type": "decorator_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 309,
+      "path": "netbox/ipam/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            62
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "VLANGroupAdmin",
+            "value_fingerprint": "b9126384b217d65b8c7d7527e17a939f1c6f38a9a1bc6b92c9f3b43e5e13e1c7"
+          },
+          "end_col": 43,
+          "end_line": 62,
+          "fingerprint": "bc2d1e31840ae664a9b45d022c28130adf269f0fe65db0e63d5d12480a5f8b25",
+          "kind": "field",
+          "match_key": "field:VLANGroupAdmin.list_display",
+          "name": "list_display",
+          "node_id": "head:field:field:VLANGroupAdmin.list_display:1",
+          "qualified_name": "VLANGroupAdmin.list_display",
+          "source_segment": "list_display = ['name', 'site', 'slug']",
+          "start_col": 4,
+          "start_line": 62
+        },
+        "before": null,
+        "evidence_lines": [
+          62
+        ],
+        "kind": "field",
+        "location": {
+          "end_col": 43,
+          "end_line": 62,
+          "start_col": 4,
+          "start_line": 62
+        },
+        "match_key": "field:VLANGroupAdmin.list_display",
+        "node_id": "head:field:field:VLANGroupAdmin.list_display:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 309,
+      "path": "netbox/ipam/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            63,
+            64,
+            65
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "VLANGroupAdmin",
+            "value_fingerprint": "94f98652794a25cfd0533cc6a90638cf75158b1d16c46d6e5ae07f41acb6821a"
+          },
+          "end_col": 5,
+          "end_line": 65,
+          "fingerprint": "da8b6fd7894c95675fbde8e7c45869913e71d03c5eb66fcdd17e82f14e0beed9",
+          "kind": "field",
+          "match_key": "field:VLANGroupAdmin.prepopulated_fields",
+          "name": "prepopulated_fields",
+          "node_id": "head:field:field:VLANGroupAdmin.prepopulated_fields:1",
+          "qualified_name": "VLANGroupAdmin.prepopulated_fields",
+          "source_segment": "prepopulated_fields = {\n        'slug': ['name'],\n    }",
+          "start_col": 4,
+          "start_line": 63
+        },
+        "before": null,
+        "evidence_lines": [
+          63,
+          64,
+          65
+        ],
+        "kind": "field",
+        "location": {
+          "end_col": 5,
+          "end_line": 65,
+          "start_col": 4,
+          "start_line": 63
+        },
+        "match_key": "field:VLANGroupAdmin.prepopulated_fields",
+        "node_id": "head:field:field:VLANGroupAdmin.prepopulated_fields:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 453,
+      "path": "netbox/circuits/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            24,
+            25
+          ],
+          "details": {
+            "bases": [
+              "admin.ModelAdmin"
+            ],
+            "decorators": [
+              "admin.register(Circuit)"
+            ]
+          },
+          "end_col": 70,
+          "end_line": 31,
+          "fingerprint": "56727878af755e769108898ce0077f459c4e084c1abe3eea6fc7136c06e75065",
+          "kind": "class",
+          "match_key": "class:CircuitAdmin",
+          "name": "CircuitAdmin",
+          "node_id": "head:class:class:CircuitAdmin:1",
+          "qualified_name": "CircuitAdmin",
+          "source_segment": "class CircuitAdmin(admin.ModelAdmin):\n    list_display = ['cid', 'provider', 'type', 'tenant', 'site', 'install_date', 'port_speed_human',\n                    'upstream_speed_human', 'commit_rate_human', 'xconnect_id']\n    list_filter = ['provider', 'type', 'tenant']\n    exclude = ['interface']\n\n    def get_queryset(self, request):\n        qs = super(CircuitAdmin, self).get_queryset(request)\n        return qs.select_related('provider', 'type', 'tenant', 'site')",
+          "start_col": 0,
+          "start_line": 23
+        },
+        "before": {
+          "changed_lines": [
+            24,
+            25
+          ],
+          "details": {
+            "bases": [
+              "admin.ModelAdmin"
+            ],
+            "decorators": [
+              "admin.register(Circuit)"
+            ]
+          },
+          "end_col": 70,
+          "end_line": 31,
+          "fingerprint": "7032201cfdb47c7d446b1ddd87b76808e437fd44bf4587686f9f8df2092af17d",
+          "kind": "class",
+          "match_key": "class:CircuitAdmin",
+          "name": "CircuitAdmin",
+          "node_id": "base:class:class:CircuitAdmin:1",
+          "qualified_name": "CircuitAdmin",
+          "source_segment": "class CircuitAdmin(admin.ModelAdmin):\n    list_display = ['cid', 'provider', 'type', 'tenant', 'site', 'install_date', 'port_speed', 'commit_rate',\n                    'xconnect_id']\n    list_filter = ['provider', 'type', 'tenant']\n    exclude = ['interface']\n\n    def get_queryset(self, request):\n        qs = super(CircuitAdmin, self).get_queryset(request)\n        return qs.select_related('provider', 'type', 'tenant', 'site')",
+          "start_col": 0,
+          "start_line": 23
+        },
+        "evidence_lines": [
+          24,
+          25
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 70,
+          "end_line": 31,
+          "start_col": 0,
+          "start_line": 23
+        },
+        "match_key": "class:CircuitAdmin",
+        "node_id": "head:class:class:CircuitAdmin:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 453,
+      "path": "netbox/circuits/admin.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            24,
+            25
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "CircuitAdmin",
+            "value_fingerprint": "9f6b4d8c2db156314c75c59e996dd3e1223a6ad8aac0a74508213fe58cb91ccc"
+          },
+          "end_col": 79,
+          "end_line": 25,
+          "fingerprint": "8d996f22207c6873f89b9ba8c5793bc5bac1b1284fdee0bb20a430d243fd5ebb",
+          "kind": "field",
+          "match_key": "field:CircuitAdmin.list_display",
+          "name": "list_display",
+          "node_id": "head:field:field:CircuitAdmin.list_display:1",
+          "qualified_name": "CircuitAdmin.list_display",
+          "source_segment": "list_display = ['cid', 'provider', 'type', 'tenant', 'site', 'install_date', 'port_speed_human',\n                    'upstream_speed_human', 'commit_rate_human', 'xconnect_id']",
+          "start_col": 4,
+          "start_line": 24
+        },
+        "before": {
+          "changed_lines": [
+            24,
+            25
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "CircuitAdmin",
+            "value_fingerprint": "09a393593bf497ac87580629991c0c047332f80e42b45c77c21d10d88cc17352"
+          },
+          "end_col": 34,
+          "end_line": 25,
+          "fingerprint": "825f35e5c6cc4cda601bf1177ff7ee39a36ee87033670005b9095d6fa330437c",
+          "kind": "field",
+          "match_key": "field:CircuitAdmin.list_display",
+          "name": "list_display",
+          "node_id": "base:field:field:CircuitAdmin.list_display:1",
+          "qualified_name": "CircuitAdmin.list_display",
+          "source_segment": "list_display = ['cid', 'provider', 'type', 'tenant', 'site', 'install_date', 'port_speed', 'commit_rate',\n                    'xconnect_id']",
+          "start_col": 4,
+          "start_line": 24
+        },
+        "evidence_lines": [
+          24,
+          25
+        ],
+        "kind": "field",
+        "location": {
+          "end_col": 79,
+          "end_line": 25,
+          "start_col": 4,
+          "start_line": 24
+        },
+        "match_key": "field:CircuitAdmin.list_display",
+        "node_id": "head:field:field:CircuitAdmin.list_display:1",
+        "type": "field_modified"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 453,
+      "path": "netbox/circuits/api/serializers.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            56
+          ],
+          "details": {
+            "bases": [
+              "serializers.ModelSerializer"
+            ],
+            "decorators": []
+          },
+          "end_col": 77,
+          "end_line": 56,
+          "fingerprint": "a35934e702ce9e233a43931c705c635b26faffaa557e8bf72dd65aa61e73bfa0",
+          "kind": "class",
+          "match_key": "class:CircuitSerializer",
+          "name": "CircuitSerializer",
+          "node_id": "head:class:class:CircuitSerializer:1",
+          "qualified_name": "CircuitSerializer",
+          "source_segment": "class CircuitSerializer(serializers.ModelSerializer):\n    provider = ProviderNestedSerializer()\n    type = CircuitTypeNestedSerializer()\n    tenant = TenantNestedSerializer()\n    site = SiteNestedSerializer()\n    interface = InterfaceNestedSerializer()\n\n    class Meta:\n        model = Circuit\n        fields = ['id', 'cid', 'provider', 'type', 'tenant', 'site', 'interface', 'install_date', 'port_speed',\n                  'upstream_speed', 'commit_rate', 'xconnect_id', 'comments']",
+          "start_col": 0,
+          "start_line": 46
+        },
+        "before": {
+          "changed_lines": [
+            56
+          ],
+          "details": {
+            "bases": [
+              "serializers.ModelSerializer"
+            ],
+            "decorators": []
+          },
+          "end_col": 59,
+          "end_line": 56,
+          "fingerprint": "2beea0ddf6b0e498fbcfc0fd00b1d6eaa470807e67055f390b3e113555ae99ba",
+          "kind": "class",
+          "match_key": "class:CircuitSerializer",
+          "name": "CircuitSerializer",
+          "node_id": "base:class:class:CircuitSerializer:1",
+          "qualified_name": "CircuitSerializer",
+          "source_segment": "class CircuitSerializer(serializers.ModelSerializer):\n    provider = ProviderNestedSerializer()\n    type = CircuitTypeNestedSerializer()\n    tenant = TenantNestedSerializer()\n    site = SiteNestedSerializer()\n    interface = InterfaceNestedSerializer()\n\n    class Meta:\n        model = Circuit\n        fields = ['id', 'cid', 'provider', 'type', 'tenant', 'site', 'interface', 'install_date', 'port_speed',\n                  'commit_rate', 'xconnect_id', 'comments']",
+          "start_col": 0,
+          "start_line": 46
+        },
+        "evidence_lines": [
+          56
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 77,
+          "end_line": 56,
+          "start_col": 0,
+          "start_line": 46
+        },
+        "match_key": "class:CircuitSerializer",
+        "node_id": "head:class:class:CircuitSerializer:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 453,
+      "path": "netbox/circuits/api/serializers.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            56
+          ],
+          "details": {
+            "bases": [],
+            "decorators": []
+          },
+          "end_col": 77,
+          "end_line": 56,
+          "fingerprint": "48d89c9705195aa268eafbf317af768695f88e5520577393f3b2083dd5655e9b",
+          "kind": "class",
+          "match_key": "class:CircuitSerializer.Meta",
+          "name": "Meta",
+          "node_id": "head:class:class:CircuitSerializer.Meta:1",
+          "qualified_name": "CircuitSerializer.Meta",
+          "source_segment": "class Meta:\n        model = Circuit\n        fields = ['id', 'cid', 'provider', 'type', 'tenant', 'site', 'interface', 'install_date', 'port_speed',\n                  'upstream_speed', 'commit_rate', 'xconnect_id', 'comments']",
+          "start_col": 4,
+          "start_line": 53
+        },
+        "before": {
+          "changed_lines": [
+            56
+          ],
+          "details": {
+            "bases": [],
+            "decorators": []
+          },
+          "end_col": 59,
+          "end_line": 56,
+          "fingerprint": "64bafd4d03b1e96e22fb3d0f7e22b826ec3c5c7b44a21e36065789fccca11f3d",
+          "kind": "class",
+          "match_key": "class:CircuitSerializer.Meta",
+          "name": "Meta",
+          "node_id": "base:class:class:CircuitSerializer.Meta:1",
+          "qualified_name": "CircuitSerializer.Meta",
+          "source_segment": "class Meta:\n        model = Circuit\n        fields = ['id', 'cid', 'provider', 'type', 'tenant', 'site', 'interface', 'install_date', 'port_speed',\n                  'commit_rate', 'xconnect_id', 'comments']",
+          "start_col": 4,
+          "start_line": 53
+        },
+        "evidence_lines": [
+          56
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 77,
+          "end_line": 56,
+          "start_col": 4,
+          "start_line": 53
+        },
+        "match_key": "class:CircuitSerializer.Meta",
+        "node_id": "head:class:class:CircuitSerializer.Meta:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 453,
+      "path": "netbox/circuits/api/serializers.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            56
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "CircuitSerializer.Meta",
+            "value_fingerprint": "a3f1018ef1166f22fa1695975f24f2df99a37d19112b23729abbbc39f4799e28"
+          },
+          "end_col": 77,
+          "end_line": 56,
+          "fingerprint": "128a8955f383296bb033757577ce5c60d6d34cbcc229fe6876c897a62a070fb7",
+          "kind": "field",
+          "match_key": "field:CircuitSerializer.Meta.fields",
+          "name": "fields",
+          "node_id": "head:field:field:CircuitSerializer.Meta.fields:1",
+          "qualified_name": "CircuitSerializer.Meta.fields",
+          "source_segment": "fields = ['id', 'cid', 'provider', 'type', 'tenant', 'site', 'interface', 'install_date', 'port_speed',\n                  'upstream_speed', 'commit_rate', 'xconnect_id', 'comments']",
+          "start_col": 8,
+          "start_line": 55
+        },
+        "before": {
+          "changed_lines": [
+            56
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "CircuitSerializer.Meta",
+            "value_fingerprint": "513817a648fec21ffcfbe9248bc365ec6ee795361ffa1a170aafb6e7fbb8e0f5"
+          },
+          "end_col": 59,
+          "end_line": 56,
+          "fingerprint": "a6321a927cb4313cfe926ceb2e7effbd69c611ae2ad4570b92be5da8fe2a8f29",
+          "kind": "field",
+          "match_key": "field:CircuitSerializer.Meta.fields",
+          "name": "fields",
+          "node_id": "base:field:field:CircuitSerializer.Meta.fields:1",
+          "qualified_name": "CircuitSerializer.Meta.fields",
+          "source_segment": "fields = ['id', 'cid', 'provider', 'type', 'tenant', 'site', 'interface', 'install_date', 'port_speed',\n                  'commit_rate', 'xconnect_id', 'comments']",
+          "start_col": 8,
+          "start_line": 55
+        },
+        "evidence_lines": [
+          56
+        ],
+        "kind": "field",
+        "location": {
+          "end_col": 77,
+          "end_line": 56,
+          "start_col": 8,
+          "start_line": 55
+        },
+        "match_key": "field:CircuitSerializer.Meta.fields",
+        "node_id": "head:field:field:CircuitSerializer.Meta.fields:1",
+        "type": "field_modified"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 569,
+      "path": "netbox/circuits/filters.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            69
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "NullableModelMultipleChoiceFilter",
+            "keyword_names": [
+              "name",
+              "queryset",
+              "label"
+            ]
+          },
+          "end_col": 5,
+          "end_line": 73,
+          "fingerprint": "e9fd1b5a52d7f5ca40c2e1c70078795c14a676e6c84c1dd0d60224aa6fa21759",
+          "kind": "call",
+          "match_key": "call:CircuitFilter:NullableModelMultipleChoiceFilter",
+          "name": "NullableModelMultipleChoiceFilter",
+          "node_id": "head:call:call:CircuitFilter:NullableModelMultipleChoiceFilter:1",
+          "qualified_name": "CircuitFilter",
+          "source_segment": "NullableModelMultipleChoiceFilter(\n        name='tenant',\n        queryset=Tenant.objects.all(),\n        label='Tenant (ID)',\n    )",
+          "start_col": 16,
+          "start_line": 69
+        },
+        "before": null,
+        "evidence_lines": [
+          69
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 5,
+          "end_line": 73,
+          "start_col": 16,
+          "start_line": 69
+        },
+        "match_key": "call:CircuitFilter:NullableModelMultipleChoiceFilter",
+        "node_id": "head:call:call:CircuitFilter:NullableModelMultipleChoiceFilter:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 569,
+      "path": "netbox/circuits/filters.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            74
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "NullableModelMultipleChoiceFilter",
+            "keyword_names": [
+              "name",
+              "queryset",
+              "to_field_name",
+              "label"
+            ]
+          },
+          "end_col": 5,
+          "end_line": 79,
+          "fingerprint": "73a67088e37ff46d295e0f0a1412cf15dcbd6510baefeb11402e06fb42c84f19",
+          "kind": "call",
+          "match_key": "call:CircuitFilter:NullableModelMultipleChoiceFilter",
+          "name": "NullableModelMultipleChoiceFilter",
+          "node_id": "head:call:call:CircuitFilter:NullableModelMultipleChoiceFilter:2",
+          "qualified_name": "CircuitFilter",
+          "source_segment": "NullableModelMultipleChoiceFilter(\n        name='tenant',\n        queryset=Tenant.objects.all(),\n        to_field_name='slug',\n        label='Tenant (slug)',\n    )",
+          "start_col": 13,
+          "start_line": 74
+        },
+        "before": null,
+        "evidence_lines": [
+          74
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 5,
+          "end_line": 79,
+          "start_col": 13,
+          "start_line": 74
+        },
+        "match_key": "call:CircuitFilter:NullableModelMultipleChoiceFilter",
+        "node_id": "head:call:call:CircuitFilter:NullableModelMultipleChoiceFilter:2",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 569,
+      "path": "netbox/circuits/filters.py",
+      "change": {
+        "after": null,
+        "before": {
+          "changed_lines": [
+            67
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "django_filters.ModelMultipleChoiceFilter",
+            "keyword_names": [
+              "name",
+              "queryset",
+              "label"
+            ]
+          },
+          "end_col": 5,
+          "end_line": 71,
+          "fingerprint": "f892cef1a15db2625eb1adb3af36e2757dd42404ccb59cf0df6a775e16c3b7ec",
+          "kind": "call",
+          "match_key": "call:CircuitFilter:django_filters.ModelMultipleChoiceFilter",
+          "name": "django_filters.ModelMultipleChoiceFilter",
+          "node_id": "base:call:call:CircuitFilter:django_filters.ModelMultipleChoiceFilter:5",
+          "qualified_name": "CircuitFilter",
+          "source_segment": "django_filters.ModelMultipleChoiceFilter(\n        name='tenant',\n        queryset=Tenant.objects.all(),\n        label='Tenant (ID)',\n    )",
+          "start_col": 16,
+          "start_line": 67
+        },
+        "evidence_lines": [
+          67
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 5,
+          "end_line": 71,
+          "start_col": 16,
+          "start_line": 67
+        },
+        "match_key": "call:CircuitFilter:django_filters.ModelMultipleChoiceFilter",
+        "node_id": "base:call:call:CircuitFilter:django_filters.ModelMultipleChoiceFilter:5",
+        "type": "node_removed"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 569,
+      "path": "netbox/circuits/filters.py",
+      "change": {
+        "after": null,
+        "before": {
+          "changed_lines": [
+            72
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "django_filters.ModelMultipleChoiceFilter",
+            "keyword_names": [
+              "name",
+              "queryset",
+              "to_field_name",
+              "label"
+            ]
+          },
+          "end_col": 5,
+          "end_line": 77,
+          "fingerprint": "2ab2608bde03532f6299c8e305864c1480c50278495d7261c6b187d43b661b06",
+          "kind": "call",
+          "match_key": "call:CircuitFilter:django_filters.ModelMultipleChoiceFilter",
+          "name": "django_filters.ModelMultipleChoiceFilter",
+          "node_id": "base:call:call:CircuitFilter:django_filters.ModelMultipleChoiceFilter:6",
+          "qualified_name": "CircuitFilter",
+          "source_segment": "django_filters.ModelMultipleChoiceFilter(\n        name='tenant',\n        queryset=Tenant.objects.all(),\n        to_field_name='slug',\n        label='Tenant (slug)',\n    )",
+          "start_col": 13,
+          "start_line": 72
+        },
+        "evidence_lines": [
+          72
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 5,
+          "end_line": 77,
+          "start_col": 13,
+          "start_line": 72
+        },
+        "match_key": "call:CircuitFilter:django_filters.ModelMultipleChoiceFilter",
+        "node_id": "base:call:call:CircuitFilter:django_filters.ModelMultipleChoiceFilter:6",
+        "type": "node_removed"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 569,
+      "path": "netbox/circuits/filters.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            69,
+            74
+          ],
+          "details": {
+            "bases": [
+              "CustomFieldFilterSet",
+              "django_filters.FilterSet"
+            ],
+            "decorators": []
+          },
+          "end_col": 9,
+          "end_line": 102,
+          "fingerprint": "0297948c9fe12ba26f6fe3e4f5eb94782cebe1e8991c17f5b029f2efe89617b8",
+          "kind": "class",
+          "match_key": "class:CircuitFilter",
+          "name": "CircuitFilter",
+          "node_id": "head:class:class:CircuitFilter:1",
+          "qualified_name": "CircuitFilter",
+          "source_segment": "class CircuitFilter(CustomFieldFilterSet, django_filters.FilterSet):\n    q = django_filters.MethodFilter(\n        action='search',\n        label='Search',\n    )\n    provider_id = django_filters.ModelMultipleChoiceFilter(\n        name='provider',\n        queryset=Provider.objects.all(),\n        label='Provider (ID)',\n    )\n    provider = django_filters.ModelMultipleChoiceFilter(\n        name='provider',\n        queryset=Provider.objects.all(),\n        to_field_name='slug',\n        label='Provider (slug)',\n    )\n    type_id = django_filters.ModelMultipleChoiceFilter(\n        name='type',\n        queryset=CircuitType.objects.all(),\n        label='Circuit type (ID)',\n    )\n    type = django_filters.ModelMultipleChoiceFilter(\n        name='type',\n        queryset=CircuitType.objects.all(),\n        to_field_name='slug',\n        label='Circuit type (slug)',\n    )\n    tenant_id = NullableModelMultipleChoiceFilter(\n        name='tenant',\n        queryset=Tenant.objects.all(),\n        label='Tenant (ID)',\n    )\n    tenant = NullableModelMultipleChoiceFilter(\n        name='tenant',\n        queryset=Tenant.objects.all(),\n        to_field_name='slug',\n        label='Tenant (slug)',\n    )\n    site_id = django_filters.ModelMultipleChoiceFilter(\n        name='site',\n        queryset=Site.objects.all(),\n        label='Site (ID)',\n    )\n    site = django_filters.ModelMultipleChoiceFilter(\n        name='site',\n        queryset=Site.objects.all(),\n        to_field_name='slug',\n        label='Site (slug)',\n    )\n\n    class Meta:\n        model = Circuit\n        fields = ['q', 'provider_id', 'provider', 'type_id', 'type', 'site_id', 'site', 'interface', 'install_date']\n\n    def search(self, queryset, value):\n        return queryset.filter(\n            Q(cid__icontains=value) |\n            Q(xconnect_id__icontains=value) |\n            Q(pp_info__icontains=value) |\n            Q(comments__icontains=value)\n        )",
+          "start_col": 0,
+          "start_line": 42
+        },
+        "before": {
+          "changed_lines": [
+            67,
+            72
+          ],
+          "details": {
+            "bases": [
+              "CustomFieldFilterSet",
+              "django_filters.FilterSet"
+            ],
+            "decorators": []
+          },
+          "end_col": 9,
+          "end_line": 100,
+          "fingerprint": "4eaaa3c671b40c7820f24970211fe8dd3187bf3a6483aeb999702bbbf03cd383",
+          "kind": "class",
+          "match_key": "class:CircuitFilter",
+          "name": "CircuitFilter",
+          "node_id": "base:class:class:CircuitFilter:1",
+          "qualified_name": "CircuitFilter",
+          "source_segment": "class CircuitFilter(CustomFieldFilterSet, django_filters.FilterSet):\n    q = django_filters.MethodFilter(\n        action='search',\n        label='Search',\n    )\n    provider_id = django_filters.ModelMultipleChoiceFilter(\n        name='provider',\n        queryset=Provider.objects.all(),\n        label='Provider (ID)',\n    )\n    provider = django_filters.ModelMultipleChoiceFilter(\n        name='provider',\n        queryset=Provider.objects.all(),\n        to_field_name='slug',\n        label='Provider (slug)',\n    )\n    type_id = django_filters.ModelMultipleChoiceFilter(\n        name='type',\n        queryset=CircuitType.objects.all(),\n        label='Circuit type (ID)',\n    )\n    type = django_filters.ModelMultipleChoiceFilter(\n        name='type',\n        queryset=CircuitType.objects.all(),\n        to_field_name='slug',\n        label='Circuit type (slug)',\n    )\n    tenant_id = django_filters.ModelMultipleChoiceFilter(\n        name='tenant',\n        queryset=Tenant.objects.all(),\n        label='Tenant (ID)',\n    )\n    tenant = django_filters.ModelMultipleChoiceFilter(\n        name='tenant',\n        queryset=Tenant.objects.all(),\n        to_field_name='slug',\n        label='Tenant (slug)',\n    )\n    site_id = django_filters.ModelMultipleChoiceFilter(\n        name='site',\n        queryset=Site.objects.all(),\n        label='Site (ID)',\n    )\n    site = django_filters.ModelMultipleChoiceFilter(\n        name='site',\n        queryset=Site.objects.all(),\n        to_field_name='slug',\n        label='Site (slug)',\n    )\n\n    class Meta:\n        model = Circuit\n        fields = ['q', 'provider_id', 'provider', 'type_id', 'type', 'site_id', 'site', 'interface', 'install_date']\n\n    def search(self, queryset, value):\n        return queryset.filter(\n            Q(cid__icontains=value) |\n            Q(xconnect_id__icontains=value) |\n            Q(pp_info__icontains=value) |\n            Q(comments__icontains=value)\n        )",
+          "start_col": 0,
+          "start_line": 40
+        },
+        "evidence_lines": [
+          67,
+          69,
+          72,
+          74
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 9,
+          "end_line": 102,
+          "start_col": 0,
+          "start_line": 42
+        },
+        "match_key": "class:CircuitFilter",
+        "node_id": "head:class:class:CircuitFilter:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 587,
+      "path": "netbox/dcim/api/serializers.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            135
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "serializers.SerializerMethodField",
+            "keyword_names": []
+          },
+          "end_col": 56,
+          "end_line": 135,
+          "fingerprint": "1ed5cac7b4acb285f36ae82d092cdfa0526ae6f3f8ddbf7de37eb83282f298b4",
+          "kind": "call",
+          "match_key": "call:DeviceTypeSerializer:serializers.SerializerMethodField",
+          "name": "serializers.SerializerMethodField",
+          "node_id": "head:call:call:DeviceTypeSerializer:serializers.SerializerMethodField:1",
+          "qualified_name": "DeviceTypeSerializer",
+          "source_segment": "serializers.SerializerMethodField()",
+          "start_col": 21,
+          "start_line": 135
+        },
+        "before": null,
+        "evidence_lines": [
+          135
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 56,
+          "end_line": 135,
+          "start_col": 21,
+          "start_line": 135
+        },
+        "match_key": "call:DeviceTypeSerializer:serializers.SerializerMethodField",
+        "node_id": "head:call:call:DeviceTypeSerializer:serializers.SerializerMethodField:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 587,
+      "path": "netbox/dcim/api/serializers.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            135,
+            140,
+            141,
+            142,
+            143,
+            144,
+            145,
+            146,
+            147
+          ],
+          "details": {
+            "bases": [
+              "serializers.ModelSerializer"
+            ],
+            "decorators": []
+          },
+          "end_col": 29,
+          "end_line": 147,
+          "fingerprint": "f1a74ee79716bcc163817f1b9dc938854ab7906ef691c2fa22274ff7fb1d1cc9",
+          "kind": "class",
+          "match_key": "class:DeviceTypeSerializer",
+          "name": "DeviceTypeSerializer",
+          "node_id": "head:class:class:DeviceTypeSerializer:1",
+          "qualified_name": "DeviceTypeSerializer",
+          "source_segment": "class DeviceTypeSerializer(serializers.ModelSerializer):\n    manufacturer = ManufacturerNestedSerializer()\n    subdevice_role = serializers.SerializerMethodField()\n\n    class Meta:\n        model = DeviceType\n        fields = ['id', 'manufacturer', 'model', 'slug', 'part_number', 'u_height', 'is_full_depth',\n                  'is_console_server', 'is_pdu', 'is_network_device', 'subdevice_role']\n\n    def get_subdevice_role(self, obj):\n        return {\n            SUBDEVICE_ROLE_PARENT: 'parent',\n            SUBDEVICE_ROLE_CHILD: 'child',\n            None: None,\n        }[obj.subdevice_role]",
+          "start_col": 0,
+          "start_line": 133
+        },
+        "before": {
+          "changed_lines": [
+            138
+          ],
+          "details": {
+            "bases": [
+              "serializers.ModelSerializer"
+            ],
+            "decorators": []
+          },
+          "end_col": 69,
+          "end_line": 138,
+          "fingerprint": "9e92b9f6b22c9620df86c883c56a4b107effe1debdad95bbb45aef0f0d355453",
+          "kind": "class",
+          "match_key": "class:DeviceTypeSerializer",
+          "name": "DeviceTypeSerializer",
+          "node_id": "base:class:class:DeviceTypeSerializer:1",
+          "qualified_name": "DeviceTypeSerializer",
+          "source_segment": "class DeviceTypeSerializer(serializers.ModelSerializer):\n    manufacturer = ManufacturerNestedSerializer()\n\n    class Meta:\n        model = DeviceType\n        fields = ['id', 'manufacturer', 'model', 'slug', 'part_number', 'u_height', 'is_full_depth',\n                  'is_console_server', 'is_pdu', 'is_network_device']",
+          "start_col": 0,
+          "start_line": 132
+        },
+        "evidence_lines": [
+          135,
+          138,
+          140,
+          141,
+          142,
+          143,
+          144,
+          145,
+          146,
+          147
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 29,
+          "end_line": 147,
+          "start_col": 0,
+          "start_line": 133
+        },
+        "match_key": "class:DeviceTypeSerializer",
+        "node_id": "head:class:class:DeviceTypeSerializer:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 587,
+      "path": "netbox/dcim/api/serializers.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            140
+          ],
+          "details": {
+            "bases": [],
+            "decorators": []
+          },
+          "end_col": 87,
+          "end_line": 140,
+          "fingerprint": "d3e5320b090b33297093a7def35e3dbd616a94589a6844c5d4f2eda18d31ea12",
+          "kind": "class",
+          "match_key": "class:DeviceTypeSerializer.Meta",
+          "name": "Meta",
+          "node_id": "head:class:class:DeviceTypeSerializer.Meta:1",
+          "qualified_name": "DeviceTypeSerializer.Meta",
+          "source_segment": "class Meta:\n        model = DeviceType\n        fields = ['id', 'manufacturer', 'model', 'slug', 'part_number', 'u_height', 'is_full_depth',\n                  'is_console_server', 'is_pdu', 'is_network_device', 'subdevice_role']",
+          "start_col": 4,
+          "start_line": 137
+        },
+        "before": {
+          "changed_lines": [
+            138
+          ],
+          "details": {
+            "bases": [],
+            "decorators": []
+          },
+          "end_col": 69,
+          "end_line": 138,
+          "fingerprint": "9ed325af8ad32bd6cd736e82639eb557ee4ab9f8eb5c0b7a37b311a4783eb8dc",
+          "kind": "class",
+          "match_key": "class:DeviceTypeSerializer.Meta",
+          "name": "Meta",
+          "node_id": "base:class:class:DeviceTypeSerializer.Meta:1",
+          "qualified_name": "DeviceTypeSerializer.Meta",
+          "source_segment": "class Meta:\n        model = DeviceType\n        fields = ['id', 'manufacturer', 'model', 'slug', 'part_number', 'u_height', 'is_full_depth',\n                  'is_console_server', 'is_pdu', 'is_network_device']",
+          "start_col": 4,
+          "start_line": 135
+        },
+        "evidence_lines": [
+          138,
+          140
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 87,
+          "end_line": 140,
+          "start_col": 4,
+          "start_line": 137
+        },
+        "match_key": "class:DeviceTypeSerializer.Meta",
+        "node_id": "head:class:class:DeviceTypeSerializer.Meta:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 587,
+      "path": "netbox/dcim/api/serializers.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            140
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "DeviceTypeSerializer.Meta",
+            "value_fingerprint": "78350b83425639fec697d3da4c9d283c0671a0dedc0f35601ae1778963ee081e"
+          },
+          "end_col": 87,
+          "end_line": 140,
+          "fingerprint": "5f5ac8d5a32cd56e618bce375bb5a63bb5c17bfe44b36cccbc565892dc9fbac4",
+          "kind": "field",
+          "match_key": "field:DeviceTypeSerializer.Meta.fields",
+          "name": "fields",
+          "node_id": "head:field:field:DeviceTypeSerializer.Meta.fields:1",
+          "qualified_name": "DeviceTypeSerializer.Meta.fields",
+          "source_segment": "fields = ['id', 'manufacturer', 'model', 'slug', 'part_number', 'u_height', 'is_full_depth',\n                  'is_console_server', 'is_pdu', 'is_network_device', 'subdevice_role']",
+          "start_col": 8,
+          "start_line": 139
+        },
+        "before": {
+          "changed_lines": [
+            138
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "DeviceTypeSerializer.Meta",
+            "value_fingerprint": "1947967aa9b0919b576259a8e427adfc5abd15b981291dd3e70394d26af66eea"
+          },
+          "end_col": 69,
+          "end_line": 138,
+          "fingerprint": "595a5a947e59378f66655a175d81c1711d3c4206428a854f3a55adcbcfcca0b4",
+          "kind": "field",
+          "match_key": "field:DeviceTypeSerializer.Meta.fields",
+          "name": "fields",
+          "node_id": "base:field:field:DeviceTypeSerializer.Meta.fields:1",
+          "qualified_name": "DeviceTypeSerializer.Meta.fields",
+          "source_segment": "fields = ['id', 'manufacturer', 'model', 'slug', 'part_number', 'u_height', 'is_full_depth',\n                  'is_console_server', 'is_pdu', 'is_network_device']",
+          "start_col": 8,
+          "start_line": 137
+        },
+        "evidence_lines": [
+          138,
+          140
+        ],
+        "kind": "field",
+        "location": {
+          "end_col": 87,
+          "end_line": 140,
+          "start_col": 8,
+          "start_line": 139
+        },
+        "match_key": "field:DeviceTypeSerializer.Meta.fields",
+        "node_id": "head:field:field:DeviceTypeSerializer.Meta.fields:1",
+        "type": "field_modified"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 587,
+      "path": "netbox/dcim/api/serializers.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            135
+          ],
+          "details": {
+            "annotation": null,
+            "scope": "DeviceTypeSerializer",
+            "value_fingerprint": "1ed5cac7b4acb285f36ae82d092cdfa0526ae6f3f8ddbf7de37eb83282f298b4"
+          },
+          "end_col": 56,
+          "end_line": 135,
+          "fingerprint": "ffdad38f1eb76e7961608c692f8a725016929e1b5a5fe4aa6f32aedbab9eefb9",
+          "kind": "field",
+          "match_key": "field:DeviceTypeSerializer.subdevice_role",
+          "name": "subdevice_role",
+          "node_id": "head:field:field:DeviceTypeSerializer.subdevice_role:1",
+          "qualified_name": "DeviceTypeSerializer.subdevice_role",
+          "source_segment": "subdevice_role = serializers.SerializerMethodField()",
+          "start_col": 4,
+          "start_line": 135
+        },
+        "before": null,
+        "evidence_lines": [
+          135
+        ],
+        "kind": "field",
+        "location": {
+          "end_col": 56,
+          "end_line": 135,
+          "start_col": 4,
+          "start_line": 135
+        },
+        "match_key": "field:DeviceTypeSerializer.subdevice_role",
+        "node_id": "head:field:field:DeviceTypeSerializer.subdevice_role:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1664,
+      "path": "netbox/dcim/models.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            299
+          ],
+          "details": {
+            "args_count": 1,
+            "callee": "csv_format",
+            "keyword_names": []
+          },
+          "end_col": 10,
+          "end_line": 303,
+          "fingerprint": "b10161b78a072a54a160bc42c52841a39d4fc3e07906301e8aab75ad8367a366",
+          "kind": "call",
+          "match_key": "call:Rack.to_csv:csv_format",
+          "name": "csv_format",
+          "node_id": "head:call:call:Rack.to_csv:csv_format:1",
+          "qualified_name": "Rack.to_csv",
+          "source_segment": "csv_format([\n            self.site.name,\n            self.group.name if self.group else None,\n            self.name,\n            self.facility_id,\n            self.tenant.name if self.tenant else None,\n            self.role.name if self.role else None,\n            self.get_type_display() if self.type else None,\n            self.serial,\n            self.width,\n            self.u_height,\n            self.desc_units,\n        ])",
+          "start_col": 15,
+          "start_line": 291
+        },
+        "before": null,
+        "evidence_lines": [
+          299
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 10,
+          "end_line": 303,
+          "start_col": 15,
+          "start_line": 291
+        },
+        "match_key": "call:Rack.to_csv:csv_format",
+        "node_id": "head:call:call:Rack.to_csv:csv_format:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1664,
+      "path": "netbox/dcim/models.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            299
+          ],
+          "details": {
+            "bases": [
+              "CreatedUpdatedModel",
+              "CustomFieldModel"
+            ],
+            "decorators": [
+              "python_2_unicode_compatible"
+            ]
+          },
+          "end_col": 76,
+          "end_line": 410,
+          "fingerprint": "19944f95a92137d19c0719113dc0e311a532b6887dcc59d58219e845d8850186",
+          "kind": "class",
+          "match_key": "class:Rack",
+          "name": "Rack",
+          "node_id": "head:class:class:Rack:1",
+          "qualified_name": "Rack",
+          "source_segment": "class Rack(CreatedUpdatedModel, CustomFieldModel):\n    \"\"\"\n    Devices are housed within Racks. Each rack has a defined height measured in rack units, and a front and rear face.\n    Each Rack is assigned to a Site and (optionally) a RackGroup.\n    \"\"\"\n    name = models.CharField(max_length=50)\n    facility_id = NullableCharField(max_length=50, blank=True, null=True, verbose_name='Facility ID')\n    site = models.ForeignKey('Site', related_name='racks', on_delete=models.PROTECT)\n    group = models.ForeignKey('RackGroup', related_name='racks', blank=True, null=True, on_delete=models.SET_NULL)\n    tenant = models.ForeignKey(Tenant, blank=True, null=True, related_name='racks', on_delete=models.PROTECT)\n    role = models.ForeignKey('RackRole', related_name='racks', blank=True, null=True, on_delete=models.PROTECT)\n    serial = models.CharField(max_length=50, blank=True, verbose_name='Serial number')\n    type = models.PositiveSmallIntegerField(choices=RACK_TYPE_CHOICES, blank=True, null=True, verbose_name='Type')\n    width = models.PositiveSmallIntegerField(choices=RACK_WIDTH_CHOICES, default=RACK_WIDTH_19IN, verbose_name='Width',\n                                             help_text='Rail-to-rail width')\n    u_height = models.PositiveSmallIntegerField(default=42, verbose_name='Height (U)',\n                                                validators=[MinValueValidator(1), MaxValueValidator(100)])\n    desc_units = models.BooleanField(default=False, verbose_name='Descending units',\n                                     help_text='Units are numbered top-to-bottom')\n    comments = models.TextField(blank=True)\n    custom_field_values = GenericRelation(CustomFieldValue, content_type_field='obj_type', object_id_field='obj_id')\n    images = GenericRelation(ImageAttachment)\n\n    objects = RackManager()\n\n    csv_headers = [\n        'site', 'group_name', 'name', 'facility_id', 'tenant', 'role', 'type', 'serial', 'width', 'u_height',\n        'desc_units',\n    ]\n\n    class Meta:\n        ",
+          "source_segment_truncated": true,
+          "start_col": 0,
+          "start_line": 214
+        },
+        "before": null,
+        "evidence_lines": [
+          299
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 76,
+          "end_line": 410,
+          "start_col": 0,
+          "start_line": 214
+        },
+        "match_key": "class:Rack",
+        "node_id": "head:class:class:Rack:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1664,
+      "path": "netbox/dcim/models.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            299
+          ],
+          "details": {
+            "decorators": [],
+            "signature": {
+              "parameters": [
+                {
+                  "annotation": null,
+                  "has_default": false,
+                  "kind": "positional",
+                  "name": "self"
+                }
+              ],
+              "returns": null
+            }
+          },
+          "end_col": 10,
+          "end_line": 303,
+          "fingerprint": "08e32f54fece0dc582ec5cae75c8473f71026d6a4e31b6dbb3583a3afadfa0bb",
+          "kind": "function",
+          "match_key": "function:Rack.to_csv",
+          "name": "to_csv",
+          "node_id": "head:function:function:Rack.to_csv:1",
+          "qualified_name": "Rack.to_csv",
+          "source_segment": "def to_csv(self):\n        return csv_format([\n            self.site.name,\n            self.group.name if self.group else None,\n            self.name,\n            self.facility_id,\n            self.tenant.name if self.tenant else None,\n            self.role.name if self.role else None,\n            self.get_type_display() if self.type else None,\n            self.serial,\n            self.width,\n            self.u_height,\n            self.desc_units,\n        ])",
+          "start_col": 4,
+          "start_line": 290
+        },
+        "before": null,
+        "evidence_lines": [
+          299
+        ],
+        "kind": "function",
+        "location": {
+          "end_col": 10,
+          "end_line": 303,
+          "start_col": 4,
+          "start_line": 290
+        },
+        "match_key": "function:Rack.to_csv",
+        "node_id": "head:function:function:Rack.to_csv:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1757,
+      "path": "netbox/dcim/models.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            1099,
+            1100,
+            1101
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "super(ConsoleServerPortManager, self).get_queryset().extra",
+            "keyword_names": [
+              "select"
+            ]
+          },
+          "end_col": 10,
+          "end_line": 1101,
+          "fingerprint": "e343f69f4c9c1567b2b6d1af5dd322b1610556e9bfd2b9470fece4e752059f86",
+          "kind": "call",
+          "match_key": "call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra",
+          "name": "super(ConsoleServerPortManager, self).get_queryset().extra",
+          "node_id": "head:call:call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra:1",
+          "qualified_name": "ConsoleServerPortManager.get_queryset",
+          "source_segment": "super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_consoleserverport.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_consoleserverport.name FROM '\\d+$'), 8, '0'))\",\n        })",
+          "start_col": 15,
+          "start_line": 1098
+        },
+        "before": {
+          "changed_lines": [
+            1100,
+            1101
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "super(ConsoleServerPortManager, self).get_queryset().extra",
+            "keyword_names": [
+              "select"
+            ]
+          },
+          "end_col": 10,
+          "end_line": 1101,
+          "fingerprint": "064e9c2f868ed094efe18426c186b0471eba0210f8b80d89b7e7eddd356a4ef3",
+          "kind": "call",
+          "match_key": "call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra",
+          "name": "super(ConsoleServerPortManager, self).get_queryset().extra",
+          "node_id": "base:call:call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra:1",
+          "qualified_name": "ConsoleServerPortManager.get_queryset",
+          "source_segment": "super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_as_integer': \"CAST(substring(dcim_consoleserverport.name FROM '[0-9]+$') AS INTEGER)\",\n        })",
+          "start_col": 15,
+          "start_line": 1099
+        },
+        "evidence_lines": [
+          1099,
+          1100,
+          1101
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 10,
+          "end_line": 1101,
+          "start_col": 15,
+          "start_line": 1098
+        },
+        "match_key": "call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra",
+        "node_id": "head:call:call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra:1",
+        "type": "call_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1757,
+      "path": "netbox/dcim/models.py",
+      "change": {
+        "after": null,
+        "before": {
+          "changed_lines": [
+            1100,
+            1101
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_as_integer': \"CAST(substring(dcim_consoleserverport.name FROM '[0-9]+$') AS INTEGER)\",\n        }).order_by",
+            "keyword_names": []
+          },
+          "end_col": 48,
+          "end_line": 1101,
+          "fingerprint": "74f60a70c97a7962006d6a7ffd82eba860bc2a0a964aaad53a4625994645a07e",
+          "kind": "call",
+          "match_key": "call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_as_integer': \"CAST(substring(dcim_consoleserverport.name FROM '[0-9]+$') AS INTEGER)\",\n        }).order_by",
+          "name": "super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_as_integer': \"CAST(substring(dcim_consoleserverport.name FROM '[0-9]+$') AS INTEGER)\",\n        }).order_by",
+          "node_id": "base:call:call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_as_integer': \"CAST(substring(dcim_consoleserverport.name FROM '[0-9]+$') AS INTEGER)\",\n        }).order_by:1",
+          "qualified_name": "ConsoleServerPortManager.get_queryset",
+          "source_segment": "super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_as_integer': \"CAST(substring(dcim_consoleserverport.name FROM '[0-9]+$') AS INTEGER)\",\n        }).order_by('device', 'name_as_integer')",
+          "start_col": 15,
+          "start_line": 1099
+        },
+        "evidence_lines": [
+          1100,
+          1101
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 48,
+          "end_line": 1101,
+          "start_col": 15,
+          "start_line": 1099
+        },
+        "match_key": "call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_as_integer': \"CAST(substring(dcim_consoleserverport.name FROM '[0-9]+$') AS INTEGER)\",\n        }).order_by",
+        "node_id": "base:call:call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_as_integer': \"CAST(substring(dcim_consoleserverport.name FROM '[0-9]+$') AS INTEGER)\",\n        }).order_by:1",
+        "type": "node_removed"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1757,
+      "path": "netbox/dcim/models.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            1099,
+            1100,
+            1101
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_consoleserverport.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_consoleserverport.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by",
+            "keyword_names": []
+          },
+          "end_col": 44,
+          "end_line": 1101,
+          "fingerprint": "8badfbbd44188f763ea5e1c36e1ecfdbf94ded6029836344840d05528ffec0b1",
+          "kind": "call",
+          "match_key": "call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_consoleserverport.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_consoleserverport.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by",
+          "name": "super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_consoleserverport.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_consoleserverport.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by",
+          "node_id": "head:call:call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_consoleserverport.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_consoleserverport.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by:1",
+          "qualified_name": "ConsoleServerPortManager.get_queryset",
+          "source_segment": "super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_consoleserverport.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_consoleserverport.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by('device', 'name_padded')",
+          "start_col": 15,
+          "start_line": 1098
+        },
+        "before": null,
+        "evidence_lines": [
+          1099,
+          1100,
+          1101
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 44,
+          "end_line": 1101,
+          "start_col": 15,
+          "start_line": 1098
+        },
+        "match_key": "call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_consoleserverport.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_consoleserverport.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by",
+        "node_id": "head:call:call:ConsoleServerPortManager.get_queryset:super(ConsoleServerPortManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_consoleserverport.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_consoleserverport.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1757,
+      "path": "netbox/dcim/models.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            1176,
+            1177
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "super(PowerOutletManager, self).get_queryset().extra",
+            "keyword_names": [
+              "select"
+            ]
+          },
+          "end_col": 10,
+          "end_line": 1178,
+          "fingerprint": "1bd7b1c93bb6a1a621642f4dc39d3b7ef60d6a860dd4314faab430a8e637e467",
+          "kind": "call",
+          "match_key": "call:PowerOutletManager.get_queryset:super(PowerOutletManager, self).get_queryset().extra",
+          "name": "super(PowerOutletManager, self).get_queryset().extra",
+          "node_id": "head:call:call:PowerOutletManager.get_queryset:super(PowerOutletManager, self).get_queryset().extra:1",
+          "qualified_name": "PowerOutletManager.get_queryset",
+          "source_segment": "super(PowerOutletManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_poweroutlet.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_poweroutlet.name FROM '\\d+$'), 8, '0'))\",\n        })",
+          "start_col": 15,
+          "start_line": 1175
+        },
+        "before": {
+          "changed_lines": [
+            1175,
+            1176
+          ],
+          "details": {
+            "args_count": 0,
+            "callee": "super(PowerOutletManager, self).get_queryset().extra",
+            "keyword_names": [
+              "select"
+            ]
+          },
+          "end_col": 10,
+          "end_line": 1177,
+          "fingerprint": "19a03fc1c00b74c91ad0b95a453e1241445a2bc3b68c0936758f8f508b1423e9",
+          "kind": "call",
+          "match_key": "call:PowerOutletManager.get_queryset:super(PowerOutletManager, self).get_queryset().extra",
+          "name": "super(PowerOutletManager, self).get_queryset().extra",
+          "node_id": "base:call:call:PowerOutletManager.get_queryset:super(PowerOutletManager, self).get_queryset().extra:1",
+          "qualified_name": "PowerOutletManager.get_queryset",
+          "source_segment": "super(PowerOutletManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(SUBSTRING(dcim_poweroutlet.name FROM '^[^0-9]+'), \"\n                           \"LPAD(SUBSTRING(dcim_poweroutlet.name FROM '[0-9\\/]+$'), 8, '0'))\",\n        })",
+          "start_col": 15,
+          "start_line": 1174
+        },
+        "evidence_lines": [
+          1175,
+          1176,
+          1177
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 10,
+          "end_line": 1178,
+          "start_col": 15,
+          "start_line": 1175
+        },
+        "match_key": "call:PowerOutletManager.get_queryset:super(PowerOutletManager, self).get_queryset().extra",
+        "node_id": "head:call:call:PowerOutletManager.get_queryset:super(PowerOutletManager, self).get_queryset().extra:1",
+        "type": "call_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1757,
+      "path": "netbox/dcim/models.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            1176,
+            1177
+          ],
+          "details": {
+            "args_count": 2,
+            "callee": "super(PowerOutletManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_poweroutlet.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_poweroutlet.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by",
+            "keyword_names": []
+          },
+          "end_col": 44,
+          "end_line": 1178,
+          "fingerprint": "2fad1e7107c8969d8395d085294cd3b7ef4f2ccf944833a7918afe53d52c9252",
+          "kind": "call",
+          "match_key": "call:PowerOutletManager.get_queryset:super(PowerOutletManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_poweroutlet.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_poweroutlet.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by",
+          "name": "super(PowerOutletManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_poweroutlet.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_poweroutlet.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by",
+          "node_id": "head:call:call:PowerOutletManager.get_queryset:super(PowerOutletManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_poweroutlet.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_poweroutlet.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by:1",
+          "qualified_name": "PowerOutletManager.get_queryset",
+          "source_segment": "super(PowerOutletManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_poweroutlet.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_poweroutlet.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by('device', 'name_padded')",
+          "start_col": 15,
+          "start_line": 1175
+        },
+        "before": null,
+        "evidence_lines": [
+          1176,
+          1177
+        ],
+        "kind": "call",
+        "location": {
+          "end_col": 44,
+          "end_line": 1178,
+          "start_col": 15,
+          "start_line": 1175
+        },
+        "match_key": "call:PowerOutletManager.get_queryset:super(PowerOutletManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_poweroutlet.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_poweroutlet.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by",
+        "node_id": "head:call:call:PowerOutletManager.get_queryset:super(PowerOutletManager, self).get_queryset().extra(select={\n            'name_padded': \"CONCAT(REGEXP_REPLACE(dcim_poweroutlet.name, '\\d+$', ''), \"\n                           \"LPAD(SUBSTRING(dcim_poweroutlet.name FROM '\\d+$'), 8, '0'))\",\n        }).order_by:1",
+        "type": "node_added"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1789,
+      "path": "netbox/dcim/filters.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            458
+          ],
+          "details": {
+            "bases": [
+              "CustomFieldFilterSet",
+              "django_filters.FilterSet"
+            ],
+            "decorators": []
+          },
+          "end_col": 13,
+          "end_line": 491,
+          "fingerprint": "3f1c47a1102aba86e2f8d9f03a7b60085150d80afe67cc32de9a6a5ebeaa70be",
+          "kind": "class",
+          "match_key": "class:DeviceFilter",
+          "name": "DeviceFilter",
+          "node_id": "head:class:class:DeviceFilter:1",
+          "qualified_name": "DeviceFilter",
+          "source_segment": "class DeviceFilter(CustomFieldFilterSet, django_filters.FilterSet):\n    id__in = NumericInFilter(name='id', lookup_expr='in')\n    q = django_filters.CharFilter(\n        method='search',\n        label='Search',\n    )\n    manufacturer_id = django_filters.ModelMultipleChoiceFilter(\n        name='device_type__manufacturer',\n        queryset=Manufacturer.objects.all(),\n        label='Manufacturer (ID)',\n    )\n    manufacturer = django_filters.ModelMultipleChoiceFilter(\n        name='device_type__manufacturer__slug',\n        queryset=Manufacturer.objects.all(),\n        to_field_name='slug',\n        label='Manufacturer (slug)',\n    )\n    device_type_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=DeviceType.objects.all(),\n        label='Device type (ID)',\n    )\n    role_id = django_filters.ModelMultipleChoiceFilter(\n        name='device_role_id',\n        queryset=DeviceRole.objects.all(),\n        label='Role (ID)',\n    )\n    role = django_filters.ModelMultipleChoiceFilter(\n        name='device_role__slug',\n        queryset=DeviceRole.objects.all(),\n        to_field_name='slug',\n        label='Role (slug)',\n    )\n    tenant_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=Tenant.objects.all(),\n        label='Tenant (ID)',\n    )\n    tenant = django_filters.ModelMultipleChoiceFilter(\n        name='tenant__slug',\n        queryset=Tenant.objects.all(),\n        to_field_name='slug',\n        label='Tenant (slug)',\n    )\n    platform_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=Platform.objects.all(),\n        label='Platform (ID)',\n    )\n    platform = django_filters.ModelMultipleChoiceFilter(\n        name='platform__slug',\n        queryset=Platform.objects.all(),\n        to_field_name='slug',\n        label='Platform (slug)',\n    )\n    name = NullableCharFieldFilter()\n    asset_tag = NullableCharFieldFilter()\n    site_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=Site.objects.all(),\n        label='Site (ID)',\n    ",
+          "source_segment_truncated": true,
+          "start_col": 0,
+          "start_line": 343
+        },
+        "before": {
+          "changed_lines": [
+            458
+          ],
+          "details": {
+            "bases": [
+              "CustomFieldFilterSet",
+              "django_filters.FilterSet"
+            ],
+            "decorators": []
+          },
+          "end_col": 13,
+          "end_line": 491,
+          "fingerprint": "bbbfa616bfc979f43f5f83d04f1e322a77e5fb7ad8ed8c2f4ae8dee33993e7c6",
+          "kind": "class",
+          "match_key": "class:DeviceFilter",
+          "name": "DeviceFilter",
+          "node_id": "base:class:class:DeviceFilter:1",
+          "qualified_name": "DeviceFilter",
+          "source_segment": "class DeviceFilter(CustomFieldFilterSet, django_filters.FilterSet):\n    id__in = NumericInFilter(name='id', lookup_expr='in')\n    q = django_filters.CharFilter(\n        method='search',\n        label='Search',\n    )\n    manufacturer_id = django_filters.ModelMultipleChoiceFilter(\n        name='device_type__manufacturer',\n        queryset=Manufacturer.objects.all(),\n        label='Manufacturer (ID)',\n    )\n    manufacturer = django_filters.ModelMultipleChoiceFilter(\n        name='device_type__manufacturer__slug',\n        queryset=Manufacturer.objects.all(),\n        to_field_name='slug',\n        label='Manufacturer (slug)',\n    )\n    device_type_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=DeviceType.objects.all(),\n        label='Device type (ID)',\n    )\n    role_id = django_filters.ModelMultipleChoiceFilter(\n        name='device_role_id',\n        queryset=DeviceRole.objects.all(),\n        label='Role (ID)',\n    )\n    role = django_filters.ModelMultipleChoiceFilter(\n        name='device_role__slug',\n        queryset=DeviceRole.objects.all(),\n        to_field_name='slug',\n        label='Role (slug)',\n    )\n    tenant_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=Tenant.objects.all(),\n        label='Tenant (ID)',\n    )\n    tenant = django_filters.ModelMultipleChoiceFilter(\n        name='tenant__slug',\n        queryset=Tenant.objects.all(),\n        to_field_name='slug',\n        label='Tenant (slug)',\n    )\n    platform_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=Platform.objects.all(),\n        label='Platform (ID)',\n    )\n    platform = django_filters.ModelMultipleChoiceFilter(\n        name='platform__slug',\n        queryset=Platform.objects.all(),\n        to_field_name='slug',\n        label='Platform (slug)',\n    )\n    name = NullableCharFieldFilter()\n    asset_tag = NullableCharFieldFilter()\n    site_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=Site.objects.all(),\n        label='Site (ID)',\n    ",
+          "source_segment_truncated": true,
+          "start_col": 0,
+          "start_line": 343
+        },
+        "evidence_lines": [
+          458
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 13,
+          "end_line": 491,
+          "start_col": 0,
+          "start_line": 343
+        },
+        "match_key": "class:DeviceFilter",
+        "node_id": "head:class:class:DeviceFilter:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1789,
+      "path": "netbox/dcim/filters.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            458
+          ],
+          "details": {
+            "bases": [],
+            "decorators": []
+          },
+          "end_col": 39,
+          "end_line": 458,
+          "fingerprint": "104737da970047b0018e23528fdd34b1d8db86bda9083fa467995d00a6044ea6",
+          "kind": "class",
+          "match_key": "class:DeviceFilter.Meta",
+          "name": "Meta",
+          "node_id": "head:class:class:DeviceFilter.Meta:1",
+          "qualified_name": "DeviceFilter.Meta",
+          "source_segment": "class Meta:\n        model = Device\n        fields = ['serial', 'position']",
+          "start_col": 4,
+          "start_line": 456
+        },
+        "before": {
+          "changed_lines": [
+            458
+          ],
+          "details": {
+            "bases": [],
+            "decorators": []
+          },
+          "end_col": 27,
+          "end_line": 458,
+          "fingerprint": "9ab50e5e17d723361dd65a12b3287ec3d094b4fc4a22aad0f3c927fc388f64e8",
+          "kind": "class",
+          "match_key": "class:DeviceFilter.Meta",
+          "name": "Meta",
+          "node_id": "base:class:class:DeviceFilter.Meta:1",
+          "qualified_name": "DeviceFilter.Meta",
+          "source_segment": "class Meta:\n        model = Device\n        fields = ['serial']",
+          "start_col": 4,
+          "start_line": 456
+        },
+        "evidence_lines": [
+          458
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 39,
+          "end_line": 458,
+          "start_col": 4,
+          "start_line": 456
+        },
+        "match_key": "class:DeviceFilter.Meta",
+        "node_id": "head:class:class:DeviceFilter.Meta:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1789,
+      "path": "netbox/dcim/filters.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            333
+          ],
+          "details": {
+            "bases": [
+              "django_filters.FilterSet"
+            ],
+            "decorators": []
+          },
+          "end_col": 53,
+          "end_line": 333,
+          "fingerprint": "6d68a692b71c2c93bbfe5bf1f0322ad40d06286e02fca5d375e82de28d26a751",
+          "kind": "class",
+          "match_key": "class:DeviceRoleFilter",
+          "name": "DeviceRoleFilter",
+          "node_id": "head:class:class:DeviceRoleFilter:1",
+          "qualified_name": "DeviceRoleFilter",
+          "source_segment": "class DeviceRoleFilter(django_filters.FilterSet):\n\n    class Meta:\n        model = DeviceRole\n        fields = ['name', 'slug', 'color', 'vm_role']",
+          "start_col": 0,
+          "start_line": 329
+        },
+        "before": {
+          "changed_lines": [
+            333
+          ],
+          "details": {
+            "bases": [
+              "django_filters.FilterSet"
+            ],
+            "decorators": []
+          },
+          "end_col": 42,
+          "end_line": 333,
+          "fingerprint": "aa5f7fc98368e63f19d99ed236264a0ea67b640baca545a89fa373fe2c5f5042",
+          "kind": "class",
+          "match_key": "class:DeviceRoleFilter",
+          "name": "DeviceRoleFilter",
+          "node_id": "base:class:class:DeviceRoleFilter:1",
+          "qualified_name": "DeviceRoleFilter",
+          "source_segment": "class DeviceRoleFilter(django_filters.FilterSet):\n\n    class Meta:\n        model = DeviceRole\n        fields = ['name', 'slug', 'color']",
+          "start_col": 0,
+          "start_line": 329
+        },
+        "evidence_lines": [
+          333
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 53,
+          "end_line": 333,
+          "start_col": 0,
+          "start_line": 329
+        },
+        "match_key": "class:DeviceRoleFilter",
+        "node_id": "head:class:class:DeviceRoleFilter:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1789,
+      "path": "netbox/dcim/filters.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            333
+          ],
+          "details": {
+            "bases": [],
+            "decorators": []
+          },
+          "end_col": 53,
+          "end_line": 333,
+          "fingerprint": "bd871bca4041b7d7979266ae6eb0c0275c702cc098ef0a27a32fa1bfca2688a7",
+          "kind": "class",
+          "match_key": "class:DeviceRoleFilter.Meta",
+          "name": "Meta",
+          "node_id": "head:class:class:DeviceRoleFilter.Meta:1",
+          "qualified_name": "DeviceRoleFilter.Meta",
+          "source_segment": "class Meta:\n        model = DeviceRole\n        fields = ['name', 'slug', 'color', 'vm_role']",
+          "start_col": 4,
+          "start_line": 331
+        },
+        "before": {
+          "changed_lines": [
+            333
+          ],
+          "details": {
+            "bases": [],
+            "decorators": []
+          },
+          "end_col": 42,
+          "end_line": 333,
+          "fingerprint": "64adbbdd24f4db8303e0c235cc9a457dc85b6e00767c247427ea28710080e60f",
+          "kind": "class",
+          "match_key": "class:DeviceRoleFilter.Meta",
+          "name": "Meta",
+          "node_id": "base:class:class:DeviceRoleFilter.Meta:1",
+          "qualified_name": "DeviceRoleFilter.Meta",
+          "source_segment": "class Meta:\n        model = DeviceRole\n        fields = ['name', 'slug', 'color']",
+          "start_col": 4,
+          "start_line": 331
+        },
+        "evidence_lines": [
+          333
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 53,
+          "end_line": 333,
+          "start_col": 4,
+          "start_line": 331
+        },
+        "match_key": "class:DeviceRoleFilter.Meta",
+        "node_id": "head:class:class:DeviceRoleFilter.Meta:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    },
+    {
+      "pr_number": 1789,
+      "path": "netbox/dcim/filters.py",
+      "change": {
+        "after": {
+          "changed_lines": [
+            166
+          ],
+          "details": {
+            "bases": [
+              "CustomFieldFilterSet",
+              "django_filters.FilterSet"
+            ],
+            "decorators": []
+          },
+          "end_col": 9,
+          "end_line": 176,
+          "fingerprint": "0ba44a51992da6c7b67a8dabf701a007d80029451f5df7cddff894121585b710",
+          "kind": "class",
+          "match_key": "class:RackFilter",
+          "name": "RackFilter",
+          "node_id": "head:class:class:RackFilter:1",
+          "qualified_name": "RackFilter",
+          "source_segment": "class RackFilter(CustomFieldFilterSet, django_filters.FilterSet):\n    id__in = NumericInFilter(name='id', lookup_expr='in')\n    q = django_filters.CharFilter(\n        method='search',\n        label='Search',\n    )\n    facility_id = NullableCharFieldFilter()\n    site_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=Site.objects.all(),\n        label='Site (ID)',\n    )\n    site = django_filters.ModelMultipleChoiceFilter(\n        name='site__slug',\n        queryset=Site.objects.all(),\n        to_field_name='slug',\n        label='Site (slug)',\n    )\n    group_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=RackGroup.objects.all(),\n        label='Group (ID)',\n    )\n    group = django_filters.ModelMultipleChoiceFilter(\n        name='group__slug',\n        queryset=RackGroup.objects.all(),\n        to_field_name='slug',\n        label='Group',\n    )\n    tenant_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=Tenant.objects.all(),\n        label='Tenant (ID)',\n    )\n    tenant = django_filters.ModelMultipleChoiceFilter(\n        name='tenant__slug',\n        queryset=Tenant.objects.all(),\n        to_field_name='slug',\n        label='Tenant (slug)',\n    )\n    role_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=RackRole.objects.all(),\n        label='Role (ID)',\n    )\n    role = django_filters.ModelMultipleChoiceFilter(\n        name='role__slug',\n        queryset=RackRole.objects.all(),\n        to_field_name='slug',\n        label='Role (slug)',\n    )\n\n    class Meta:\n        model = Rack\n        fields = ['name', 'serial', 'type', 'width', 'u_height', 'desc_units']\n\n    def search(self, queryset, name, value):\n        if not value.strip():\n            return queryset\n        return queryset.filter(\n            Q(name__icontains=value) |\n            Q(facility_id__icontains=value) |\n            Q(serial__icontains=value.strip()) |\n            Q(comments__icontains=value)\n        )",
+          "start_col": 0,
+          "start_line": 116
+        },
+        "before": {
+          "changed_lines": [
+            166
+          ],
+          "details": {
+            "bases": [
+              "CustomFieldFilterSet",
+              "django_filters.FilterSet"
+            ],
+            "decorators": []
+          },
+          "end_col": 9,
+          "end_line": 176,
+          "fingerprint": "888e54aa16ef604785afe743ff64e7d2f0475896211c5c939814ed16401e9faa",
+          "kind": "class",
+          "match_key": "class:RackFilter",
+          "name": "RackFilter",
+          "node_id": "base:class:class:RackFilter:1",
+          "qualified_name": "RackFilter",
+          "source_segment": "class RackFilter(CustomFieldFilterSet, django_filters.FilterSet):\n    id__in = NumericInFilter(name='id', lookup_expr='in')\n    q = django_filters.CharFilter(\n        method='search',\n        label='Search',\n    )\n    facility_id = NullableCharFieldFilter()\n    site_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=Site.objects.all(),\n        label='Site (ID)',\n    )\n    site = django_filters.ModelMultipleChoiceFilter(\n        name='site__slug',\n        queryset=Site.objects.all(),\n        to_field_name='slug',\n        label='Site (slug)',\n    )\n    group_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=RackGroup.objects.all(),\n        label='Group (ID)',\n    )\n    group = django_filters.ModelMultipleChoiceFilter(\n        name='group__slug',\n        queryset=RackGroup.objects.all(),\n        to_field_name='slug',\n        label='Group',\n    )\n    tenant_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=Tenant.objects.all(),\n        label='Tenant (ID)',\n    )\n    tenant = django_filters.ModelMultipleChoiceFilter(\n        name='tenant__slug',\n        queryset=Tenant.objects.all(),\n        to_field_name='slug',\n        label='Tenant (slug)',\n    )\n    role_id = django_filters.ModelMultipleChoiceFilter(\n        queryset=RackRole.objects.all(),\n        label='Role (ID)',\n    )\n    role = django_filters.ModelMultipleChoiceFilter(\n        name='role__slug',\n        queryset=RackRole.objects.all(),\n        to_field_name='slug',\n        label='Role (slug)',\n    )\n\n    class Meta:\n        model = Rack\n        fields = ['serial', 'type', 'width', 'u_height', 'desc_units']\n\n    def search(self, queryset, name, value):\n        if not value.strip():\n            return queryset\n        return queryset.filter(\n            Q(name__icontains=value) |\n            Q(facility_id__icontains=value) |\n            Q(serial__icontains=value.strip()) |\n            Q(comments__icontains=value)\n        )",
+          "start_col": 0,
+          "start_line": 116
+        },
+        "evidence_lines": [
+          166
+        ],
+        "kind": "class",
+        "location": {
+          "end_col": 9,
+          "end_line": 176,
+          "start_col": 0,
+          "start_line": 116
+        },
+        "match_key": "class:RackFilter",
+        "node_id": "head:class:class:RackFilter:1",
+        "type": "class_touched"
+      },
+      "manual_checks": [
+        "确认文件路径",
+        "确认节点类型",
+        "确认行号和限定名",
+        "确认变化类型"
+      ]
+    }
+  ],
+  "duplicate_examples": [],
+  "limitations": [
+    "路径、节点类型和行号映射指标是与 stage03.v1 对照的一致性指标，不等同于人工语义准确率。",
+    "结构变化数量不是规则质量指标，需结合证据完整性解释。"
+  ]
+}

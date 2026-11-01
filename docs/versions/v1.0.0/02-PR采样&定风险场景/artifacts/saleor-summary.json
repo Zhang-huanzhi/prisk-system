@@ -1,0 +1,225 @@
+{
+  "queried_at": "2026-10-28T14:18:01.702939+00:00",
+  "seed": 20261028,
+  "windows": [
+    "2017-01-01..2019-12-31",
+    "2020-01-01..2021-12-31",
+    "2022-01-01..2023-12-31",
+    "2024-01-01..2026-10-28"
+  ],
+  "selected_count": 40,
+  "author_count": 27,
+  "recovered_count": 40,
+  "analyzable_count": 36,
+  "exclusions": {
+    "docs_only": 4
+  },
+  "size_bands": {
+    "small": 13,
+    "medium": 13,
+    "large": 14
+  },
+  "windows_selected": {
+    "2017-01-01..2019-12-31": 12,
+    "2020-01-01..2021-12-31": 10,
+    "2022-01-01..2023-12-31": 9,
+    "2024-01-01..2026-10-28": 9
+  },
+  "scenes": {
+    "api": {
+      "count": 25,
+      "signals": [
+        "graphql_file",
+        "graphql_path",
+        "webhook_path"
+      ],
+      "signal_counts": {
+        "graphql_path": 24,
+        "graphql_file": 11,
+        "webhook_path": 12
+      },
+      "qualifying_signals": [
+        "graphql_file",
+        "graphql_path",
+        "webhook_path"
+      ],
+      "diversity_keys": [
+        "graphql/account",
+        "graphql/api.py",
+        "graphql/app",
+        "graphql/attribute",
+        "graphql/channel",
+        "graphql/checkout",
+        "graphql/core",
+        "graphql/decorators.py",
+        "graphql/descriptions.py",
+        "graphql/discount",
+        "graphql/extensions",
+        "graphql/giftcard",
+        "graphql/menu",
+        "graphql/middleware.py",
+        "graphql/order",
+        "graphql/page",
+        "graphql/payment",
+        "graphql/plugins",
+        "graphql/product",
+        "graphql/schema.graphql",
+        "graphql/shipping",
+        "graphql/shop",
+        "graphql/tax",
+        "graphql/translations",
+        "graphql/utils",
+        "graphql/utils.py",
+        "graphql/views.py",
+        "graphql/warehouse",
+        "graphql/webhook",
+        "graphql/wishlist",
+        "saleor/extensions",
+        "saleor/plugins",
+        "saleor/webhook"
+      ],
+      "parse_rate": 1.0,
+      "parse_attempted": 25,
+      "labels": {
+        "needs_attention": 11,
+        "not_flagged": 11,
+        "uncertain": 3
+      },
+      "decision": "纳入"
+    },
+    "auth": {
+      "count": 4,
+      "signals": [
+        "permission_diff"
+      ],
+      "signal_counts": {
+        "permission_diff": 4,
+        "permission_path": 1
+      },
+      "qualifying_signals": [
+        "permission_diff"
+      ],
+      "diversity_keys": [
+        "graphql/account",
+        "graphql/checkout",
+        "graphql/decorators.py",
+        "graphql/discount",
+        "graphql/extensions",
+        "graphql/giftcard",
+        "graphql/menu",
+        "graphql/order",
+        "graphql/page",
+        "graphql/payment",
+        "graphql/product",
+        "graphql/shipping",
+        "graphql/shop",
+        "graphql/translations",
+        "graphql/warehouse",
+        "graphql/webhook",
+        "graphql/wishlist",
+        "saleor/account",
+        "saleor/checkout",
+        "saleor/core",
+        "saleor/dashboard",
+        "saleor/discount",
+        "saleor/extensions",
+        "saleor/giftcard",
+        "saleor/menu",
+        "saleor/order",
+        "saleor/page",
+        "saleor/product",
+        "saleor/shipping",
+        "saleor/site",
+        "saleor/webhook"
+      ],
+      "parse_rate": 1.0,
+      "parse_attempted": 4,
+      "labels": {
+        "needs_attention": 3,
+        "not_flagged": 1
+      },
+      "decision": "案例"
+    },
+    "data_transaction": {
+      "count": 15,
+      "signals": [
+        "atomic_or_rollback",
+        "migration_path",
+        "model_path"
+      ],
+      "signal_counts": {
+        "model_path": 13,
+        "migration_path": 11,
+        "atomic_or_rollback": 5
+      },
+      "qualifying_signals": [
+        "atomic_or_rollback",
+        "migration_path",
+        "model_path"
+      ],
+      "diversity_keys": [
+        "graphql/checkout",
+        "saleor/account",
+        "saleor/app",
+        "saleor/checkout",
+        "saleor/core",
+        "saleor/dashboard",
+        "saleor/discount",
+        "saleor/extensions",
+        "saleor/giftcard",
+        "saleor/menu",
+        "saleor/order",
+        "saleor/page",
+        "saleor/payment",
+        "saleor/product",
+        "saleor/shipping",
+        "saleor/site",
+        "saleor/warehouse",
+        "saleor/webhook",
+        "saleor/wishlist"
+      ],
+      "parse_rate": 1.0,
+      "parse_attempted": 15,
+      "labels": {
+        "needs_attention": 7,
+        "uncertain": 3,
+        "not_flagged": 5
+      },
+      "decision": "纳入"
+    },
+    "config_exception": {
+      "count": 10,
+      "signals": [
+        "settings_path"
+      ],
+      "signal_counts": {
+        "settings_path": 10,
+        "exception_path": 2
+      },
+      "qualifying_signals": [
+        "settings_path"
+      ],
+      "diversity_keys": [
+        "saleor/settings.py"
+      ],
+      "parse_rate": 1.0,
+      "parse_attempted": 10,
+      "labels": {
+        "needs_attention": 7,
+        "uncertain": 1,
+        "not_flagged": 2
+      },
+      "decision": "案例"
+    }
+  },
+  "business_changed": 36,
+  "test_cochanged": 25,
+  "passes_sampling_gate": true,
+  "included_scenes": [
+    "api",
+    "data_transaction"
+  ],
+  "parse_note": "语法检查使用 Python 标准库 ast.parse，解析的是目标版本上的 .py 文件。框架级结构对齐不在这一阶段。",
+  "label_note": "needs_attention 表示审查者的非客套行内评论指向某个文件，且之后有提交改了该文件。只有评论、无法对应到后续文件时记为 uncertain。合并后修复只在 PR 标题或提交标题以 Revert 开头时记为 true，模板里的 revert option 不算。",
+  "bot_rule": "抽样排除作者名包含 dependabot 或 renovate 的 PR。"
+}
