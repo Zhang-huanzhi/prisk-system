@@ -6,7 +6,7 @@
       "name": "静默吞异常模式",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "draft",
+      "lifecycle": "registered",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -34,22 +34,22 @@
         "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
       },
       "definition": {
-        "target": "except: pass",
-        "trigger": "检测到与except: pass一致的结构或变更条件时生成 Finding。",
+        "target": "异常处理分支的处理体只有 pass",
+        "trigger": "新增或修改的 except 分支仅含一个 pass 时提示复核；详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
-            "value_type": "string",
-            "operator": "contains",
-            "threshold": "except: pass",
+            "name": "handler_body_is_single_pass",
+            "source": "待实现: head AST ExceptHandler.body",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
             "required": true
           }
         ],
         "non_trigger": "无法从输入证据确认目标模式时不触发。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "待实现: head Python 源码 AST",
+          "三点 Diff 新增行"
         ],
         "finding": "smell.swallowed_exception Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
@@ -62,7 +62,10 @@
       "basis": {
         "kind": "literature_and_language_docs",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "MITRE CWE-390: Detection of Error Condition Without Action",
+          "Python PEP 20: The Zen of Python",
+          "Python Language Reference: try and pass statements",
+          "Cabral and Marques, ECOOP 2007, DOI 10.1007/978-3-540-73589-2_8"
         ]
       },
       "limitations": {
@@ -93,7 +96,7 @@
       "name": "宽泛或裸异常捕获",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "draft",
+      "lifecycle": "registered",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -121,22 +124,22 @@
         "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
       },
       "definition": {
-        "target": "except Exception/BaseException",
-        "trigger": "检测到与except Exception/BaseException一致的结构或变更条件时生成 Finding。",
+        "target": "裸 except 或直接名称 Exception/BaseException 的异常捕获",
+        "trigger": "新增或修改裸 except 或显式 Exception/BaseException 捕获时提示复核；详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "handler_type",
+            "source": "待实现: head AST ExceptHandler.type",
             "value_type": "string",
             "operator": "contains",
-            "threshold": "except Exception/BaseException",
+            "threshold": ["bare", "Exception", "BaseException"],
             "required": true
           }
         ],
         "non_trigger": "无法从输入证据确认目标模式时不触发。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "待实现: head Python 源码 AST",
+          "三点 Diff 新增行"
         ],
         "finding": "smell.bare_exception Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
@@ -149,7 +152,9 @@
       "basis": {
         "kind": "literature_and_language_docs",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Python PEP 8: Programming Recommendations",
+          "MITRE CWE-396: Declaration of Catch for Generic Exception",
+          "Python Language Reference: except clause and exception hierarchy"
         ]
       },
       "limitations": {
@@ -180,7 +185,7 @@
       "name": "动态代码执行调用",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "draft",
+      "lifecycle": "registered",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -208,22 +213,22 @@
         "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
       },
       "definition": {
-        "target": "eval/exec/compile",
-        "trigger": "检测到与eval/exec/compile一致的结构或变更条件时生成 Finding。",
+        "target": "eval 或 exec 的直接名称调用",
+        "trigger": "新增或修改对 eval 或 exec 的直接名称调用时提示复核；详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "direct_callee_name",
+            "source": "待实现: head AST Call.func.id",
             "value_type": "string",
             "operator": "contains",
-            "threshold": "eval/exec/compile",
+            "threshold": ["eval", "exec"],
             "required": true
           }
         ],
         "non_trigger": "无法从输入证据确认目标模式时不触发。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "待实现: head Python 源码 AST",
+          "三点 Diff 新增行"
         ],
         "finding": "smell.dynamic_execution Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
@@ -236,7 +241,10 @@
       "basis": {
         "kind": "literature_and_language_docs",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "MITRE CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code",
+          "OWASP Top 10:2021 A03 Injection",
+          "Bandit B307 eval_used and B102 exec_used",
+          "Python Built-in Functions: eval and exec"
         ]
       },
       "limitations": {

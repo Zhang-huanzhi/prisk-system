@@ -9,7 +9,7 @@
 | 规则 ID | `<rule_id>` |
 | 规则名称 | `<name>` |
 | 版本 | `<version>` |
-| 规则阵营 | `code_smell` / `backend_contract` / `breaking_impact`；旧版规则按实际类别登记 |
+| 规则阵营 | `code_smell` / `backend_contract` / `breaking_impact` |
 | 生命周期 | `draft` / `registered` / `implemented` / `validated` / `deprecated` |
 | 负责人 | `<owner>` |
 
