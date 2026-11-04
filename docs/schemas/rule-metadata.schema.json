@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prisk.local/schemas/rule-metadata.v1.json",
+  "title": "Prisk rule metadata",
+  "type": "object",
+  "required": ["schema_version", "rules"],
+  "properties": {
+    "schema_version": {"const": "rule-registry.v1"},
+    "rules": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/rule"}
+    }
+  },
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "required": [
+        "rule_id", "name", "version", "rule_family", "lifecycle", "owner",
+        "classification", "rationale", "definition", "basis", "limitations",
+        "validation_obligation"
+      ],
+      "properties": {
+        "rule_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "pattern": "^v[0-9]+$"},
+        "rule_family": {"enum": ["code_smell", "backend_contract", "breaking_impact"]},
+        "lifecycle": {"enum": ["draft", "registered", "implemented", "validated", "deprecated"]},
+        "owner": {"type": "string", "minLength": 1},
+        "classification": {
+          "type": "object",
+          "required": ["risk_nature", "dependency_level", "applicability", "target_layer", "evidence_type", "severity", "gatekeeper", "gatekeeper_condition"],
+          "properties": {
+            "risk_nature": {"enum": ["pr_intrinsic", "external_impact"]},
+            "dependency_level": {"enum": ["language", "framework", "database", "process"]},
+            "applicability": {"type": "array", "items": {"type": "string"}},
+            "target_layer": {"type": "array", "items": {"enum": ["ast_syntax", "diff_delta", "call_graph", "change_metadata"]}},
+            "evidence_type": {"type": "array", "items": {"enum": ["code_slice", "symbol_pair", "metric_value"]}},
+            "severity": {"enum": ["Critical", "High", "Medium", "Low"]},
+            "gatekeeper": {"type": "boolean"},
+            "gatekeeper_condition": {"type": ["string", "null"]}
+          },
+          "additionalProperties": false
+        },
+        "rationale": {
+          "type": "object",
+          "required": ["observed_problem", "why_worth_detecting", "expected_consequence", "coverage_gap", "value"],
+          "properties": {
+            "observed_problem": {"type": "string"},
+            "why_worth_detecting": {"type": "string"},
+            "expected_consequence": {"type": "string"},
+            "coverage_gap": {"type": "string"},
+            "value": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "definition": {
+          "type": "object",
+          "required": ["target", "trigger", "trigger_features", "non_trigger", "inputs", "finding", "evidence_location", "context_slice", "impact_type"],
+          "properties": {
+            "target": {"type": "string"},
+            "trigger": {"type": "string"},
+            "trigger_features": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "source", "value_type", "operator"],
+                "properties": {
+                  "name": {"type": "string"},
+                  "source": {"type": "string"},
+                  "value_type": {"enum": ["integer", "float", "boolean", "string", "enum"]},
+                  "operator": {"enum": ["gt", "gte", "lt", "lte", "eq", "neq", "contains", "changed", "missing", "present"]},
+                  "threshold": {},
+                  "required": {"type": "boolean"}
+                },
+                "additionalProperties": false
+              }
+            },
+            "non_trigger": {"type": "string"},
+            "inputs": {"type": "array", "items": {"type": "string"}},
+            "finding": {"type": "string"},
+            "evidence_location": {"type": "array", "items": {"type": "string"}},
+            "context_slice": {"type": "string"},
+            "impact_type": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "basis": {
+          "type": "object",
+          "required": ["kind", "references"],
+          "properties": {
+            "kind": {"type": "string"},
+            "references": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        },
+        "limitations": {
+          "type": "object",
+          "required": ["false_positive", "false_negative", "dynamic_language", "does_not_decide", "manual_review"],
+          "properties": {
+            "false_positive": {"type": "string"},
+            "false_negative": {"type": "string"},
+            "dynamic_language": {"type": "string"},
+            "does_not_decide": {"type": "string"},
+            "manual_review": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "validation_obligation": {
+          "type": "object",
+          "required": ["level", "method", "dataset", "oracle", "metrics", "acceptance_criteria", "unresolved_questions"],
+          "properties": {
+            "level": {"enum": ["literature_inherited", "empirical_required", "implementation_only"]},
+            "method": {"type": "string"},
+            "dataset": {"type": "string"},
+            "oracle": {"type": "string"},
+            "metrics": {"type": "array", "items": {"type": "string"}},
+            "acceptance_criteria": {"type": "string"},
+            "unresolved_questions": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

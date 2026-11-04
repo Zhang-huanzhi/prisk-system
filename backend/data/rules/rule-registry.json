@@ -1,0 +1,2060 @@
+{
+  "schema_version": "rule-registry.v1",
+  "rules": [
+    {
+      "rule_id": "smell.swallowed_exception",
+      "name": "静默吞异常模式",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "language",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "except: pass 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "except: pass",
+        "trigger": "检测到与except: pass一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "except: pass",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "smell.swallowed_exception Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "正例、反例和边界构造样例；后续补充文献依据。",
+        "dataset": "待确定的构造样例或项目数据集。",
+        "oracle": "规则定义和测试预期。",
+        "metrics": [
+          "构造样例通过率",
+          "证据完整率"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "smell.bare_exception",
+      "name": "宽泛或裸异常捕获",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "language",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "except Exception/BaseException 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "except Exception/BaseException",
+        "trigger": "检测到与except Exception/BaseException一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "except Exception/BaseException",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "smell.bare_exception Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "正例、反例和边界构造样例；后续补充文献依据。",
+        "dataset": "待确定的构造样例或项目数据集。",
+        "oracle": "规则定义和测试预期。",
+        "metrics": [
+          "构造样例通过率",
+          "证据完整率"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "smell.dynamic_execution",
+      "name": "动态代码执行调用",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "language",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "eval/exec/compile 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "eval/exec/compile",
+        "trigger": "检测到与eval/exec/compile一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "eval/exec/compile",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "smell.dynamic_execution Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "正例、反例和边界构造样例；后续补充文献依据。",
+        "dataset": "待确定的构造样例或项目数据集。",
+        "oracle": "规则定义和测试预期。",
+        "metrics": [
+          "构造样例通过率",
+          "证据完整率"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "smell.hardcoded_secret",
+      "name": "敏感凭据硬编码",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "language",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "Token/Secret/Key 字面量 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "Token/Secret/Key 字面量",
+        "trigger": "检测到与Token/Secret/Key 字面量一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "Token/Secret/Key 字面量",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "smell.hardcoded_secret Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "正例、反例和边界构造样例；后续补充文献依据。",
+        "dataset": "待确定的构造样例或项目数据集。",
+        "oracle": "规则定义和测试预期。",
+        "metrics": [
+          "构造样例通过率",
+          "证据完整率"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "smell.unmanaged_open",
+      "name": "悬空资源泄漏",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "language",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "无 with 的裸 open 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "无 with 的裸 open",
+        "trigger": "检测到与无 with 的裸 open一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "无 with 的裸 open",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "smell.unmanaged_open Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "正例、反例和边界构造样例；后续补充文献依据。",
+        "dataset": "待确定的构造样例或项目数据集。",
+        "oracle": "规则定义和测试预期。",
+        "metrics": [
+          "构造样例通过率",
+          "证据完整率"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "smell.dead_code_after_exit",
+      "name": "退出语句后的死代码",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "language",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "return/raise 后的不可达语句 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "return/raise 后的不可达语句",
+        "trigger": "检测到与return/raise 后的不可达语句一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "return/raise 后的不可达语句",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "smell.dead_code_after_exit Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "正例、反例和边界构造样例；后续补充文献依据。",
+        "dataset": "待确定的构造样例或项目数据集。",
+        "oracle": "规则定义和测试预期。",
+        "metrics": [
+          "构造样例通过率",
+          "证据完整率"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "smell.deep_control_flow",
+      "name": "深层控制流嵌套",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "language",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "多层条件或循环嵌套 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "多层条件或循环嵌套",
+        "trigger": "检测到与多层条件或循环嵌套一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "多层条件或循环嵌套",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "smell.deep_control_flow Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "正例、反例和边界构造样例；后续补充文献依据。",
+        "dataset": "待确定的构造样例或项目数据集。",
+        "oracle": "规则定义和测试预期。",
+        "metrics": [
+          "构造样例通过率",
+          "证据完整率"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "smell.global_mutable_state",
+      "name": "全局可变状态污染",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "language",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "global 声明与模块级可变修改 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "global 声明与模块级可变修改",
+        "trigger": "检测到与global 声明与模块级可变修改一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "global 声明与模块级可变修改",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "smell.global_mutable_state Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "正例、反例和边界构造样例；后续补充文献依据。",
+        "dataset": "待确定的构造样例或项目数据集。",
+        "oracle": "规则定义和测试预期。",
+        "metrics": [
+          "构造样例通过率",
+          "证据完整率"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "smell.test_collaboration_gap",
+      "name": "业务变更缺少测试协同",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "process",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "业务代码修改而单元测试未协同修改 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "业务代码修改而单元测试未协同修改",
+        "trigger": "检测到与业务代码修改而单元测试未协同修改一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "业务代码修改而单元测试未协同修改",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "smell.test_collaboration_gap Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "正例、反例和边界构造样例；后续补充文献依据。",
+        "dataset": "待确定的构造样例或项目数据集。",
+        "oracle": "规则定义和测试预期。",
+        "metrics": [
+          "构造样例通过率",
+          "证据完整率"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "contract.drf_public_parameter_added",
+      "name": "公有接口新增必填参数",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "DRF 公有函数或接口新增无默认值参数 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "DRF 公有函数或接口新增无默认值参数",
+        "trigger": "检测到与DRF 公有函数或接口新增无默认值参数一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "DRF 公有函数或接口新增无默认值参数",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "contract.drf_public_parameter_added Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "NetBox 真实 PR、人工标注和已知案例。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "contract.drf_public_parameter_removed",
+      "name": "公有接口删除既有参数",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "DRF 公有函数或接口删除既有参数 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "DRF 公有函数或接口删除既有参数",
+        "trigger": "检测到与DRF 公有函数或接口删除既有参数一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "DRF 公有函数或接口删除既有参数",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "contract.drf_public_parameter_removed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "NetBox 真实 PR、人工标注和已知案例。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "contract.django_url_pattern_changed",
+      "name": "路由映射变化",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "URL 模式增删改 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "URL 模式增删改",
+        "trigger": "检测到与URL 模式增删改一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "URL 模式增删改",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "contract.django_url_pattern_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "NetBox 真实 PR、人工标注和已知案例。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "contract.drf_viewset_action_changed",
+      "name": "ViewSet 暴露动作变化",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "ViewSet HTTP 动作或方法变动 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "ViewSet HTTP 动作或方法变动",
+        "trigger": "检测到与ViewSet HTTP 动作或方法变动一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "ViewSet HTTP 动作或方法变动",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "contract.drf_viewset_action_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "NetBox 真实 PR、人工标注和已知案例。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "contract.drf_permission_decorator_removed",
+      "name": "安全装饰器剥离",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "关键权限装饰器删除 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "关键权限装饰器删除",
+        "trigger": "检测到与关键权限装饰器删除一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "关键权限装饰器删除",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "contract.drf_permission_decorator_removed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "NetBox 真实 PR、人工标注和已知案例。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "contract.drf_permission_policy_downgrade",
+      "name": "DRF 权限策略显式降级",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": true,
+        "gatekeeper_condition": "受保护视图被改为 AllowAny 或空权限策略时"
+      },
+      "rationale": {
+        "observed_problem": "AllowAny 或空权限策略 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "AllowAny 或空权限策略",
+        "trigger": "检测到与AllowAny 或空权限策略一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "AllowAny 或空权限策略",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "contract.drf_permission_policy_downgrade Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "NetBox 真实 PR、人工标注和已知案例。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "contract.drf_object_permission_bypass",
+      "name": "对象级权限过滤绕过",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "get_queryset 权限过滤逻辑变动 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "get_queryset 权限过滤逻辑变动",
+        "trigger": "检测到与get_queryset 权限过滤逻辑变动一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "get_queryset 权限过滤逻辑变动",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "contract.drf_object_permission_bypass Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "NetBox 真实 PR、人工标注和已知案例。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "contract.django_permission_module_changed",
+      "name": "权限定义模块逻辑变化",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "permissions.py 内部逻辑自主变更 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "permissions.py 内部逻辑自主变更",
+        "trigger": "检测到与permissions.py 内部逻辑自主变更一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "permissions.py 内部逻辑自主变更",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "contract.django_permission_module_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "NetBox 真实 PR、人工标注和已知案例。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "impact.django_destructive_migration",
+      "name": "破坏性数据库迁移风险",
+      "version": "v1",
+      "rule_family": "breaking_impact",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "database",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Critical",
+        "gatekeeper": true,
+        "gatekeeper_condition": "非初始迁移中出现 RemoveField、DeleteModel 或裸 RunSQL 时"
+      },
+      "rationale": {
+        "observed_problem": "RemoveField/DeleteModel/RunSQL 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "RemoveField/DeleteModel/RunSQL",
+        "trigger": "检测到与RemoveField/DeleteModel/RunSQL一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "RemoveField/DeleteModel/RunSQL",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "impact.django_destructive_migration Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "统计稳定性及其对人工复核排序的影响。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "impact.django_non_null_constraint_tightened",
+      "name": "非空约束收紧",
+      "version": "v1",
+      "rule_family": "breaking_impact",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "database",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "新增 null=False 且无默认值 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "新增 null=False 且无默认值",
+        "trigger": "检测到与新增 null=False 且无默认值一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "新增 null=False 且无默认值",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "impact.django_non_null_constraint_tightened Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "统计稳定性及其对人工复核排序的影响。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "contract.django_raw_sql_execution",
+      "name": "绕过 ORM 的原生 SQL",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "raw 或 cursor.execute 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "raw 或 cursor.execute",
+        "trigger": "检测到与raw 或 cursor.execute一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "raw 或 cursor.execute",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "contract.django_raw_sql_execution Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "NetBox 真实 PR、人工标注和已知案例。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "impact.django_transaction_boundary_changed",
+      "name": "事务与并发边界变化",
+      "version": "v1",
+      "rule_family": "breaking_impact",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "database",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "atomic/commit/rollback 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "atomic/commit/rollback",
+        "trigger": "检测到与atomic/commit/rollback一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "atomic/commit/rollback",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "impact.django_transaction_boundary_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "统计稳定性及其对人工复核排序的影响。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "contract.django_sensitive_settings_changed",
+      "name": "敏感配置变化",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "settings.py 安全与环境常量 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "settings.py 安全与环境常量",
+        "trigger": "检测到与settings.py 安全与环境常量一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "target_pattern",
+            "source": "stage04.v1.structural_objects",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": "settings.py 安全与环境常量",
+            "required": true
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "contract.django_sensitive_settings_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "NetBox 真实 PR、人工标注和已知案例。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "impact.large_change_scope",
+      "name": "大规模变更范围",
+      "version": "v1",
+      "rule_family": "breaking_impact",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "process",
+        "applicability": [
+          "Python"
+        ],
+        "target_layer": [
+          "change_metadata",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "metric_value",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "修改行数、文件数、模块数、Hunk 数或依赖层跨度超过规则阈值 可能在变更中引入，需要显式记录为可复核信号。",
+        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
+        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
+        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+      },
+      "definition": {
+        "target": "修改行数、文件数、模块数、Hunk 数或依赖层跨度超过规则阈值",
+        "trigger": "检测到与修改行数、文件数、模块数、Hunk 数或依赖层跨度超过规则阈值一致的结构或变更条件时生成 Finding。",
+        "trigger_features": [
+          {
+            "name": "total_changed_lines",
+            "source": "stage03.summary.additions + stage03.summary.deletions",
+            "value_type": "integer",
+            "operator": "gte",
+            "threshold": null,
+            "required": true
+          },
+          {
+            "name": "files_changed",
+            "source": "stage03.summary.files_changed",
+            "value_type": "integer",
+            "operator": "gte",
+            "threshold": null,
+            "required": true
+          },
+          {
+            "name": "modules_changed",
+            "source": "derived.module_count",
+            "value_type": "integer",
+            "operator": "gte",
+            "threshold": null,
+            "required": false
+          },
+          {
+            "name": "hunks_changed",
+            "source": "derived.hunk_count",
+            "value_type": "integer",
+            "operator": "gte",
+            "threshold": null,
+            "required": false
+          },
+          {
+            "name": "dependency_layer_span",
+            "source": "derived.dependency_layer_span",
+            "value_type": "integer",
+            "operator": "gte",
+            "threshold": null,
+            "required": false
+          },
+          {
+            "name": "test_collaboration_gap",
+            "source": "stage03.summary.test_collaboration_gap",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": false
+          }
+        ],
+        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "inputs": [
+          "stage04.v1 structural objects",
+          "base/head Diff"
+        ],
+        "finding": "impact.large_change_scope Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "evidence_location": [
+          "file path",
+          "node or diff lines"
+        ],
+        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "software_engineering_research_and_project_data",
+        "references": [
+          "待补充论文、CWE/OWASP、官方文档或项目依据"
+        ]
+      },
+      "limitations": {
+        "false_positive": "合法场景或防御性代码可能满足结构条件。",
+        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
+        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
+        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
+        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "统计稳定性及其对人工复核排序的影响。",
+        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
+        "oracle": "人工标注与可靠历史案例。",
+        "metrics": [
+          "命中频次",
+          "阈值敏感性",
+          "人工复核排序相关性"
+        ],
+        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "unresolved_questions": [
+          "具体引用和数据范围待补齐",
+          "误报与漏报边界待验证"
+        ]
+      }
+    }
+  ]
+}
