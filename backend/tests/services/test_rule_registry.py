@@ -40,6 +40,8 @@ class RuleRegistryTests(unittest.TestCase):
             "evidence_type", "severity", "gatekeeper",
         }
         for rule in self.registry["rules"]:
+            self.assertRegex(rule["rule_id"], r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
+            self.assertIn(rule["rule_id"].split(".", 1)[0], {"api", "auth", "data", "config", "code", "workflow"})
             self.assertTrue(required.issubset(rule), rule["rule_id"])
             self.assertTrue(classification.issubset(rule["classification"]), rule["rule_id"])
             self.assertIn(rule["classification"]["severity"], {"Critical", "High", "Medium", "Low"})

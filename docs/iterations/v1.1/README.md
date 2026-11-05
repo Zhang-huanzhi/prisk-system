@@ -13,6 +13,7 @@ v1.0.0 发布后，新增功能、问题修复和工程改造从这里建立编�
 
 - [v1.1.0-001 规则分类体系重构与规则说明卡片规范](001-rule-taxonomy-and-card-template.md)
 - [v1.1.0-002 建立规则知识库与首批规则卡片](002-rule-knowledge-base.md)
+- [v1.1.0-003 规则 ID 命名迁移与四拆五解耦](003-rule-id-naming-and-five-rules.md)
 
 ## 产物
 

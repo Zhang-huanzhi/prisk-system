@@ -12,11 +12,12 @@ from typing import Any
 from .changes import load_records, write_jsonl
 
 
-RULE_SCHEMA_VERSION = "stage05.v1"
+RULE_SCHEMA_VERSION = "stage05.v2"
+RULE_DOMAINS = frozenset({"api", "auth", "data", "config", "code", "workflow"})
+_RULE_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
 RULE_CATALOG = [
     {
-        "rule_id": "interface.signature_changed",
-        "scene": "interface",
+        "rule_id": "api.signature_changed",
         "severity": "medium",
         "trigger": "API、serializer、view 或 URL Python 文件出现 signature_changed",
         "evidence_type": "structural_change",
@@ -25,7 +26,6 @@ RULE_CATALOG = [
     },
     {
         "rule_id": "auth.permission_structure_changed",
-        "scene": "auth",
         "severity": "high",
         "trigger": "权限/认证路径、权限装饰器或权限调用节点发生变化",
         "evidence_type": "structural_change",
@@ -34,7 +34,6 @@ RULE_CATALOG = [
     },
     {
         "rule_id": "data.transaction_structure_changed",
-        "scene": "data_transaction",
         "severity": "medium",
         "trigger": "model、migration 或事务/数据库调用节点发生变化",
         "evidence_type": "structural_change",
@@ -42,20 +41,27 @@ RULE_CATALOG = [
         "limitations": "不执行数据库或运行时事务验证",
     },
     {
-        "rule_id": "config.exception_structure_changed",
-        "scene": "config_exception",
+        "rule_id": "config.configuration_structure_changed",
         "severity": "medium",
-        "trigger": "settings、configuration 文件或异常处理节点发生变化",
+        "trigger": "settings 或 configuration 文件发生结构变化",
         "evidence_type": "structural_change",
-        "suggested_action": "复核默认配置、异常分支和错误响应",
-        "limitations": "不判断部署环境中的实际配置值",
+        "suggested_action": "复核默认配置、环境覆盖和部署行为",
+        "limitations": "不判断部署环境中的实际配置值，也不覆盖异常处理逻辑",
+    },
+    {
+        "rule_id": "code.exception_structure_changed",
+        "severity": "medium",
+        "trigger": "异常处理节点发生结构变化",
+        "evidence_type": "structural_change",
+        "suggested_action": "复核异常分支、错误响应和调用方处理",
+        "limitations": "不判断运行时异常传播或实际错误响应",
     },
 ]
 
 _INTERFACE_PATH = re.compile(r"/(?:api|graphql)/|(?:serializers?|viewsets?|views?|urls?)\.py$", re.I)
 _AUTH_PATH = re.compile(r"/(?:users?|auth|authentication|permissions?)/|(?:permission|authentication)\.py$", re.I)
 _DATA_PATH = re.compile(r"/(?:migrations?)/|(?:models?|managers?)\.py$", re.I)
-_CONFIG_PATH = re.compile(r"/(?:settings?(?:/|\.py$)|configuration[^/]*\.py$|exceptions?\.py$)", re.I)
+_CONFIG_PATH = re.compile(r"/(?:settings?(?:/|\.py$)|configuration[^/]*\.py$)", re.I)
 _AUTH_TEXT = re.compile(r"permission|authorization|authentication|has_perm|restrict_queryset|owner|role|auth", re.I)
 _DATA_TEXT = re.compile(r"transaction|atomic|commit|rollback|select|insert|update|delete|save|bulk|query", re.I)
 
@@ -85,7 +91,6 @@ def _finding(rule: dict[str, Any], path: str, changes: list[dict[str, Any]]) -> 
     evidence = [_evidence(path, change) for change in changes]
     return {
         "rule_id": rule["rule_id"],
-        "scene": rule["scene"],
         "severity": rule["severity"],
         "confidence": "structural",
         "message": rule["trigger"],
@@ -111,15 +116,37 @@ def _match_rule(rule_id: str, path: str, file_item: dict[str, Any], change: dict
         )
         if value is not None
     )
-    if rule_id == "interface.signature_changed":
+    if rule_id == "api.signature_changed":
         return change_type == "signature_changed" and bool(_INTERFACE_PATH.search(normalized))
     if rule_id == "auth.permission_structure_changed":
         return bool(_AUTH_PATH.search(normalized) or (kind == "decorator" and _AUTH_TEXT.search(text)) or (kind == "call" and _AUTH_TEXT.search(text)))
     if rule_id == "data.transaction_structure_changed":
         return bool(_DATA_PATH.search(normalized) or (kind == "call" and _DATA_TEXT.search(text)))
-    if rule_id == "config.exception_structure_changed":
-        return bool(_CONFIG_PATH.search(normalized) or kind == "except_handler")
+    if rule_id == "config.configuration_structure_changed":
+        return bool(_CONFIG_PATH.search(normalized))
+    if rule_id == "code.exception_structure_changed":
+        return kind == "except_handler"
     return False
+
+
+def rule_domain(rule_id: str) -> str:
+    """Return the UI and aggregation domain encoded in a two-part rule ID."""
+    return rule_id.split(".", 1)[0]
+
+
+def validate_rule_catalog() -> None:
+    ids = [rule["rule_id"] for rule in RULE_CATALOG]
+    if len(ids) != len(set(ids)):
+        raise ValueError("规则 ID 必须全局唯一")
+    invalid = [rule_id for rule_id in ids if not _RULE_ID_PATTERN.fullmatch(rule_id)]
+    if invalid:
+        raise ValueError(f"规则 ID 必须是两段 snake_case: {invalid}")
+    invalid_domains = [rule_id for rule_id in ids if rule_domain(rule_id) not in RULE_DOMAINS]
+    if invalid_domains:
+        raise ValueError(f"规则 domain 不在允许集合中: {invalid_domains}")
+
+
+validate_rule_catalog()
 
 
 def _testing_collaboration(record: dict[str, Any]) -> bool:
@@ -140,7 +167,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             "repo": stage04_record.get("repo"),
             "pr_number": stage04_record.get("pr_number"),
             "findings": [],
-            "summary": {"finding_count": 0, "scenes": [], "test_collaboration": False, "parse_degraded": False},
+            "summary": {"finding_count": 0, "domains": [], "test_collaboration": False, "parse_degraded": False},
             "errors": [],
         }
     if status != "ok":
@@ -150,7 +177,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             "repo": stage04_record.get("repo"),
             "pr_number": stage04_record.get("pr_number"),
             "findings": [],
-            "summary": {"finding_count": 0, "scenes": [], "test_collaboration": False, "parse_degraded": False},
+            "summary": {"finding_count": 0, "domains": [], "test_collaboration": False, "parse_degraded": False},
             "errors": stage04_record.get("errors", []),
         }
 
@@ -172,7 +199,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
         "failed" in file_item.get("parse_status", {}).values()
         for file_item in stage04_record.get("files", [])
     )
-    scenes = sorted({item["scene"] for item in findings})
+    domains = sorted({rule_domain(item["rule_id"]) for item in findings})
     return {
         "schema_version": RULE_SCHEMA_VERSION,
         "status": "ok",
@@ -183,7 +210,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
         "findings": findings,
         "summary": {
             "finding_count": len(findings),
-            "scenes": scenes,
+            "domains": domains,
             "test_collaboration": _testing_collaboration(stage04_record),
             "parse_degraded": degraded,
         },
