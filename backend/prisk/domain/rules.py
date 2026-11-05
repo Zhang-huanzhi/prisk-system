@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .changes import load_records, write_jsonl
+from .code_smells import CODE_SMELL_RULES, collect_code_smell_findings
 
 
 RULE_SCHEMA_VERSION = "stage05.v2"
@@ -56,6 +57,7 @@ RULE_CATALOG = [
         "suggested_action": "复核异常分支、错误响应和调用方处理",
         "limitations": "不判断运行时异常传播或实际错误响应",
     },
+    *CODE_SMELL_RULES,
 ]
 
 _INTERFACE_PATH = re.compile(r"/(?:api|graphql)/|(?:serializers?|viewsets?|views?|urls?)\.py$", re.I)
@@ -149,6 +151,23 @@ def validate_rule_catalog() -> None:
 validate_rule_catalog()
 
 
+def _unanalyzed_files(record: dict[str, Any]) -> list[dict[str, str]]:
+    """Head AST 不可用时记录未分析文件。空 Finding 在这种情况下不是通过。"""
+    entries: list[dict[str, str]] = []
+    for file_item in record.get("files", []):
+        if file_item.get("parse_status", {}).get("head") != "failed":
+            continue
+        reason = "head_parse_failed"
+        for error in file_item.get("errors", []):
+            code = error.get("code")
+            if code:
+                reason = str(code)
+                break
+        path = str(file_item.get("path") or file_item.get("new_path") or file_item.get("old_path") or "")
+        entries.append({"path": path, "reason": reason})
+    return entries
+
+
 def _testing_collaboration(record: dict[str, Any]) -> bool:
     summary = record.get("summary", {})
     if "business_changed" in summary or "test_changed" in summary:
@@ -167,7 +186,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             "repo": stage04_record.get("repo"),
             "pr_number": stage04_record.get("pr_number"),
             "findings": [],
-            "summary": {"finding_count": 0, "domains": [], "test_collaboration": False, "parse_degraded": False},
+            "summary": {"finding_count": 0, "domains": [], "test_collaboration": False, "parse_degraded": False, "unanalyzed": []},
             "errors": [],
         }
     if status != "ok":
@@ -177,7 +196,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             "repo": stage04_record.get("repo"),
             "pr_number": stage04_record.get("pr_number"),
             "findings": [],
-            "summary": {"finding_count": 0, "domains": [], "test_collaboration": False, "parse_degraded": False},
+            "summary": {"finding_count": 0, "domains": [], "test_collaboration": False, "parse_degraded": False, "unanalyzed": []},
             "errors": stage04_record.get("errors", []),
         }
 
@@ -194,6 +213,8 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
                     matched_by_path.setdefault(path, []).append(change)
         for path, changes in sorted(matched_by_path.items()):
             findings.append(_finding(rule, path, changes))
+    smell_findings, smell_gaps = collect_code_smell_findings(stage04_record, enabled)
+    findings.extend(smell_findings)
 
     degraded = any(
         "failed" in file_item.get("parse_status", {}).values()
@@ -213,6 +234,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             "domains": domains,
             "test_collaboration": _testing_collaboration(stage04_record),
             "parse_degraded": degraded,
+            "unanalyzed": [*_unanalyzed_files(stage04_record), *smell_gaps],
         },
         "errors": [],
     }

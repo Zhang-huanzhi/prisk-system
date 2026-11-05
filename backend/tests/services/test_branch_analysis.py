@@ -37,6 +37,7 @@ class BranchAnalysisTests(unittest.TestCase):
         self.assertTrue(report["merge_base_sha"])
         self.assertEqual(report["files"][0]["path"], "netbox/models.py")
         self.assertTrue(report["files"][0]["hunks"])
+        self.assertIsInstance(report["summary"]["domains"], list)
         self.assertTrue(report["summary"]["structures"]["nodes"] >= 1)
 
     def test_uncommitted_changes_are_not_included(self):

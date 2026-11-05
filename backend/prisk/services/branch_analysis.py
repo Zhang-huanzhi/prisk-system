@@ -7,7 +7,7 @@ from typing import Any
 
 from ..domain.changes import build_change_object, classify_path
 from .project_service import ProjectError
-from ..domain.rules import evaluate_rules, RULE_CATALOG
+from ..domain.rules import evaluate_rules, rule_domain
 from ..domain.structure import extract_changed_structures
 from .demo_service import normalize_config
 
@@ -93,7 +93,15 @@ def analyze_branches(
         evidence = []
         for item in finding.get("evidence", []):
             node = nodes.get(item.get("node_id"), {})
-            evidence.append({**item, "source_segment": node.get("source_segment"), "qualified_name": node.get("qualified_name"), "node_start_line": node.get("start_line"), "node_end_line": node.get("end_line")})
+            node_source = node.get("source_segment")
+            source_segment = node_source if node_source is not None else item.get("source_segment")
+            evidence.append({
+                **item,
+                "source_segment": source_segment,
+                "qualified_name": node.get("qualified_name") or item.get("qualified_name"),
+                "node_start_line": node.get("start_line", item.get("start_line")),
+                "node_end_line": node.get("end_line", item.get("end_line")),
+            })
         findings.append({**finding, "evidence": evidence})
     return {
         "schema_version": "stage08.branch-report.v1",
@@ -111,6 +119,7 @@ def analyze_branches(
         "summary": {
             **change.get("summary", {}),
             "finding_count": len(findings),
+            "domains": sorted({rule_domain(item["rule_id"]) for item in findings if item.get("rule_id")}),
             "scenes": sorted({item.get("scene") for item in findings if item.get("scene")}),
             "test_collaboration_gap": not bool(rules.get("summary", {}).get("test_collaboration")) and change.get("summary", {}).get("business_changed", False),
             "parse_degraded": structure.get("summary", {}).get("files_degraded", 0) > 0,

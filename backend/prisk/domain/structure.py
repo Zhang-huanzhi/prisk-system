@@ -48,6 +48,23 @@ def read_source_at_commit(repo_path: Path, sha: str, path: str) -> str:
     return _run_git(repo_path, ["show", f"{sha}:{path}"])
 
 
+def _exception_type_names(node: ast.expr | None) -> list[str]:
+    """Return direct exception names. A missing type is a bare except."""
+    if node is None:
+        return ["bare"]
+    if isinstance(node, ast.Name):
+        return [node.id]
+    if isinstance(node, ast.Tuple):
+        names: list[str] = []
+        for element in node.elts:
+            if isinstance(element, ast.Name):
+                names.append(element.id)
+            elif isinstance(element, ast.Tuple):
+                names.extend(name for name in _exception_type_names(element) if name != "bare")
+        return names
+    return []
+
+
 def _expr_text(source: str, node: ast.AST | None) -> str | None:
     if node is None:
         return None
@@ -137,6 +154,7 @@ class _StructureVisitor(ast.NodeVisitor):
         self.nodes: list[dict[str, Any]] = []
         self.scope: list[str] = []
         self.function_depth = 0
+        self.in_exception_group = False
         self._counts: Counter[str] = Counter()
 
     def _qualified_name(self, name: str | None = None) -> str:
@@ -296,6 +314,7 @@ class _StructureVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         callee = _expr_text(self.source, node.func) or ""
+        direct_name = node.func.id if isinstance(node.func, ast.Name) else None
         qualified_name = self._qualified_name()
         match_key = f"call:{qualified_name}:{callee}"
         self._add_node(
@@ -306,6 +325,7 @@ class _StructureVisitor(ast.NodeVisitor):
             match_key,
             {
                 "callee": callee,
+                "direct_callee_name": direct_name,
                 "args_count": len(node.args),
                 "keyword_names": [item.arg for item in node.keywords],
             },
@@ -322,9 +342,31 @@ class _StructureVisitor(ast.NodeVisitor):
             node.name,
             qualified_name,
             match_key,
-            {"exception_type": exception_type, "bound_name": node.name},
+            {
+                "exception_type": exception_type,
+                "bound_name": node.name,
+                "handler_type_names": _exception_type_names(node.type),
+                "handler_body_is_single_pass": len(node.body) == 1 and isinstance(node.body[0], ast.Pass),
+                "ordinary_handler": not self.in_exception_group,
+            },
         )
+        previous = self.in_exception_group
+        self.in_exception_group = False
         self.generic_visit(node)
+        self.in_exception_group = previous
+
+    def visit_TryStar(self, node: ast.TryStar) -> None:
+        for item in node.body:
+            self.visit(item)
+        previous = self.in_exception_group
+        self.in_exception_group = True
+        for handler in node.handlers:
+            self.visit(handler)
+        self.in_exception_group = previous
+        for item in node.orelse:
+            self.visit(item)
+        for item in node.finalbody:
+            self.visit(item)
 
 
 def parse_python_source(source: str, path: str, side: str) -> ParsedStructure:

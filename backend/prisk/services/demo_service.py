@@ -19,6 +19,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "data.transaction_structure_changed": 2,
         "config.configuration_structure_changed": 1,
         "code.exception_structure_changed": 1,
+        "code.swallowed_exception": 0,
+        "code.bare_exception": 0,
+        "code.dynamic_execution": 0,
     },
     "test_collaboration_weight": 1,
     "test_collaboration_enabled": True,
@@ -31,6 +34,9 @@ RULE_SCOPES = {
     "data.transaction_structure_changed": "model、migration、manager，以及事务和数据库调用节点",
     "config.configuration_structure_changed": "settings 和 configuration 文件",
     "code.exception_structure_changed": "异常处理节点",
+    "code.swallowed_exception": "Python 异常处理分支的处理体只有 pass",
+    "code.bare_exception": "Python 裸 except，或直接名称 Exception / BaseException",
+    "code.dynamic_execution": "Python 直接名称 eval 或 exec 调用，不含 compile",
 }
 
 
@@ -85,11 +91,12 @@ class DemoData:
             evidence = []
             for item in finding.get("evidence", []):
                 node = nodes.get(item.get("node_id"), {})
+                node_source = node.get("source_segment")
                 evidence.append({
                     **item,
-                    "source_segment": node.get("source_segment"),
-                    "node_start_line": node.get("start_line"),
-                    "node_end_line": node.get("end_line"),
+                    "source_segment": node_source if node_source is not None else item.get("source_segment"),
+                    "node_start_line": node.get("start_line", item.get("start_line")),
+                    "node_end_line": node.get("end_line", item.get("end_line")),
                 })
             enriched_findings.append({**finding, "evidence": evidence})
 

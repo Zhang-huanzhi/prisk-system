@@ -14,6 +14,8 @@
 
 分析只读取已提交快照，不执行 checkout、fetch、merge、pull，不纳入未提交工作区。
 
+v1.1 的 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution` 读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。它们不替换既有五条结构规则。JSON 登记册仍不是运行时配置。
+
 ## Python 分层
 
 ```text

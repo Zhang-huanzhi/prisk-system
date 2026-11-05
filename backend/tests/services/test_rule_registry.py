@@ -66,22 +66,27 @@ class RuleRegistryTests(unittest.TestCase):
             ["code_smell", "backend_contract", "breaking_impact"],
         )
 
-    def test_registered_rules_have_linked_matching_cards(self) -> None:
+    def test_registered_and_implemented_rules_have_linked_matching_cards(self) -> None:
         index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
-        entries = [rule for rule in self.registry["rules"] if rule["lifecycle"] == "registered"]
-        self.assertTrue(entries)
-        for rule in entries:
-            rule_id = rule["rule_id"]
-            pattern = rf"\[`{re.escape(rule_id)}`\]\(([^)]+)\) · `registered`"
-            match = re.search(pattern, index)
-            self.assertIsNotNone(match, rule_id)
-            path = KNOWLEDGE_BASE / match.group(1)
-            self.assertTrue(path.is_file(), rule_id)
-            content = path.read_text(encoding="utf-8")
-            self.assertIn(f"`{rule_id}`", content)
-            self.assertIn(f"`{rule['version']}` / `{rule['rule_family']}` / `registered`", content)
-            for key in ("risk_nature", "dependency_level", "severity"):
-                self.assertIn(f"`{rule['classification'][key]}`", content)
+        implemented = [rule["rule_id"] for rule in self.registry["rules"] if rule["lifecycle"] == "implemented"]
+        self.assertEqual(
+            implemented,
+            ["code.swallowed_exception", "code.bare_exception", "code.dynamic_execution"],
+        )
+        for lifecycle in ("registered", "implemented"):
+            entries = [rule for rule in self.registry["rules"] if rule["lifecycle"] == lifecycle]
+            for rule in entries:
+                rule_id = rule["rule_id"]
+                pattern = rf"\[`{re.escape(rule_id)}`\]\(([^)]+)\) · `{lifecycle}`"
+                match = re.search(pattern, index)
+                self.assertIsNotNone(match, rule_id)
+                path = KNOWLEDGE_BASE / match.group(1)
+                self.assertTrue(path.is_file(), rule_id)
+                content = path.read_text(encoding="utf-8")
+                self.assertIn(f"`{rule_id}`", content)
+                self.assertIn(f"`{rule['version']}` / `{rule['rule_family']}` / `{lifecycle}`", content)
+                for key in ("risk_nature", "dependency_level", "severity"):
+                    self.assertIn(f"`{rule['classification'][key]}`", content)
 
 
 if __name__ == "__main__":

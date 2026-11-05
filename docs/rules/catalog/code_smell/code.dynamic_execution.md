@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 规则 ID | `code.dynamic_execution` |
-| 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `registered` |
+| 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `implemented` |
 | 负责人 | `Prisk-System` |
 | 风险性质 / 依赖层级 | `pr_intrinsic` / `language` |
 | 适用范围 | Python 源文件及其 PR 差异 |
@@ -19,8 +19,8 @@
 - 对象：head AST 中函数位置为直接名称 `eval` 或 `exec` 的 `Call` 节点；不包含 `compile`、属性调用、别名或字符串中的名字。
 - 触发：调用节点行范围与新增 Diff 行相交且名称匹配；每个调用生成一条复核 Finding，并标明 `eval` 或 `exec`。
 - 不触发：`obj.eval()`、`ast.literal_eval()`、名称只在字符串或注释中出现、未改动的调用。解析或定位失败时标记未分析。
-- 特征：`direct_callee_name`（待实现的 `Call.func.id`，属于 `eval` 或 `exec`）；`call_changed`（待实现的调用节点行范围与新增行交集，布尔值，`eq true`）。直接名称可能被遮蔽。
-- 输入与证据：head Python 源码、路径、三点 Diff；Finding 包含规则 ID、调用名称、行范围、代码切片及差异、`pr_intrinsic_risk`。前后对照缺失时明确标记。
+- 特征：`direct_callee_name`（head AST `Call.func` 为 `Name` 时的 id，属于 `eval` 或 `exec`）；`call_changed`（调用节点行范围与新增行交集，布尔值，`eq true`）。直接名称可能被遮蔽。
+- 输入与证据：head Python 源码、路径、三点 Diff；Finding 包含规则 ID、调用名称、行范围、代码切片及差异、`pr_intrinsic_risk`。前后对照缺失时明确标记。004 的原始 Finding 使用 stage04 节点切片和新增行号；base 节点不存在或切片缺失时写入 `before`/`after`/`source_status` 的 `unavailable` 及原因。stage05 输入不含 unified diff hunk 原文，因此不复制 hunk 文本。
 
 触发：
 
@@ -49,5 +49,5 @@ text = "eval(source)"
 
 ## 有效性计划
 
-`literature_inherited`：后续以 `eval`/`exec` 直接调用、可信与不可信来源仅作为人工语义差异、`compile` 排除、遮蔽、别名、属性调用、注释字符串和新增行边界构造样例；以卡片定义为判定依据，检查 Finding 及位置。CWE/OWASP/Bandit 支持动机和可比规则，不证明本项目检测器准确性。数据集和验收标准待确定，目前没有实现或验证结果。
+`literature_inherited`：迭代 004 已按本卡片检查直接 `eval`/`exec`、`compile` 排除、`ast.literal_eval`、属性调用、别名、字符串、注释和新增行边界等构造样例。可信与不可信来源只作为人工复核差异，测试不判断数据流。CWE/OWASP/Bandit 支持动机和可比规则，不证明本项目检测器的 Precision 或 Recall。实证数据集和验收标准仍待确定。
 
