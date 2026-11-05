@@ -9,7 +9,7 @@ date: "2026-11-04"
 
 # 002：建立规则知识库与首批规则卡片
 
-> 后续记录：003 已将 `smell.*` ID 迁移为 `code.*`，卡片路径改为 `docs/rules/catalog/code_smell/code.*.md`。004 将这三条规则实现为 `implemented`。下文中的旧 ID、旧路径和“尚未实现”保留为当时记录。
+> 后续记录：003 已将 `smell.*` ID 迁移为 `code.*`，卡片路径改为 `docs/rules/catalog/code_smell/code.*.md`。004 将这三条规则实现为 `implemented`。005 为另外四条代码异味补了卡片，并把 `code.unmanaged_open` 与 `code.deep_control_flow` 接入同一管道。下文中的旧 ID、旧路径和“尚未实现”保留为当时记录。
 
 ## 目标与范围
 

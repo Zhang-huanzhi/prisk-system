@@ -11,11 +11,15 @@ from urllib.parse import urlparse
 from ..services.branch_analysis import analyze_branches
 from ..services.demo_service import DemoData
 from ..services.project_service import ProjectError, ProjectRegistry
-from ..paths import frozen_sample_data_root
+from ..paths import demo_data_root
 
 
 def build_parser() -> argparse.ArgumentParser:
-    current = frozen_sample_data_root()
+    # Transitional default: start from the small tracked dataset. The extracted
+    # v1.0 NetBox sample remains at frozen_sample_data_root() for a later
+    # validation run; its large stage04 file is gitignored and is not required
+    # to boot. Pass --stage03, --stage04, and --stage05 to use that extract.
+    current = demo_data_root()
     parser = argparse.ArgumentParser(description="启动本地 Prisk 演示 API")
     parser.add_argument("--stage03", type=Path, default=current / "stage03-change-objects.jsonl")
     parser.add_argument("--stage04", type=Path, default=current / "stage04-structure-objects.jsonl")

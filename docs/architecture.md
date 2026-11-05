@@ -14,7 +14,7 @@
 
 分析只读取已提交快照，不执行 checkout、fetch、merge、pull，不纳入未提交工作区。
 
-v1.1 的 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution` 读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。它们不替换既有五条结构规则。JSON 登记册仍不是运行时配置。
+v1.1 的代码异味规则读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。004 接入 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution`。005 在同一管道接入 `code.unmanaged_open` 和 `code.deep_control_flow`。它们不替换既有五条结构规则。`code.hardcoded_secret` 和 `code.global_mutable_state` 已有卡片，005 没有为它们接入检测器。JSON 登记册仍不是运行时配置。
 
 ## Python 分层
 
@@ -31,7 +31,7 @@ backend/prisk/cli/       正式命令实现
 
 - CLI：`python -m prisk.cli.web_cli`、`dataset_cli`、`structure_cli`、`structure_audit_cli`、`rules_cli`、`scoring_cli`；
 - API：冻结样本 `/api/health`、`/api/dataset`、`/api/pr/<number>`、`/api/analyze`，本地项目 `/api/projects/load`、`/api/projects/<id>/branches`、`/api/branch-analysis`；
-- 数据：stage03.v1 至 stage08.branch-report.v1；
+- 数据：stage03.v1 至 stage08.branch-report.v1；教师演示 API 与评分 CLI 的当前默认输入是已跟踪的 `backend/data/demo/`。`frozen_sample_data_root()` 仍指向可选的 `backend/data/frozen-netbox/` 提取样本，供以后的验证迭代显式传入，不是启动依赖。
 - 旧 MVP 脚本、HTML 展示 demo、根目录兼容模块和报告目录已移除。
 
 ## 前端

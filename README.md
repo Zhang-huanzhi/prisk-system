@@ -113,7 +113,7 @@ uv run --project backend python -m prisk.cli.structure_cli `
   --manifest "<stage04-manifest.json>"
 ```
 
-阶段 05 规则、阶段 04 审计和阶段 07 评分分别通过 `prisk.cli.rules_cli`、`prisk.cli.structure_audit_cli` 和 `prisk.cli.scoring_cli` 运行。教师演示 API 默认使用 `backend/data/frozen-netbox/` 中从 v1.0 归档提取的运行时样本，不读取冻结文档目录或上一级笔记工作区；`backend/data/demo/` 仍保留最小开发数据。
+阶段 05 规则、阶段 04 审计和阶段 07 评分分别通过 `prisk.cli.rules_cli`、`prisk.cli.structure_audit_cli` 和 `prisk.cli.scoring_cli` 运行。教师演示 API 与评分 CLI 默认使用 `backend/data/demo/` 的小型已跟踪数据，不读取冻结文档目录或上一级笔记工作区。`backend/data/frozen-netbox/` 保留为可选的 v1.0 提取样本路径；大型 stage04 仍被 gitignore，需要时用 `--stage03`、`--stage04`、`--stage05` 显式传入。
 
 ## 正式入口
 

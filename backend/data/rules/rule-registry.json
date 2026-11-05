@@ -303,10 +303,10 @@
     },
     {
       "rule_id": "code.hardcoded_secret",
-      "name": "敏感凭据硬编码",
+      "name": "硬编码敏感字面量",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "draft",
+      "lifecycle": "registered",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -327,73 +327,104 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "Token/Secret/Key 字面量 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "口令、令牌或密钥样的名字被绑定到较长的字符串字面量，需要人工确认它是示例还是仓库中的秘密。",
+        "why_worth_detecting": "字面量一旦进入提交就留在历史中；复核名字、长度和文件角色比扫描任意字符串更可解释。",
+        "expected_consequence": "可能把真实秘密写入仓库，也可能只是测试夹具。命中本身不确认秘密。",
+        "coverage_gap": "code.dynamic_execution 不看字符串绑定；config.django_sensitive_settings_changed 还是草稿，且只面向 Django 配置。",
+        "value": "为后续检测器固定名字表、长度 8 和占位符表。"
       },
       "definition": {
-        "target": "Token/Secret/Key 字面量",
-        "trigger": "检测到与Token/Secret/Key 字面量一致的结构或变更条件时生成 Finding。",
+        "target": "赋值、属性赋值、关键字参数或函数默认值上的直接绑定名，值为长度不少于 8 且不在占位符表中的 str 常量",
+        "trigger": "绑定名整段命中卡片中的凭据名字表，值是非占位符 str 字面量且长度大于等于 8，并且节点与新增行相交。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "credential_binding_name",
+            "source": "赋值目标、属性 attr、关键字名或参数名，大小写不敏感且整段匹配",
             "value_type": "string",
             "operator": "contains",
-            "threshold": "Token/Secret/Key 字面量",
+            "threshold": [
+              "password",
+              "passwd",
+              "secret",
+              "token",
+              "api_key",
+              "apikey",
+              "access_key",
+              "private_key",
+              "client_secret",
+              "auth_token",
+              "secret_key"
+            ],
+            "required": true
+          },
+          {
+            "name": "string_literal_value",
+            "source": "绑定值是 str 常量，长度大于等于 8，且不在卡片占位符表",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          },
+          {
+            "name": "binding_changed",
+            "source": "绑定节点行范围与三点 Diff 新增行的交集",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
             "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "环境变量、非字面量、短字符串、占位符、名字不是整段匹配、比较、注释，以及 head AST 不可用时不把文件记为通过。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "head Python 源码 AST",
+          "三点 Diff 新增行"
         ],
-        "finding": "code.hardcoded_secret Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.hardcoded_secret Finding，包含规则 ID、绑定名、值长度、严重度和证据位置。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "binding node",
+          "added lines"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "展示绑定语句的代码切片；实现时可只保留长度和短预览。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "literature_and_language_docs",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "MITRE CWE-798: Use of Hard-coded Credentials",
+          "OWASP Top 10:2021 A07 Identification and Authentication Failures",
+          "Bandit B105, B106, and B107 hardcoded password checks"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "测试夹具和故意写长的假口令会满足名字与长度条件。",
+        "false_negative": "绑在其他名字上的高熵字符串、拼接值和环境变量不会命中。",
+        "dynamic_language": "别名和运行时组装的绑定不在静态名字匹配内。",
+        "does_not_decide": "不确认字面量是可用秘密，也不判断漏洞。",
+        "manual_review": "需要看文件角色、字面量是否公开示例，以及值是否应改为环境配置。"
       },
       "validation_obligation": {
         "level": "literature_inherited",
-        "method": "正例、反例和边界构造样例；后续补充文献依据。",
-        "dataset": "待确定的构造样例或项目数据集。",
-        "oracle": "规则定义和测试预期。",
+        "method": "卡片已固定判定；检测器和构造测试留到后续实现迭代。",
+        "dataset": "构造样例尚未编写；NetBox 实证数据集待确定。",
+        "oracle": "规则卡片定义。",
         "metrics": [
           "构造样例通过率",
           "证据完整率"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "实现迭代的构造样例按卡片命中；不预填 Precision、Recall 或秘密确认结论。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "实证数据范围待补齐",
+          "本迭代没有检测器"
         ]
       }
     },
     {
       "rule_id": "code.unmanaged_open",
-      "name": "悬空资源泄漏",
+      "name": "未用 with 管理的 open",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -414,63 +445,84 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "无 with 的裸 open 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "直接名称 open 的结果没有作为 with 或 async with 的上下文表达式。",
+        "why_worth_detecting": "帮助审查者核对关闭路径，同时避免把属性调用 Path.open 混进同一规则。",
+        "expected_consequence": "文件对象可能依赖稍后的 close 或包装器；命中不表示泄漏已经发生。",
+        "coverage_gap": "004 的动态执行规则只覆盖 eval 和 exec，不覆盖 open。",
+        "value": "沿用 head AST 与新增行交集，给资源关闭复核一个可测试的结构定义。"
       },
       "definition": {
-        "target": "无 with 的裸 open",
-        "trigger": "检测到与无 with 的裸 open一致的结构或变更条件时生成 Finding。",
+        "target": "直接名称 open 调用，且该 Call 不是 with 或 async with 的 context_expr",
+        "trigger": "调用节点与新增行相交，direct_callee_name 为 open，used_as_with_context 为 false。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "direct_callee_name",
+            "source": "head AST Call.func 为 Name 时的 id",
             "value_type": "string",
-            "operator": "contains",
-            "threshold": "无 with 的裸 open",
+            "operator": "eq",
+            "threshold": "open",
+            "required": true
+          },
+          {
+            "name": "used_as_with_context",
+            "source": "该 Call 是否正好是 with 或 async with 的 context_expr",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": false,
+            "required": true
+          },
+          {
+            "name": "call_changed",
+            "source": "head Call 行范围与三点 Diff 新增行的交集",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
             "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "with 或 async with 的上下文表达式、属性调用、别名调用、未改动或只删除的调用；缺少 used_as_with_context 时标记未分析。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "head Python 源码 AST",
+          "三点 Diff 新增行"
         ],
         "finding": "code.unmanaged_open Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "call node",
+          "added lines"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "展示 open 调用切片；没有 base 节点或切片时标记 unavailable。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "literature_and_language_docs",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "PEP 343: The with Statement",
+          "Python Language Reference: the with statement",
+          "Python Built-in Functions: open",
+          "pathlib.Path.open",
+          "MITRE CWE-772: Missing Release of Resource after Effective Lifetime"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "手动 close、closing 或 ExitStack 仍会命中；被遮蔽的 open 名字也会命中。",
+        "false_negative": "io.open、builtins.open、Path.open 和先赋值再调用不会命中。",
+        "dynamic_language": "直接名称可能被局部名字遮蔽，规则不解析绑定目标。",
+        "does_not_decide": "不判断文件描述符是否仍然打开，也不判断泄漏。",
+        "manual_review": "需要看关闭路径、调用绑定和该 open 是否就是 with 的上下文表达式。"
       },
       "validation_obligation": {
         "level": "literature_inherited",
-        "method": "正例、反例和边界构造样例；后续补充文献依据。",
-        "dataset": "待确定的构造样例或项目数据集。",
-        "oracle": "规则定义和测试预期。",
+        "method": "迭代 005 的构造正例、反例和边界样例；实证数据集仍待确定。",
+        "dataset": "迭代 005 构造样例；NetBox 实证数据集待确定。",
+        "oracle": "规则卡片定义。",
         "metrics": [
           "构造样例通过率",
           "证据完整率"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "构造样例按卡片命中；不预填 Precision、Recall 或泄漏结论。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
+          "实证数据范围待补齐",
           "误报与漏报边界待验证"
         ]
       }
@@ -567,7 +619,7 @@
       "name": "深层控制流嵌套",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -581,80 +633,90 @@
         ],
         "evidence_type": [
           "code_slice",
-          "symbol_pair"
+          "metric_value"
         ],
         "severity": "Medium",
         "gatekeeper": false,
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "多层条件或循环嵌套 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "if、for、while、with 或 try 在当前函数、类或模块内的嵌套深度大于固定阈值 4。",
+        "why_worth_detecting": "深层分支增加阅读负担，适合作为复核提示；阈值写在卡片上，避免变成未校准的运行时开关。",
+        "expected_consequence": "可能提高维护成本。命中不表示缺陷，也不等于圈复杂度超限。",
+        "coverage_gap": "004 的异常规则只看 except 处理体和捕获类型，不计算控制流深度。",
+        "value": "把深度 4 这一常量、计入的语句和排除项固定下来，并用构造样例检查。"
       },
       "definition": {
-        "target": "多层条件或循环嵌套",
-        "trigger": "检测到与多层条件或循环嵌套一致的结构或变更条件时生成 Finding。",
+        "target": "head control_flow 节点，种类为 if、for、async for、while、with、async with、try 或 try_star",
+        "trigger": "节点与新增行相交且 nesting_depth 大于 4。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
-            "value_type": "string",
-            "operator": "contains",
-            "threshold": "多层条件或循环嵌套",
+            "name": "nesting_depth",
+            "source": "当前函数、类或模块内的控制流嵌套深度；进入函数或类时归零",
+            "value_type": "integer",
+            "operator": "gt",
+            "threshold": 4,
+            "required": true
+          },
+          {
+            "name": "control_flow_changed",
+            "source": "head control_flow 节点行范围与三点 Diff 新增行的交集",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
             "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "深度小于等于 4、elif 不加层、match 和推导式不计入、只改外层条件、未改动或只删除；无法判断时标记未分析。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "head Python 源码 AST",
+          "三点 Diff 新增行"
         ],
-        "finding": "code.deep_control_flow Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.deep_control_flow Finding，包含规则 ID、控制流种类、深度、固定阈值和证据位置。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "control_flow node",
+          "added lines"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "展示超限控制流节点的代码切片和 nesting_depth。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "literature_and_language_docs",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Python Language Reference: compound statements",
+          "Pylint R1702 too-many-nested-blocks; its default is not this card's threshold"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "生成代码或有意写深的状态机也会超过深度 4。",
+        "false_negative": "长 elif 链、match 和推导式不增加深度；只改外层条件不会报告未相交的内层节点。",
+        "dynamic_language": "exec 生成的分支不在本次解析的 AST 中。",
+        "does_not_decide": "不计算圈复杂度，不判断分支可达，也不判断缺陷。",
+        "manual_review": "需要看超限节点的种类、深度，以及新增行落在深层语句还是外层条件。"
       },
       "validation_obligation": {
         "level": "literature_inherited",
-        "method": "正例、反例和边界构造样例；后续补充文献依据。",
-        "dataset": "待确定的构造样例或项目数据集。",
-        "oracle": "规则定义和测试预期。",
+        "method": "迭代 005 的构造正例、反例和边界样例；阈值未经 NetBox 校准。",
+        "dataset": "迭代 005 构造样例；NetBox 实证数据集待确定。",
+        "oracle": "规则卡片定义，固定阈值 4。",
         "metrics": [
           "构造样例通过率",
           "证据完整率"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "构造样例按卡片命中；不预填 Precision、Recall 或缺陷结论。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "深度阈值尚未用真实 PR 校准",
+          "实证数据范围待补齐"
         ]
       }
     },
     {
       "rule_id": "code.global_mutable_state",
-      "name": "全局可变状态污染",
+      "name": "全局可变状态",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "draft",
+      "lifecycle": "registered",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -675,64 +737,77 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "global 声明与模块级可变修改 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "模块或类体新增可变容器绑定，或函数体内新增 global 语句。",
+        "why_worth_detecting": "共享可变对象和显式全局重新绑定会让一次调用改到其他调用看到的状态。",
+        "expected_consequence": "可能造成跨请求或跨测试的状态残留；缓存和注册表也可能是有意设计。",
+        "coverage_gap": "现有语言级规则不区分模块级可变绑定和 global 声明。函数默认参数里的可变对象不在本规则内。",
+        "value": "把两种结构形式写成可实现的卡片，本迭代不接入检测器。"
       },
       "definition": {
-        "target": "global 声明与模块级可变修改",
-        "trigger": "检测到与global 声明与模块级可变修改一致的结构或变更条件时生成 Finding。",
+        "target": "函数体内的 global 语句，或模块体、类体中值为列表、字典、集合或无参 list/dict/set 调用的赋值",
+        "trigger": "任一形式的节点与新增行相交。一个节点一条 Finding。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
-            "value_type": "string",
+            "name": "mutable_state_form",
+            "source": "global_statement 或 mutable_binding",
+            "value_type": "enum",
             "operator": "contains",
-            "threshold": "global 声明与模块级可变修改",
+            "threshold": [
+              "global_statement",
+              "mutable_binding"
+            ],
+            "required": true
+          },
+          {
+            "name": "binding_changed",
+            "source": "节点行范围与三点 Diff 新增行的交集",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
             "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "nonlocal、函数内局部列表、模块级不可变值、defaultdict 等其他构造、只做就地修改而没有新绑定；head AST 不可用时不把文件记为通过。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "head Python 源码 AST",
+          "三点 Diff 新增行"
         ],
-        "finding": "code.global_mutable_state Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.global_mutable_state Finding，包含规则 ID、形式、名字和证据位置。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "global or assignment node",
+          "added lines"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "展示 global 语句或模块级、类级绑定的代码切片。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "literature_and_language_docs",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Python Language Reference: the global statement",
+          "Python Data Model: objects, values and types"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "有意的模块级缓存、注册表，以及 global 后的不可变重新绑定都会命中。",
+        "false_negative": "defaultdict、自定义容器、导入后在其他模块修改对象不会命中。",
+        "dynamic_language": "不跨模块跟踪名字，也不分析 exec 引入的绑定。",
+        "does_not_decide": "不判断数据竞争或状态是否已经串扰。",
+        "manual_review": "需要看谁清空容器、绑定是否跨请求共享，以及变更是新增容器还是新增 global。"
       },
       "validation_obligation": {
         "level": "literature_inherited",
-        "method": "正例、反例和边界构造样例；后续补充文献依据。",
-        "dataset": "待确定的构造样例或项目数据集。",
-        "oracle": "规则定义和测试预期。",
+        "method": "卡片已固定两种形式；检测器和构造测试留到后续实现迭代。",
+        "dataset": "构造样例尚未编写；NetBox 实证数据集待确定。",
+        "oracle": "规则卡片定义。",
         "metrics": [
           "构造样例通过率",
           "证据完整率"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "实现迭代的构造样例按卡片命中；不预填 Precision、Recall 或串扰结论。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "实证数据范围待补齐",
+          "本迭代没有检测器"
         ]
       }
     },
@@ -849,65 +924,87 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "DRF 公有函数或接口新增无默认值参数 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "DRF 公有序列化器或已路由视图可能新增没有默认值的输入。",
+        "why_worth_detecting": "旧客户端在缺少新必填字段时会失败；NetBox 的接口场景以 REST serializer 和 API view 为主。",
+        "expected_consequence": "可能形成不兼容的请求合同。没有路由和字段默认值表时不能确认。",
+        "coverage_gap": "api.signature_changed 不区分必填新增。api.drf_public_parameter_removed 方向相反。",
+        "value": "把拟定特征写清楚，并标明路由映射和 DRF 字段默认值尚未冻结。"
       },
       "definition": {
-        "target": "DRF 公有函数或接口新增无默认值参数",
-        "trigger": "检测到与DRF 公有函数或接口新增无默认值参数一致的结构或变更条件时生成 Finding。",
+        "target": "拟定：已路由 DRF 序列化器字段，或已路由 APIView/ViewSet 动作上没有默认值的新参数。GraphQL 不在范围内。",
+        "trigger": "拟定：base 没有、head 有，静态可见为必填，且 public_route 为真。三项缺一则未评估。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
-            "value_type": "string",
-            "operator": "contains",
-            "threshold": "DRF 公有函数或接口新增无默认值参数",
+            "name": "parameter_added",
+            "source": "base 字段或参数集合没有、head 有",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          },
+          {
+            "name": "required_flag",
+            "source": "静态可见的必填状态；DRF 字段默认值表尚未冻结",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          },
+          {
+            "name": "public_route",
+            "source": "URL 或 router 到 callable 的映射已解析",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
             "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "有默认值、required=False、非公有 helper、只改 help_text。路由或字段默表缺失时不记为通过。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "base/head Python AST",
+          "三点 Diff 新增行",
+          "尚未提供的路由映射"
         ],
-        "finding": "api.drf_public_parameter_added Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "api.drf_public_parameter_added 设计 Finding。本迭代不生成运行时 Finding。",
         "evidence_location": [
-          "file path",
-          "node or diff lines"
+          "serializer or view",
+          "parameter name",
+          "added lines"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "展示新增字段或参数及其 required 表达。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django REST framework: Serializers",
+          "Django REST framework: field required and partial updates",
+          "Django REST framework: Viewsets and Routers",
+          "Prisk-System docs/versions/v1.0.0 NetBox survey: REST API scenes"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "只被测试使用的 serializer，或内部函数新增参数，在路由映射错误时会偏离定义。",
+        "false_negative": "ModelSerializer 隐式字段、extra_kwargs 和父类覆盖可能看不到。",
+        "dynamic_language": "运行时拼接的字段不在静态类体中。",
+        "does_not_decide": "不证明线上客户端已经失败。",
+        "manual_review": "需要路由、继承链、partial 更新路径和发布说明。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "NetBox 真实 PR、人工标注和已知案例。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "合同冻结后再做构造样例；随后用冻结 NetBox PR 人工标注。",
+        "dataset": "NetBox 冻结数据集仍待圈定到具体 PR。当前没有运行结果。",
+        "oracle": "人工标注。规则卡片里的拟定合同还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待验证设计确定；当前不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "公有路由配置未冻结",
+          "DRF 字段 required 默认表未冻结",
+          "没有检测器"
         ]
       }
     },
@@ -1177,7 +1274,7 @@
     },
     {
       "rule_id": "auth.drf_permission_decorator_removed",
-      "name": "安全装饰器剥离",
+      "name": "权限装饰器被移除",
       "version": "v1",
       "rule_family": "backend_contract",
       "lifecycle": "draft",
@@ -1201,65 +1298,84 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "关键权限装饰器删除 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "视图上的权限或认证装饰器在 diff 中消失。",
+        "why_worth_detecting": "声明被移除后，调用方可能不再经过写在装饰器里的检查；NetBox 更多使用 permission_classes 类属性。",
+        "expected_consequence": "可能放宽视图的声明式访问边界。全局默认权限或替换后的类属性仍可能保持原边界。",
+        "coverage_gap": "auth.permission_structure_changed 不区分装饰器删除。AllowAny 和空列表属于 auth.drf_permission_policy_downgrade。",
+        "value": "把装饰器删除和权限策略降级拆开，并记录名单尚未冻结。"
       },
       "definition": {
-        "target": "关键权限装饰器删除",
-        "trigger": "检测到与关键权限装饰器删除一致的结构或变更条件时生成 Finding。",
+        "target": "拟定：函数、方法或类上的权限装饰器。名单尚未冻结。",
+        "trigger": "拟定：冻结名单中的装饰器在 base 存在、在 head 消失，且与删除行相交。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "decorator_name",
+            "source": "装饰器直接名称或属性名，属于冻结后的名单",
             "value_type": "string",
             "operator": "contains",
-            "threshold": "关键权限装饰器删除",
+            "threshold": [
+              "permission_classes",
+              "authentication_classes",
+              "login_required",
+              "permission_required",
+              "user_passes_test"
+            ],
+            "required": true
+          },
+          {
+            "name": "decorator_removed",
+            "source": "同一所有者在 base 有该装饰器且 head 没有",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
             "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "装饰器仍在、新增装饰器、名单外装饰器、类属性 permission_classes 的变化。装饰器列表读不出时不记为通过。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "base/head decorator nodes",
+          "三点 Diff"
         ],
-        "finding": "auth.drf_permission_decorator_removed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "auth.drf_permission_decorator_removed 设计 Finding。本迭代不生成运行时 Finding。",
         "evidence_location": [
-          "file path",
-          "node or diff lines"
+          "view qualified name",
+          "removed decorator",
+          "deleted lines"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "展示 base 与 head 的装饰器表达式。",
         "impact_type": "external_impact"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django REST framework: function-based views and permission decorators",
+          "Django REST framework: Permissions",
+          "Django authentication: login_required and permission_required",
+          "Prisk-System docs/versions/v1.0.0 NetBox survey: authentication and permission scenes"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "装饰器换成等价的 permission_classes 类属性，或全局默认权限仍在，都会看起来像删除。",
+        "false_negative": "别名、装饰器工厂和未列入冻结名单的 NetBox 封装会漏报。",
+        "dynamic_language": "运行时 setattr 的权限类不在装饰器 AST 中。",
+        "does_not_decide": "不证明请求已经越权，也不比较两个权限类的强弱。",
+        "manual_review": "需要看类属性、DEFAULT_PERMISSION_CLASSES 和 URL 登记。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "NetBox 真实 PR、人工标注和已知案例。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "名单冻结后编写构造样例，再用 NetBox PR 人工标注。",
+        "dataset": "NetBox 冻结数据集仍待圈定。当前没有运行结果。",
+        "oracle": "人工标注。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待验证设计确定；当前不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "装饰器名单未冻结",
+          "等价类属性如何抑制 Finding",
+          "没有检测器"
         ]
       }
     },
@@ -1729,65 +1845,99 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "raw 或 cursor.execute 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "Django 代码中出现 cursor.execute、Manager.raw、RawSQL 或类似的原生 SQL 调用形态。",
+        "why_worth_detecting": "参数是否与 SQL 分开传递、语句位于迁移还是请求路径，会改变复核方式。",
+        "expected_consequence": "可能引入难以由 ORM 约束的查询。命中不表示注入已经发生，迁移中的 SQL 也不自动是缺陷。",
+        "coverage_gap": "data.transaction_structure_changed 把模型和事务结构变化混在一起，不单列原生 SQL。",
+        "value": "列出候选调用和路径政策缺口，避免在政策冻结前实现检测器。"
       },
       "definition": {
-        "target": "raw 或 cursor.execute",
-        "trigger": "检测到与raw 或 cursor.execute一致的结构或变更条件时生成 Finding。",
+        "target": "拟定：与新增行相交的原生 SQL 调用。属性链名单和迁移路径政策尚未冻结。",
+        "trigger": "拟定：sql_callee 命中冻结名单，调用与新增行相交，且 path_policy 已配置。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "sql_callee",
+            "source": "调用属性名或 RawSQL 直接名称，属于冻结后的名单",
             "value_type": "string",
             "operator": "contains",
-            "threshold": "raw 或 cursor.execute",
+            "threshold": [
+              "execute",
+              "executemany",
+              "callproc",
+              "cursor",
+              "raw",
+              "RawSQL",
+              "extra"
+            ],
+            "required": true
+          },
+          {
+            "name": "call_changed",
+            "source": "调用节点行范围与三点 Diff 新增行的交集",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          },
+          {
+            "name": "path_policy",
+            "source": "迁移路径配置存在并已套用",
+            "value_type": "enum",
+            "operator": "contains",
+            "threshold": [
+              "included",
+              "excluded"
+            ],
             "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "ORM filter/exclude/update、只在字符串中出现 SQL、未改动调用。路径政策缺失时不记为通过，也不默认排除迁移。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "head Python AST",
+          "三点 Diff 新增行",
+          "尚未提供的迁移路径政策"
         ],
-        "finding": "data.django_raw_sql_execution Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "data.django_raw_sql_execution 设计 Finding。本迭代不生成运行时 Finding。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "call node",
+          "matched callee"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "展示调用表达式，不凭 SQL 文本判断安全性。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django documentation: executing custom SQL directly",
+          "Django documentation: performing raw queries and RawSQL",
+          "Django documentation: SQL injection protection",
+          "Django QuerySet.extra",
+          "Prisk-System docs/versions/v1.0.0 NetBox survey: model and migration scenes"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "参数化的管理 SQL、数据修复迁移和报表查询会命中。",
+        "false_negative": "别名、getattr 和包在 helper 中的执行会漏报。",
+        "dynamic_language": "属性链和导入别名使静态名单不完整。",
+        "does_not_decide": "不解析 SQL，不判断注入是否发生。",
+        "manual_review": "需要看调用场景、参数是否序列传递，以及文件是否为迁移。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "NetBox 真实 PR、人工标注和已知案例。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "名单和迁移路径政策冻结后编写构造样例，再用 NetBox PR 人工标注。",
+        "dataset": "NetBox 冻结数据集仍待圈定。当前没有运行结果。",
+        "oracle": "人工标注。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待验证设计确定；当前不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "调用名单未冻结",
+          "迁移目录政策未冻结",
+          "没有检测器"
         ]
       }
     },
