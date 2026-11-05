@@ -2,7 +2,7 @@
 task_id: "005"
 target_version: "v1.1.0"
 title: "第二批代码异味与 Django 契约卡片"
-status: "In Progress"
+status: "Accepted"
 branch: "feat/005-second-batch-code-smells"
 date: "2026-11-05"
 ---
@@ -30,7 +30,15 @@ Finding 只是复核线索。`confidence` 仍是 `structural`。本迭代不声�
 - 不把 JSON 登记册改成运行时配置。
 - 不提高默认权重，不改变默认可得权重，不重算冻结 stage04/05，不上传被忽略的大 JSONL。
 - 不运行 NetBox 实验，不声称经验有效性。
-- 不合并，不创建 tag，不打开 pull request。本记录保持 In Progress，由维护者决定何时 Accepted。
+- 不创建 tag。交付是 [PR #5](https://github.com/Zhang-huanzhi/prisk-system/pull/5)。本记录状态为 Accepted。
+
+## 交付
+
+维护者已接受本迭代。交付分支是 `feat/005-second-batch-code-smells`，交付记录是 [PR #5](https://github.com/Zhang-huanzhi/prisk-system/pull/5)。
+
+- 第二批代码异味卡片：`code.hardcoded_secret` 与 `code.global_mutable_state` 为 `registered`；`code.unmanaged_open` 与 `code.deep_control_flow` 为 `implemented`，默认启用且默认权重 0。
+- 第一批 Django/DRF 设计卡片仍为 `draft`：`api.drf_public_parameter_added`、`auth.drf_permission_decorator_removed`、`data.django_raw_sql_execution`。没有检测器。
+- 教师演示 API 与评分 CLI 默认读取 `backend/data/demo/`。`frozen_sample_data_root()` 仍指向 `backend/data/frozen-netbox/`，以后的验证迭代通过 `--stage03`、`--stage04`、`--stage05` 显式使用。大型 stage04 继续 gitignore。这不是 NetBox 实证结论。
 
 ## 技术方案
 

@@ -7,7 +7,7 @@
 
 ## 当前迭代
 
-v1.0.0 发布后，新增功能、问题修复和工程改造从这里建立编号迭代文档。v1.0.0 冻结目录不回写新行为。001、002、003、004 为 Accepted。005 为 In Progress。004 把三条语言级代码异味规则接入 AST 与 Finding 管道；005 在同一管道增加 `code.unmanaged_open` 和 `code.deep_control_flow`。JSON 登记册仍不是运行时配置。
+v1.0.0 发布后，新增功能、问题修复和工程改造从这里建立编号迭代文档。v1.0.0 冻结目录不回写新行为。001、002、003、004、005 为 Accepted。004 把三条语言级代码异味规则接入 AST 与 Finding 管道；005 在同一管道增加 `code.unmanaged_open` 和 `code.deep_control_flow`，并把演示默认输入改为已跟踪的 `backend/data/demo/`。JSON 登记册仍不是运行时配置。v1.1 入口本身仍是 In Progress。
 
 ## 迭代文档
 
