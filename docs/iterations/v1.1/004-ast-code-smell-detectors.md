@@ -2,7 +2,7 @@
 task_id: "004"
 target_version: "v1.1.0"
 title: "AST 代码异味检测器"
-status: "In Progress"
+status: "Accepted"
 branch: "feat/004-ast-detectors"
 date: "2026-11-05"
 ---
@@ -28,7 +28,7 @@ date: "2026-11-05"
 - 不实现其余草稿规则，不覆盖 `code.exception_structure_changed` 的原有结构匹配。
 - 不把 JSON 登记册改成运行时配置。
 - 不检测 `compile`、`except*`、别名、属性调用或只移动代码。这些仍按卡片排除或留待设计。
-- 不创建 tag，不合并。本记录保持 In Progress，等待验收后才能改为 Accepted。
+- 不创建 tag，不合并。本记录状态为 Accepted。
 
 ## 技术方案
 
