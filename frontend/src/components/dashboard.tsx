@@ -16,6 +16,7 @@ type Rule = {
 type Evidence = {
   path: string; node_id: string; node_kind: string; structural_change_type: string;
   lines: number[]; qualified_name?: string; source_segment?: string;
+  capture_form?: string; callee_name?: string; handler_body_is_single_pass?: boolean;
 };
 type Finding = {
   rule_id: string; severity: string; message: string;
@@ -39,7 +40,7 @@ type Report = {
   base_sha?: string; head_sha?: string; score: number; risk_level: string;
   score_basis: { earned_points: number; maximum_points: number; matched_rule_ids: string[]; test_collaboration: boolean; configuration: Config };
   summary: {
-    finding_count: number; domains: string[]; files_changed: number; business_files: number;
+    finding_count: number; domains?: string[]; files_changed: number; business_files: number;
     test_files: number; additions: number; deletions: number; business_changed: boolean;
     test_changed: boolean; test_cochanged: boolean; test_collaboration_gap: boolean; parse_degraded: boolean;
   };
@@ -73,10 +74,17 @@ const ruleLabels: Record<string, string> = {
   "data.transaction_structure_changed": "数据 / 事务结构变化",
   "config.configuration_structure_changed": "配置结构变化",
   "code.exception_structure_changed": "异常处理结构变化",
+  "code.swallowed_exception": "静默吞异常",
+  "code.bare_exception": "宽泛或裸异常捕获",
+  "code.dynamic_execution": "动态代码执行",
 };
 const initialConfig: Config = {
   enabled_rules: Object.keys(ruleLabels),
-  rule_weights: { "api.signature_changed": 2, "auth.permission_structure_changed": 3, "data.transaction_structure_changed": 2, "config.configuration_structure_changed": 1, "code.exception_structure_changed": 1 },
+  rule_weights: {
+    "api.signature_changed": 2, "auth.permission_structure_changed": 3, "data.transaction_structure_changed": 2,
+    "config.configuration_structure_changed": 1, "code.exception_structure_changed": 1,
+    "code.swallowed_exception": 0, "code.bare_exception": 0, "code.dynamic_execution": 0,
+  },
   test_collaboration_weight: 1, test_collaboration_enabled: true, thresholds: { medium: 30, high: 65 },
 };
 
@@ -91,6 +99,12 @@ function domainIcon(domain: string) {
 }
 function roleLabel(role: string) { return role === "business" ? "业务" : role === "test" ? "测试" : "其他"; }
 function shortSha(value?: string) { return value ? value.slice(0, 7) : "—"; }
+function evidenceDetail(item: Evidence) {
+  if (item.capture_form) return `捕获形式 ${item.capture_form}`;
+  if (item.callee_name) return `直接调用 ${item.callee_name}`;
+  if (item.handler_body_is_single_pass) return "处理体只有 pass";
+  return "";
+}
 function configFromReport(report: Report): Config { return report.score_basis.configuration; }
 
 export function Dashboard() {
@@ -455,7 +469,7 @@ function Overview({ report, baselineScore, onShowRules, onShowCode, onLocate }: 
       <div className="score-summary"><span>当前复核优先级</span><strong>{report.score}<small>/100</small></strong><span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span><small>基线 {baselineScore ?? report.score} · 阈值 {report.score_basis.configuration.thresholds.medium}/{report.score_basis.configuration.thresholds.high}</small></div>
       <div className="summary-details">
         <div className="summary-stat"><span>变更文件</span><strong>{report.summary.files_changed}</strong></div><div className="summary-stat"><span>新增行</span><strong className="plus">+{report.summary.additions}</strong></div><div className="summary-stat"><span>删除行</span><strong className="minus">−{report.summary.deletions}</strong></div><div className="summary-stat"><span>业务 / 测试文件</span><strong>{report.summary.business_files} / {report.summary.test_files}</strong></div>
-        <div className="summary-stat"><span>规则命中</span><strong>{report.findings.length}</strong></div><div className="summary-stat"><span>命中关注域</span><strong className="scene-stat">{report.summary.domains.map((domain) => domainLabels[domain] ?? domain).join("、") || "无"}</strong></div>
+        <div className="summary-stat"><span>规则命中</span><strong>{report.findings.length}</strong></div><div className="summary-stat"><span>命中关注域</span><strong className="scene-stat">{(report.summary.domains ?? []).map((domain) => domainLabels[domain] ?? domain).join("、") || "无"}</strong></div>
       </div>
     </div>
     <div className={`collab-banner ${report.summary.test_cochanged ? "success" : "attention"}`}><span className="collab-icon">{report.summary.test_cochanged ? <Check size={16} /> : <AlertCircle size={16} />}</span><span>{report.summary.test_cochanged ? "业务代码与测试文件有协同变更" : report.summary.business_changed ? "有业务代码变更，但没有测试文件协同" : "本次变更未涉及业务代码"}</span><small>辅助复核信号，不单独构成风险判断</small></div>
@@ -463,7 +477,7 @@ function Overview({ report, baselineScore, onShowRules, onShowCode, onLocate }: 
       <section className="overview-section"><div className="section-heading"><div><h2>重点风险线索</h2><p>当前分析命中的结构规则</p></div><button className="text-action" onClick={onShowRules}>查看全部 <ChevronRight size={14} /></button></div>
         {topFindings.length ? <div className="overview-finding-list">{topFindings.map((finding, index) => <button className="overview-finding" key={`${finding.rule_id}-${index}`} onClick={() => finding.evidence[0] && onLocate(finding.evidence[0])}>
           <span className={`finding-symbol domain-${ruleDomain(finding.rule_id)}`}>{domainIcon(ruleDomain(finding.rule_id))}</span><span className="overview-finding-main"><strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong><small>{finding.evidence.length} 条证据 · {finding.evidence[0]?.path}</small></span><ArrowUpRight size={15} />
-        </button>)}</div> : <div className="empty-state compact"><Check size={17} />当前四类规则均未命中，仍可检查全部代码变更。</div>}
+        </button>)}</div> : <div className="empty-state compact"><Check size={17} />当前已启用规则均未命中，仍可检查全部代码变更。</div>}
       </section>
       <section className="overview-section change-overview"><div className="section-heading"><div><h2>变更范围</h2><p>{report.diff_mode === "three_dot" ? "来自 base...head 三点 Diff" : "来自冻结 PR 三点 Diff"}</p></div><button className="text-action" onClick={onShowCode}>审查代码 <ChevronRight size={14} /></button></div>
         <div className="file-role-summary"><span><FileCode2 size={16} />业务文件<strong>{report.summary.business_files}</strong></span><span><FileCode2 size={16} />测试文件<strong>{report.summary.test_files}</strong></span><span><FileText size={16} />其他文件<strong>{Math.max(0, report.summary.files_changed - report.summary.business_files - report.summary.test_files)}</strong></span></div>
@@ -520,10 +534,10 @@ function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate, m
           <span className={`severity-tag severity-${finding.severity}`}>{severityLabel(finding.severity)}</span><span className="evidence-count">{finding.evidence.length} 证据</span>{expandedRule === `${finding.rule_id}-${index}` ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
         {expandedRule === `${finding.rule_id}-${index}` && <div className="matched-evidence-list"><p>复核建议：{finding.suggested_action}</p>{finding.evidence.map((item, evidenceIndex) => <div className="rule-evidence" key={`${item.node_id}-${evidenceIndex}`}>
-          <div><strong>{item.path}</strong><span>{item.node_kind} · {item.structural_change_type}</span><small>{item.qualified_name ?? item.node_id}</small><code>{item.lines.map((line) => `L${line}`).join(", ") || "无 Diff 行号"}</code></div>
+          <div><strong>{item.path}</strong><span>{item.node_kind} · {item.structural_change_type}</span><small>{item.qualified_name ?? item.node_id}</small>{evidenceDetail(item) ? <small>{evidenceDetail(item)}</small> : null}<code>{item.lines.map((line) => `L${line}`).join(", ") || "无 Diff 行号"}</code></div>
           <button className="text-action" onClick={() => onLocate(item)} disabled={!item.lines.length}>定位到代码 <ArrowUpRight size={14} /></button>
         </div>)}</div>}
-      </article>)}</div> : <div className="empty-state"><Check size={18} />本次分析未触发四类结构规则。未命中不等于不存在风险，可在下方查看规则定义并复核代码。</div>}
+      </article>)}</div> : <div className="empty-state"><Check size={18} />本次分析未触发已启用规则。未命中不等于不存在风险，可在下方查看规则定义并复核代码。</div>}
     </section>
     <section className="rule-catalog-section"><div className="section-heading"><div><h2>规则目录</h2><p>当前实现的规则、触发条件与适用边界</p></div><span className="catalog-count">{catalog.length} 条规则</span></div>
       <div className="rule-catalog">{catalog.map((rule) => <article className="catalog-rule" key={rule.rule_id}>
@@ -571,7 +585,7 @@ function renderMarkdown(report: Report) {
     `- 变更规模：${report.summary.files_changed} 个文件，+${report.summary.additions} / -${report.summary.deletions}`,
     "", "## 规则线索", ...report.findings.flatMap((finding) => [
       "", `### ${finding.rule_id}`, `- ${finding.message}`, `- 复核建议：${finding.suggested_action}`,
-      ...finding.evidence.map((item) => `- ${item.path}:${item.lines.join(",")} · ${item.node_kind} · ${item.structural_change_type} · ${item.qualified_name ?? item.node_id}`),
+      ...finding.evidence.map((item) => `- ${item.path}:${item.lines.join(",")} · ${item.node_kind} · ${item.structural_change_type} · ${item.qualified_name ?? item.node_id}${evidenceDetail(item) ? ` · ${evidenceDetail(item)}` : ""}`),
     ]), "", "## 说明", ...report.limitations.map((item) => `- ${item}`),
   ].join("\n");
 }

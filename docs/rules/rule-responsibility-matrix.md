@@ -17,3 +17,5 @@
 - **工程实现正确性**：构造样例、单元测试和证据可追溯性证明检测器按定义工作。
 
 Precision、Recall、阈值和样本量应在后续验证设计中说明依据，不在登记阶段预填结论。
+
+迭代 004 已为 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution` 接入检测器，并用构造样例检查工程实现正确性。这不产生 Precision、Recall 或 NetBox 实证结论。

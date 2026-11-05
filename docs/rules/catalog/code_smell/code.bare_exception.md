@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 规则 ID | `code.bare_exception` |
-| 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `registered` |
+| 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `implemented` |
 | 负责人 | `Prisk-System` |
 | 风险性质 / 依赖层级 | `pr_intrinsic` / `language` |
 | 适用范围 | Python 源文件及其 PR 差异 |
@@ -19,8 +19,8 @@
 - 对象：head AST 中普通 `ExceptHandler`，其类型为空、直接名称 `Exception` 或 `BaseException`，包括异常元组中直接包含这些名称。
 - 触发：处理分支头或处理体与新增 Diff 行相交且满足上述类型条件，生成复核 Finding；多个满足条件的类型属于同一分支时只生成一条。
 - 不触发：仅捕获 `ValueError` 等具体类型；不与新增行相交；解析或定位失败时标记未分析。
-- 特征：`handler_type`（待实现的 AST 类型名称集合，包含 `bare`、`Exception` 或 `BaseException`）；`handler_changed`（待实现的节点行范围与新增行交集，布尔值，`eq true`）。名称直接匹配不保证解析为内置类型。
-- 输入与证据：head Python 源码、文件路径、三点 Diff；Finding 包含规则 ID、行范围、捕获类型、代码切片与差异、`pr_intrinsic_risk`。前后对照缺失时明确标记。
+- 特征：`handler_type`（head AST `ExceptHandler.type` 的直接名称集合，包含 `bare`、`Exception` 或 `BaseException`）；`handler_changed`（该节点行范围与新增行交集，布尔值，`eq true`）。名称直接匹配不保证解析为内置类型。
+- 输入与证据：head Python 源码、文件路径、三点 Diff；Finding 包含规则 ID、行范围、捕获类型、代码切片与差异、`pr_intrinsic_risk`。前后对照缺失时明确标记。004 的原始 Finding 使用 stage04 节点切片和新增行号；base 节点不存在或切片缺失时写入 `before`/`after`/`source_status` 的 `unavailable` 及原因。stage05 输入不含 unified diff hunk 原文，因此不复制 hunk 文本。
 
 触发：
 
@@ -53,5 +53,5 @@ except ValueError:
 
 ## 有效性计划
 
-`literature_inherited`：后续构造裸捕获、`Exception`、`BaseException`、元组、具体异常、遮蔽、别名和差异边界样例，以卡片定义为判定依据检查命中与证据；覆盖 Python 版本及阈值待确定。当前未实现或验证。
+`literature_inherited`：迭代 004 已按本卡片检查裸捕获、`Exception`、`BaseException`、元组、嵌套元组、具体异常、名称遮蔽和新增行边界等构造样例。这些测试只证明检测器按定义工作，不提供 Precision 或 Recall。覆盖范围、实证数据集和验收阈值仍待确定。`except*` 仍待设计。
 

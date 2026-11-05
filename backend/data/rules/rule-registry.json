@@ -6,7 +6,7 @@
       "name": "静默吞异常模式",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "registered",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -39,16 +39,24 @@
         "trigger_features": [
           {
             "name": "handler_body_is_single_pass",
-            "source": "待实现: head AST ExceptHandler.body",
+            "source": "head AST ExceptHandler.body 是否恰好一个 Pass",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          },
+          {
+            "name": "handler_changed",
+            "source": "head ExceptHandler 行范围与三点 Diff 新增行的交集",
             "value_type": "boolean",
             "operator": "eq",
             "threshold": true,
             "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "处理体不是单个 pass、与新增行无交集，或 head AST 不可用时不把文件记为通过。",
         "inputs": [
-          "待实现: head Python 源码 AST",
+          "head Python 源码 AST",
           "三点 Diff 新增行"
         ],
         "finding": "code.swallowed_exception Finding，包含规则 ID、严重度、影响类型和证据位置。",
@@ -77,16 +85,16 @@
       },
       "validation_obligation": {
         "level": "literature_inherited",
-        "method": "正例、反例和边界构造样例；后续补充文献依据。",
-        "dataset": "待确定的构造样例或项目数据集。",
-        "oracle": "规则定义和测试预期。",
+        "method": "迭代 004 的构造正例、反例和边界样例；实证数据集仍待确定。",
+        "dataset": "迭代 004 构造样例；项目实证数据集待确定。",
+        "oracle": "规则卡片定义。",
         "metrics": [
           "构造样例通过率",
           "证据完整率"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "构造样例按卡片命中；不预填 Precision、Recall 或缺陷结论。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
+          "实证数据范围待补齐",
           "误报与漏报边界待验证"
         ]
       }
@@ -96,7 +104,7 @@
       "name": "宽泛或裸异常捕获",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "registered",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -129,7 +137,7 @@
         "trigger_features": [
           {
             "name": "handler_type",
-            "source": "待实现: head AST ExceptHandler.type",
+            "source": "head AST ExceptHandler.type 的直接名称，空类型记为 bare",
             "value_type": "string",
             "operator": "contains",
             "threshold": [
@@ -138,11 +146,19 @@
               "BaseException"
             ],
             "required": true
+          },
+          {
+            "name": "handler_changed",
+            "source": "head ExceptHandler 行范围与三点 Diff 新增行的交集",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "只捕获具体异常、与新增行无交集，或 head AST 不可用时不把文件记为通过。",
         "inputs": [
-          "待实现: head Python 源码 AST",
+          "head Python 源码 AST",
           "三点 Diff 新增行"
         ],
         "finding": "code.bare_exception Finding，包含规则 ID、严重度、影响类型和证据位置。",
@@ -170,16 +186,16 @@
       },
       "validation_obligation": {
         "level": "literature_inherited",
-        "method": "正例、反例和边界构造样例；后续补充文献依据。",
-        "dataset": "待确定的构造样例或项目数据集。",
-        "oracle": "规则定义和测试预期。",
+        "method": "迭代 004 的构造正例、反例和边界样例；实证数据集仍待确定。",
+        "dataset": "迭代 004 构造样例；项目实证数据集待确定。",
+        "oracle": "规则卡片定义。",
         "metrics": [
           "构造样例通过率",
           "证据完整率"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "构造样例按卡片命中；不预填 Precision、Recall 或缺陷结论。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
+          "实证数据范围待补齐",
           "误报与漏报边界待验证"
         ]
       }
@@ -189,7 +205,7 @@
       "name": "动态代码执行调用",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "registered",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -210,7 +226,7 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "eval/exec/compile 可能在变更中引入，需要显式记录为可复核信号。",
+        "observed_problem": "eval 或 exec 的直接调用可能在变更中引入，需要显式记录为可复核信号。compile 只编译源码，不在本规则内。",
         "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
         "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
         "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
@@ -222,7 +238,7 @@
         "trigger_features": [
           {
             "name": "direct_callee_name",
-            "source": "待实现: head AST Call.func.id",
+            "source": "head AST Call.func 为 Name 时的 id",
             "value_type": "string",
             "operator": "contains",
             "threshold": [
@@ -230,11 +246,19 @@
               "exec"
             ],
             "required": true
+          },
+          {
+            "name": "call_changed",
+            "source": "head Call 行范围与三点 Diff 新增行的交集",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "compile、属性调用、别名、字符串或注释中的名字、未改动调用，以及 head AST 不可用时不把文件记为通过。",
         "inputs": [
-          "待实现: head Python 源码 AST",
+          "head Python 源码 AST",
           "三点 Diff 新增行"
         ],
         "finding": "code.dynamic_execution Finding，包含规则 ID、严重度、影响类型和证据位置。",
@@ -263,16 +287,16 @@
       },
       "validation_obligation": {
         "level": "literature_inherited",
-        "method": "正例、反例和边界构造样例；后续补充文献依据。",
-        "dataset": "待确定的构造样例或项目数据集。",
-        "oracle": "规则定义和测试预期。",
+        "method": "迭代 004 的构造正例、反例和边界样例；实证数据集仍待确定。",
+        "dataset": "迭代 004 构造样例；项目实证数据集待确定。",
+        "oracle": "规则卡片定义。",
         "metrics": [
           "构造样例通过率",
           "证据完整率"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "构造样例按卡片命中；不预填 Precision、Recall 或缺陷结论。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
+          "实证数据范围待补齐",
           "误报与漏报边界待验证"
         ]
       }

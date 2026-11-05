@@ -44,7 +44,7 @@ class DemoServiceTests(unittest.TestCase):
             shutil.rmtree(root, ignore_errors=True)
         self.assertEqual(report["files"][0]["hunks"][0]["lines"][1]["kind"], "add")
         self.assertEqual(report["files"][0]["parse_status"]["head"], "ok")
-        self.assertEqual(len(catalog), 5)
+        self.assertEqual(len(catalog), 8)
         self.assertTrue(all(item.get("rule_id") and item.get("applicable_scope") and "default_weight" in item for item in catalog))
 
     def test_config_is_deterministic_and_rejects_invalid_thresholds(self) -> None:
@@ -58,9 +58,12 @@ class DemoServiceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_config({"rule_weights": {"auth.permission_structure_changed": 9}})
 
-    def test_default_config_has_five_rules_and_threshold_order(self) -> None:
+    def test_default_config_keeps_historical_score_denominator(self) -> None:
         normalized = normalize_config(None)
-        self.assertEqual(len(normalized["enabled_rules"]), 5)
+        self.assertEqual(len(normalized["enabled_rules"]), 8)
+        self.assertEqual(normalized["rule_weights"]["code.swallowed_exception"], 0)
+        self.assertEqual(normalized["rule_weights"]["code.bare_exception"], 0)
+        self.assertEqual(normalized["rule_weights"]["code.dynamic_execution"], 0)
         self.assertLess(normalized["thresholds"]["medium"], normalized["thresholds"]["high"])
 
     def test_scoring_is_rule_weighted_and_evidence_is_enriched(self) -> None:
@@ -91,6 +94,47 @@ class DemoServiceTests(unittest.TestCase):
         self.assertEqual(changed["score"], 50)
         self.assertEqual(baseline["findings"][0]["evidence"][0]["source_segment"], "atomic()")
         self.assertTrue(baseline["summary"]["test_collaboration_gap"])
+
+    def test_enrichment_keeps_explicit_unavailable_evidence(self) -> None:
+        root = make_temp_dir("prisk-demo-")
+        try:
+            stage03 = root / "stage03.jsonl"
+            stage04 = root / "stage04.jsonl"
+            stage05 = root / "stage05.jsonl"
+            stage03.write_text(json.dumps({
+                "status": "ok", "pr_number": 4, "repo": "example/example",
+                "summary": {"files_changed": 1, "business_changed": True, "test_changed": True},
+                "files": [],
+            }) + "\n", encoding="utf-8")
+            stage04.write_text(json.dumps({"status": "ok", "pr_number": 4, "files": [{"nodes": []}]}) + "\n", encoding="utf-8")
+            stage05.write_text(json.dumps({
+                "status": "ok", "pr_number": 4, "summary": {"test_collaboration": False, "parse_degraded": False},
+                "findings": [{
+                    "rule_id": "code.dynamic_execution",
+                    "severity": "medium",
+                    "message": "直接调用 eval。",
+                    "suggested_action": "复核",
+                    "evidence": [{
+                        "path": "netbox/legacy.py",
+                        "node_id": "missing-node",
+                        "node_kind": "call",
+                        "structural_change_type": "added_line_overlap",
+                        "lines": [3],
+                        "source_segment": None,
+                        "source_status": "unavailable",
+                        "before": {"status": "unavailable", "reason": "no_base_node", "source_segment": None},
+                        "after": {"status": "unavailable", "reason": "source_missing", "source_segment": None},
+                    }],
+                }],
+            }) + "\n", encoding="utf-8")
+            report = DemoData(stage03, stage04, stage05).analyze(4)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+        evidence = report["findings"][0]["evidence"][0]
+        self.assertIsNone(evidence["source_segment"])
+        self.assertEqual(evidence["source_status"], "unavailable")
+        self.assertEqual(evidence["before"]["reason"], "no_base_node")
+        self.assertEqual(evidence["after"]["reason"], "source_missing")
 
 
 if __name__ == "__main__":

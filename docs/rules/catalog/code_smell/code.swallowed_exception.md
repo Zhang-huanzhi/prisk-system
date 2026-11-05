@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 规则 ID | `code.swallowed_exception` |
-| 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `registered` |
+| 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `implemented` |
 | 负责人 | `Prisk-System` |
 | 风险性质 / 依赖层级 | `pr_intrinsic` / `language` |
 | 适用范围 | Python 源文件及其 PR 差异 |
@@ -19,8 +19,8 @@
 - 对象：head 版本 Python AST 中的 `ExceptHandler`，包括普通和带异常类型的处理分支。
 - 触发：处理分支头或处理体与新增行相交，且处理体恰好只有一个 `Pass` 节点。只移动代码或删除代码是否排除需后续通过可靠的前后匹配确定；当前仅按新增行定义。
 - 不触发：处理体含记录、恢复、重新抛出或其他语句；与新增行无交集；无法解析或无法定位差异时标记未分析，不视作已通过。
-- 特征：`handler_body_is_single_pass`，来源为待实现的 `ExceptHandler.body`，布尔值，`eq true`；`handler_changed`，来源为待实现的节点行范围与新增 Diff 行交集，布尔值，`eq true`。这些是设计字段，不代表现有 stage04 已提供。
-- 输入与证据：head 源码、路径和三点 Diff 新增行；Finding 包括规则 ID、路径、处理分支行范围、代码切片、差异及影响类型 `pr_intrinsic_risk`。前后对照不可得时明确标记，不伪造。
+- 特征：`handler_body_is_single_pass`，来源为 head AST `ExceptHandler.body` 是否恰好一个 `Pass`，布尔值，`eq true`；`handler_changed`，来源为该节点行范围与新增 Diff 行的交集，布尔值，`eq true`。
+- 输入与证据：head 源码、路径和三点 Diff 新增行；Finding 包括规则 ID、路径、处理分支行范围、代码切片、差异及影响类型 `pr_intrinsic_risk`。前后对照不可得时明确标记，不伪造。004 的原始 Finding 使用 stage04 节点切片和新增行号；base 节点不存在或切片缺失时写入 `before`/`after`/`source_status` 的 `unavailable` 及原因。stage05 输入不含 unified diff hunk 原文，因此不复制 hunk 文本。
 
 触发：
 
@@ -55,5 +55,5 @@ except ValueError:
 
 ## 有效性计划
 
-`literature_inherited`：后续使用构造的裸及具名捕获、单个 `pass`、带日志/`raise`、新增行与未改动行、语法错误等正反例，以本卡片为人工判定依据，检查 Finding 和行号。CWE/PEP 支持问题分类和设计动机，不证明检测器准确性。数据集和验收阈值待确定；当前没有实现测试或实证结果。Python 异常组、重命名和移动代码的处理待后续设计。
+`literature_inherited`：迭代 004 已按本卡片检查构造样例，包括单个 `pass`、带日志或重新抛出、裸捕获与具名捕获、新增行、未改动行、语法错误和源码不可用。CWE/PEP 支持问题分类和设计动机，不证明检测器准确性，也不提供 Precision 或 Recall。实证数据集和验收阈值仍待确定。Python 异常组、重命名和只移动代码的处理仍待后续设计。
 

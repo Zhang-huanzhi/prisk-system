@@ -11,7 +11,7 @@ from ..domain.rules import evaluate_dataset, write_rule_catalog
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="对 stage04.v1 结构对象运行五类最小规则")
+    parser = argparse.ArgumentParser(description="对 stage04.v1 结构对象运行当前规则目录")
     parser.add_argument("--input", required=True, type=Path, help="stage04-structure-objects.jsonl")
     parser.add_argument("--output", required=True, type=Path, help="stage05-rule-results.jsonl")
     parser.add_argument("--manifest", required=True, type=Path, help="stage05-manifest.json")
