@@ -17,7 +17,7 @@ API：
 uv run --project backend python -m prisk.cli.web_cli
 ```
 
-API 默认读取仓库内 `backend/data/frozen-netbox/` 的运行时样本。该目录是从 v1.0 冻结产物提取后，在工作区独立保存并重新生成 stage05 的副本，不直接读取 `docs/versions/v1.0.0/` 或上一级 `Prisk-Note` 工作区。其他真实阶段产物仍通过 `--stage03`、`--stage04`、`--stage05` 显式传入。
+API 默认读取仓库内 `backend/data/demo/` 的小型已跟踪演示数据，因此干净检出不依赖 gitignore 的大型 frozen-netbox stage04。`backend/data/frozen-netbox/` 仍是 v1.0 提取样本的本地路径，供以后的验证迭代通过 `--stage03`、`--stage04`、`--stage05` 显式使用；其中的大型 stage04 继续被 gitignore，不作为当前默认输入。默认启动不读取 `docs/versions/v1.0.0/` 或上一级笔记工作区。
 
 前端：
 

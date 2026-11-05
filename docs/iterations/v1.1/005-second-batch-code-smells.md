@@ -57,6 +57,7 @@ Finding 只是复核线索。`confidence` 仍是 `structural`。本迭代不声�
 - 规则结果仍使用 `stage05.v2`。新 Finding 使用原有字段，并带 `impact_type: pr_intrinsic_risk`。`confidence` 仍是 `structural`。
 - `code.unmanaged_open` 的证据可带 `callee_name: "open"` 和 `used_as_with_context: false`。`code.deep_control_flow` 的证据可带 `control_kind`、`nesting_depth`、`depth_threshold: 4` 和 `nesting_depth_basis`。旧消费者可以忽略这些字段。
 - 运行时目录从 8 条变为 10 条。两条新规则默认启用，默认权重为 0。原有五条规则的权重和仍是 9，加上测试协同权重 1，默认可得权重仍是 10。冻结样本在不重算 Finding 时分数不变。
+- 教师演示 API 的默认 stage03/04/05 从 `backend/data/frozen-netbox/` 改为 `backend/data/demo/`。命令行参数不变，显式传入 frozen-netbox 路径仍然可用。阶段 schema 不变。这是当前实现可运行的过渡默认值，不把大型提取样本写成启动合同，也不改写 v1.0.0 冻结记录。
 - 登记册仍不是运行时配置。`code.hardcoded_secret`、`code.global_mutable_state` 和三条 `draft` 契约不进入 `RULE_CATALOG`。
 - 新解析出的 `Call` 都带有 `used_as_with_context`。同一版本的 base 和 head 一起解析时，这个字段不会单独制造 `call_touched`。控制流节点不进入粗粒度结构变化列表。
 
@@ -75,6 +76,7 @@ Finding 只是复核线索。`confidence` 仍是 `structural`。本迭代不声�
 仓库没有 GitHub Actions。以下是本工作区实际命令，不是 CI。
 
 - `uv run --project backend python -m unittest discover -s backend/tests -t backend`：71 项，70 项通过，1 项失败，退出码 1。失败项是 `test_web_defaults_use_project_local_demo_data`。该失败在本分支改动之前的 `main` 上同样出现，原因是 `.gitignore` 排除了 `backend/data/frozen-netbox/stage04-structure-objects.jsonl`，当前检出没有这个文件。`stage03` 和 `stage05` 两个冻结文件存在。本迭代没有重算该快照，也不把整套测试说成全部通过。
+- 后续更正：不把该测试改成跳过。教师演示 API 的默认输入从 `backend/data/frozen-netbox/` 改为已跟踪的 `backend/data/demo/`，与评分 CLI 一致。`frozen_sample_data_root()` 仍保留，以后的验证迭代用 `--stage03`、`--stage04`、`--stage05` 显式指向它。大型 stage04 继续 gitignore，不入库，也不是默认启动依赖。`docs/versions/v1.0.0/` 里已有的冻结产物不删除。这不表示 NetBox 实证已经完成。缺少该 stage04 文件时，`unittest discover` 为 72 项全部通过，退出码 0。
 - 新增和既有代码异味测试、结构测试、目录测试和登记册一致性测试包含在上述 70 项通过结果中。其中 `SecondBatchCodeSmellTests` 覆盖两条新规则的正例、反例、新增行、删除和旧节点未分析。
 - `npm --prefix frontend run lint`：通过。
 - `npm --prefix frontend run typecheck`：通过。
@@ -91,4 +93,4 @@ Finding 只是复核线索。`confidence` 仍是 `structural`。本迭代不声�
 - 005 之前的 stage04 没有控制流节点。不重新解析时，本规则不能把“没有节点”当成深度合格。
 - `code.hardcoded_secret` 和 `code.global_mutable_state` 还没有检测器，名字表和两种可变状态形式也还没有构造测试。
 - 三条 Django/DRF 卡片不能实现，直到路由映射、装饰器名单和迁移路径政策被单独接受。
-- 冻结 stage04 快照缺失使一条既有 CLI 测试失败。恢复该测试需要本地补齐被忽略的快照，不属于本迭代。
+- 当前默认演示不读取 gitignore 的大型 frozen-netbox stage04。该提取样本路径仍保留给以后的验证迭代显式使用。这不是 NetBox 实证结论。
