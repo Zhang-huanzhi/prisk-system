@@ -154,7 +154,9 @@ class _StructureVisitor(ast.NodeVisitor):
         self.nodes: list[dict[str, Any]] = []
         self.scope: list[str] = []
         self.function_depth = 0
+        self.control_depth = 0
         self.in_exception_group = False
+        self._with_context_call_ids: set[int] = set()
         self._counts: Counter[str] = Counter()
 
     def _qualified_name(self, name: str | None = None) -> str:
@@ -233,10 +235,13 @@ class _StructureVisitor(ast.NodeVisitor):
             self.visit(base)
         for keyword in node.keywords:
             self.visit(keyword.value)
+        saved_depth = self.control_depth
+        self.control_depth = 0
         self.scope.append(node.name)
         for item in node.body:
             self.visit(item)
         self.scope.pop()
+        self.control_depth = saved_depth
 
     def _visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         kind = "async_function" if isinstance(node, ast.AsyncFunctionDef) else "function"
@@ -266,8 +271,11 @@ class _StructureVisitor(ast.NodeVisitor):
             self.visit(node.returns)
         self.scope.append(node.name)
         self.function_depth += 1
+        saved_depth = self.control_depth
+        self.control_depth = 0
         for item in node.body:
             self.visit(item)
+        self.control_depth = saved_depth
         self.function_depth -= 1
         self.scope.pop()
 
@@ -328,6 +336,7 @@ class _StructureVisitor(ast.NodeVisitor):
                 "direct_callee_name": direct_name,
                 "args_count": len(node.args),
                 "keyword_names": [item.arg for item in node.keywords],
+                "used_as_with_context": id(node) in self._with_context_call_ids,
             },
         )
         self.generic_visit(node)
@@ -355,7 +364,76 @@ class _StructureVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         self.in_exception_group = previous
 
+    def _add_control(self, node: ast.AST, control_kind: str, *, is_elif: bool = False) -> None:
+        qualified_name = self._qualified_name()
+        details: dict[str, Any] = {
+            "control_kind": control_kind,
+            "nesting_depth": self.control_depth,
+        }
+        if control_kind == "if":
+            details["is_elif"] = is_elif
+        self._add_node(
+            "control_flow",
+            node,
+            control_kind,
+            qualified_name,
+            f"control:{qualified_name}:{control_kind}:{getattr(node, 'lineno', 0)}",
+            details,
+        )
+
+    def _enter_control(self, node: ast.AST, control_kind: str) -> None:
+        self.control_depth += 1
+        self._add_control(node, control_kind)
+        self.generic_visit(node)
+        self.control_depth -= 1
+
+    def _mark_with_calls(self, node: ast.With | ast.AsyncWith) -> None:
+        for item in node.items:
+            if isinstance(item.context_expr, ast.Call):
+                self._with_context_call_ids.add(id(item.context_expr))
+
+    def _visit_if(self, node: ast.If, *, elif_chain: bool) -> None:
+        # A lone if in orelse is the AST form of elif. It does not add a level.
+        if not elif_chain:
+            self.control_depth += 1
+        self._add_control(node, "if", is_elif=elif_chain)
+        self.visit(node.test)
+        for statement in node.body:
+            self.visit(statement)
+        if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
+            self._visit_if(node.orelse[0], elif_chain=True)
+        else:
+            for statement in node.orelse:
+                self.visit(statement)
+        if not elif_chain:
+            self.control_depth -= 1
+
+    def visit_If(self, node: ast.If) -> None:
+        self._visit_if(node, elif_chain=False)
+
+    def visit_For(self, node: ast.For) -> None:
+        self._enter_control(node, "for")
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+        self._enter_control(node, "async_for")
+
+    def visit_While(self, node: ast.While) -> None:
+        self._enter_control(node, "while")
+
+    def visit_With(self, node: ast.With) -> None:
+        self._mark_with_calls(node)
+        self._enter_control(node, "with")
+
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+        self._mark_with_calls(node)
+        self._enter_control(node, "async_with")
+
+    def visit_Try(self, node: ast.Try) -> None:
+        self._enter_control(node, "try")
+
     def visit_TryStar(self, node: ast.TryStar) -> None:
+        self.control_depth += 1
+        self._add_control(node, "try_star")
         for item in node.body:
             self.visit(item)
         previous = self.in_exception_group
@@ -367,6 +445,7 @@ class _StructureVisitor(ast.NodeVisitor):
             self.visit(item)
         for item in node.finalbody:
             self.visit(item)
+        self.control_depth -= 1
 
 
 def parse_python_source(source: str, path: str, side: str) -> ParsedStructure:
@@ -475,6 +554,8 @@ def _structural_changes(base_nodes: list[dict[str, Any]], head_nodes: list[dict[
             before = before_items[index] if index < len(before_items) else None
             after = after_items[index] if index < len(after_items) else None
             kind = (after or before)["kind"]
+            if kind == "control_flow":
+                continue
             if before is None:
                 change_type = "decorator_added" if kind == "decorator" else "node_added"
                 changes.append(_change(change_type, kind, None, after))

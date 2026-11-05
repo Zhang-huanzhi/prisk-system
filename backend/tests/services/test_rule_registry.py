@@ -71,8 +71,37 @@ class RuleRegistryTests(unittest.TestCase):
         implemented = [rule["rule_id"] for rule in self.registry["rules"] if rule["lifecycle"] == "implemented"]
         self.assertEqual(
             implemented,
-            ["code.swallowed_exception", "code.bare_exception", "code.dynamic_execution"],
+            [
+                "code.swallowed_exception",
+                "code.bare_exception",
+                "code.dynamic_execution",
+                "code.unmanaged_open",
+                "code.deep_control_flow",
+            ],
         )
+        registered = [rule["rule_id"] for rule in self.registry["rules"] if rule["lifecycle"] == "registered"]
+        self.assertEqual(registered, ["code.hardcoded_secret", "code.global_mutable_state"])
+
+    def test_draft_backend_contract_cards_are_linked_and_not_runtime_rules(self) -> None:
+        from prisk.domain.rules import RULE_CATALOG
+
+        index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
+        catalog_ids = {item["rule_id"] for item in RULE_CATALOG}
+        expected = [
+            "api.drf_public_parameter_added",
+            "auth.drf_permission_decorator_removed",
+            "data.django_raw_sql_execution",
+        ]
+        self.assertTrue({"code.hardcoded_secret", "code.global_mutable_state", *expected}.isdisjoint(catalog_ids))
+        for rule_id in expected:
+            rule = next(item for item in self.registry["rules"] if item["rule_id"] == rule_id)
+            self.assertEqual(rule["lifecycle"], "draft")
+            match = re.search(rf"\[`{re.escape(rule_id)}`\]\(([^)]+)\) · `draft`", index)
+            self.assertIsNotNone(match, rule_id)
+            content = (KNOWLEDGE_BASE / match.group(1)).read_text(encoding="utf-8")
+            self.assertIn(f"`{rule['version']}` / `{rule['rule_family']}` / `draft`", content)
+            for key in ("risk_nature", "dependency_level", "severity"):
+                self.assertIn(f"`{rule['classification'][key]}`", content)
         for lifecycle in ("registered", "implemented"):
             entries = [rule for rule in self.registry["rules"] if rule["lifecycle"] == lifecycle]
             for rule in entries:

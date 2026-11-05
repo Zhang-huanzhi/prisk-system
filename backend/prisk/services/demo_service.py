@@ -22,6 +22,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "code.swallowed_exception": 0,
         "code.bare_exception": 0,
         "code.dynamic_execution": 0,
+        "code.unmanaged_open": 0,
+        "code.deep_control_flow": 0,
     },
     "test_collaboration_weight": 1,
     "test_collaboration_enabled": True,
@@ -37,6 +39,8 @@ RULE_SCOPES = {
     "code.swallowed_exception": "Python 异常处理分支的处理体只有 pass",
     "code.bare_exception": "Python 裸 except，或直接名称 Exception / BaseException",
     "code.dynamic_execution": "Python 直接名称 eval 或 exec 调用，不含 compile",
+    "code.unmanaged_open": "Python 直接名称 open 调用，且不是 with 或 async with 的上下文表达式",
+    "code.deep_control_flow": "Python if、for、while、with、try 的嵌套深度大于固定阈值 4",
 }
 
 

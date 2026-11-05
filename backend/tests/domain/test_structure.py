@@ -32,7 +32,13 @@ class StructureUnitTests(unittest.TestCase):
         parsed = parse_python_source(source, "netbox/example.py", "head")
         self.assertEqual(parsed["status"], "ok")
         kinds = {node["kind"] for node in parsed["nodes"]}
-        self.assertTrue({"module", "class", "field", "function", "decorator", "call", "except_handler"} <= kinds)
+        self.assertTrue({"module", "class", "field", "function", "decorator", "call", "except_handler", "control_flow"} <= kinds)
+        control = next(node for node in parsed["nodes"] if node["kind"] == "control_flow")
+        self.assertEqual(control["details"]["control_kind"], "try")
+        self.assertEqual(control["details"]["nesting_depth"], 1)
+        calls = [node for node in parsed["nodes"] if node["kind"] == "call"]
+        self.assertTrue(calls)
+        self.assertTrue(all("used_as_with_context" in node["details"] for node in calls))
         function = next(node for node in parsed["nodes"] if node["kind"] == "function")
         self.assertEqual(function["details"]["signature"]["parameters"][1]["name"], "value")
         self.assertEqual(function["details"]["signature"]["returns"], "str")

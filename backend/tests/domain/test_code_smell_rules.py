@@ -282,7 +282,13 @@ class CodeSmellRuleTests(unittest.TestCase):
             else:
                 node["details"] = {}
         result = evaluate_rules(record)
-        self.assertEqual(result["summary"]["unanalyzed"], [])
+        control_ids = sorted(node["node_id"] for node in record["files"][0]["nodes"] if node["kind"] == "control_flow")
+        self.assertTrue(control_ids)
+        self.assertEqual(result["summary"]["unanalyzed"], [{
+            "path": "netbox/sample.py",
+            "reason": "unsupported_stage04_details",
+            "node_ids": control_ids,
+        }])
         self.assertEqual(len(findings_for("code.swallowed_exception", result)), 1)
         self.assertEqual([item["evidence"][0]["capture_form"] for item in findings_for("code.bare_exception", result)], ["bare"])
         self.assertEqual([item["evidence"][0]["callee_name"] for item in findings_for("code.dynamic_execution", result)], ["eval"])
@@ -629,3 +635,392 @@ class CodeSmellRuleTests(unittest.TestCase):
         self.assertEqual(evidence["after"]["source_segment"], evidence["source_segment"])
         self.assertEqual(report["score_basis"]["maximum_points"], 10)
         self.assertEqual(report["score_basis"]["configuration"]["rule_weights"]["code.swallowed_exception"], 0)
+        self.assertEqual(report["score_basis"]["configuration"]["rule_weights"]["code.unmanaged_open"], 0)
+        self.assertEqual(report["score_basis"]["configuration"]["rule_weights"]["code.deep_control_flow"], 0)
+
+
+OPEN_SAMPLE = """
+import io
+from pathlib import Path
+
+def unmanaged(path):
+    handle = open(path)
+    text = open(path).read()
+    return (open)(path)
+
+def managed(path):
+    with open(path) as handle:
+        return handle.read()
+
+def managed_bare(path):
+    with open(path):
+        return 1
+
+async def managed_async(path):
+    async with open(path):
+        return 1
+
+def attribute_calls(path):
+    return Path(path).open(), io.open(path), path.open(), builtins.open(path)
+
+def shadowed(path):
+    open = custom_open
+    return open(path)
+
+def inner_open(path):
+    with open(open(path).read()):
+        return 1
+
+def assigned_then_with(path):
+    handle = open(path)
+    with handle:
+        return handle.read()
+
+def closing_wrapper(path):
+    return contextlib.closing(open(path))
+
+def conditional_context(path, flag):
+    with open(path) if flag else nullcontext():
+        return 1
+
+def dynamic_neighbor(source):
+    return eval(source)
+"""
+
+
+DEEP_SAMPLE = """
+def depth_five():
+    if a:
+        for b in items:
+            while d:
+                with e:
+                    try:
+                        touch()
+                    except Error:
+                        pass
+
+def depth_four():
+    if a:
+        for b in items:
+            while d:
+                with e:
+                    touch()
+
+def elif_chain(a, b, c, d, e, f):
+    if a:
+        x()
+    elif b:
+        x()
+    elif c:
+        x()
+    elif d:
+        x()
+    elif e:
+        x()
+    elif f:
+        x()
+
+def else_body_if():
+    if a:
+        for b in items:
+            while d:
+                with e:
+                    log()
+                    if ready:
+                        touch()
+
+def try_except_level():
+    if a:
+        for b in items:
+            while d:
+                try:
+                    touch()
+                except Error:
+                    if ready:
+                        flag()
+
+def nested_function():
+    if a:
+        for b in items:
+            while d:
+                with e:
+                    def inner():
+                        if z:
+                            touch()
+
+def match_excluded(value):
+    match value:
+        case 1:
+            if a:
+                for b in items:
+                    while d:
+                        with e:
+                            touch()
+
+def comprehension(items):
+    if a:
+        for b in items:
+            while d:
+                with e:
+                    values = [item for item in items if item]
+                    return values
+
+def ternary():
+    if a:
+        for b in items:
+            while d:
+                with e:
+                    value = x if y else z
+                    return value
+
+async def async_counts():
+    if a:
+        async for b in items:
+            while d:
+                async with e:
+                    try:
+                        touch()
+                    except Error:
+                        pass
+"""
+
+
+def _legacy_node(kind: str, node_id: str, segment: str | None, details: dict, **extra) -> dict:
+    node = {
+        "kind": kind,
+        "side": "head",
+        "node_id": node_id,
+        "changed_lines": [1],
+        "start_line": 1,
+        "end_line": 8,
+        "details": details,
+    }
+    if segment is not None:
+        node["source_segment"] = segment
+    node.update(extra)
+    return node
+
+
+def _record_with(nodes: list[dict], path: str = "netbox/legacy.py") -> dict:
+    return {
+        "schema_version": "stage04.v1",
+        "status": "ok",
+        "pr_number": 5,
+        "files": [{
+            "path": path,
+            "parse_status": {"head": "ok", "file": "ok"},
+            "structural_changes": [],
+            "errors": [],
+            "nodes": nodes,
+        }],
+        "summary": {},
+    }
+
+
+class SecondBatchCodeSmellTests(unittest.TestCase):
+    def test_open_positive_negative_and_boundary_patterns(self) -> None:
+        result = evaluate_rules(stage04_from_source(OPEN_SAMPLE))
+        opened = findings_for("code.unmanaged_open", result)
+        self.assertEqual(len(opened), 8)
+        self.assertTrue(all(item["confidence"] == "structural" for item in opened))
+        self.assertTrue(all(item["evidence"][0]["callee_name"] == "open" for item in opened))
+        self.assertTrue(all(item["evidence"][0]["used_as_with_context"] is False for item in opened))
+        self.assertIn("不判断泄漏", opened[0]["message"])
+        self.assertEqual(
+            [item["evidence"][0]["callee_name"] for item in findings_for("code.dynamic_execution", result)],
+            ["eval"],
+        )
+        parsed = parse_python_source(OPEN_SAMPLE, "netbox/sample.py", "head")
+        managed = [
+            node for node in parsed["nodes"]
+            if node["kind"] == "call" and node["details"]["direct_callee_name"] == "open" and node["details"]["used_as_with_context"]
+        ]
+        self.assertGreaterEqual(len(managed), 4)
+        self.assertEqual(result["summary"]["unanalyzed"], [])
+
+    def test_recorded_depth_threshold_is_fixed_at_four(self) -> None:
+        result = evaluate_rules(stage04_from_source(DEEP_SAMPLE))
+        deep = findings_for("code.deep_control_flow", result)
+        kinds = sorted(item["evidence"][0]["control_kind"] for item in deep)
+        self.assertEqual(kinds, ["if", "if", "try", "try"])
+        self.assertTrue(all(item["evidence"][0]["nesting_depth"] == 5 for item in deep))
+        self.assertTrue(all(item["evidence"][0]["depth_threshold"] == 4 for item in deep))
+        self.assertTrue(all(item["evidence"][0]["nesting_depth_basis"] == "recorded" for item in deep))
+        self.assertIn("固定阈值 4", deep[0]["message"])
+        self.assertNotIn("概率", deep[0]["message"])
+        parsed = parse_python_source(DEEP_SAMPLE, "netbox/sample.py", "head")
+        elifs = [
+            node for node in parsed["nodes"]
+            if node["kind"] == "control_flow" and node["details"].get("is_elif")
+        ]
+        self.assertGreaterEqual(len(elifs), 5)
+        self.assertTrue(all(node["details"]["nesting_depth"] == 1 for node in elifs))
+
+    def test_depth_four_elif_match_and_comprehension_do_not_trigger(self) -> None:
+        result = evaluate_rules(stage04_from_source(DEEP_SAMPLE))
+        deep_names = {item["evidence"][0]["qualified_name"] for item in findings_for("code.deep_control_flow", result)}
+        self.assertTrue(all(not name.endswith("depth_four") for name in deep_names))
+        self.assertTrue(all("elif_chain" not in name for name in deep_names))
+        self.assertTrue(all("match_excluded" not in name for name in deep_names))
+        self.assertTrue(all("comprehension" not in name for name in deep_names))
+        self.assertTrue(all("ternary" not in name for name in deep_names))
+        self.assertTrue(all("nested_function" not in name for name in deep_names))
+
+    def test_legacy_open_without_with_flag_is_unanalyzed(self) -> None:
+        record = _record_with([
+            _legacy_node("call", "open-old", "open(path)", {"callee": "open"}),
+            _legacy_node("call", "attr-old", "path.open()", {"callee": "path.open"}),
+            _legacy_node("call", "eval-old", "eval(source)", {"callee": "eval"}),
+        ])
+        result = evaluate_rules(record)
+        self.assertEqual(findings_for("code.unmanaged_open", result), [])
+        self.assertEqual(
+            [item["evidence"][0]["callee_name"] for item in findings_for("code.dynamic_execution", result)],
+            ["eval"],
+        )
+        self.assertEqual(result["summary"]["unanalyzed"], [{
+            "path": "netbox/legacy.py",
+            "reason": "unsupported_stage04_details",
+            "node_ids": ["open-old"],
+        }])
+
+    def test_recorded_open_context_flag_decides_the_finding(self) -> None:
+        record = _record_with([
+            _legacy_node("call", "bare", "open(path)", {"direct_callee_name": "open", "used_as_with_context": False}),
+            _legacy_node("call", "managed", "open(path)", {"direct_callee_name": "open", "used_as_with_context": True}),
+        ])
+        result = evaluate_rules(record)
+        self.assertEqual([item["evidence"][0]["node_id"] for item in findings_for("code.unmanaged_open", result)], ["bare"])
+        self.assertEqual(result["summary"]["unanalyzed"], [])
+
+    def test_legacy_control_segment_reports_only_a_conclusive_lower_bound(self) -> None:
+        deep_segment = (
+            "if a:\n"
+            "    for b in items:\n"
+            "        while d:\n"
+            "            with e:\n"
+            "                try:\n"
+            "                    touch()\n"
+            "                except Error:\n"
+            "                    pass\n"
+        )
+        record = _record_with([
+            _legacy_node("control_flow", "deep-slice", deep_segment, {}),
+            _legacy_node("control_flow", "shallow-slice", "if ready:\n    touch()\n", {}),
+            _legacy_node("control_flow", "depth-four", None, {"control_kind": "with", "nesting_depth": 4}),
+            _legacy_node("control_flow", "depth-five", None, {"control_kind": "try", "nesting_depth": 5}),
+        ])
+        result = evaluate_rules(record)
+        by_id = {item["evidence"][0]["node_id"]: item for item in findings_for("code.deep_control_flow", result)}
+        self.assertEqual(set(by_id), {"deep-slice", "depth-five"})
+        self.assertEqual(by_id["deep-slice"]["evidence"][0]["nesting_depth_basis"], "segment_lower_bound")
+        self.assertEqual(by_id["depth-five"]["evidence"][0]["nesting_depth_basis"], "recorded")
+        self.assertEqual(result["summary"]["unanalyzed"], [{
+            "path": "netbox/legacy.py",
+            "reason": "unsupported_stage04_details",
+            "node_ids": ["shallow-slice"],
+        }])
+
+    def test_disabled_new_rules_do_not_mark_missing_fields_unanalyzed(self) -> None:
+        record = _record_with([
+            _legacy_node("call", "open-old", None, {}),
+            _legacy_node("control_flow", "flow-old", None, {}),
+        ])
+        result = evaluate_rules(record, {"enabled_rules": ["code.swallowed_exception"]})
+        self.assertEqual(result["findings"], [])
+        self.assertEqual(result["summary"]["unanalyzed"], [])
+
+    def test_added_line_intersection_and_delete_only(self) -> None:
+        root, repo = init_repo()
+        try:
+            base_source = "def f(path):\n    with open(path) as handle:\n        return handle.read()\n"
+            base = commit(repo, "netbox/sample.py", base_source, "base")
+            head = commit(
+                repo,
+                "netbox/sample.py",
+                "def f(path):\n    handle = open(path)\n    with open(path) as managed:\n        return managed.read()\n",
+                "head",
+            )
+            structure, result = evaluate_repo(repo, base, head)
+            opened = findings_for("code.unmanaged_open", result)
+            self.assertEqual(len(opened), 1)
+            self.assertEqual(opened[0]["evidence"][0]["source_segment"], "open(path)")
+            self.assertEqual(opened[0]["evidence"][0]["used_as_with_context"], False)
+            self.assertNotIn("control_flow", {item["kind"] for item in structure["files"][0]["structural_changes"]})
+            deleted = commit(repo, "netbox/sample.py", "def f(path):\n    return 1\n", "delete")
+            _structure, deleted_result = evaluate_repo(repo, head, deleted)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+        self.assertEqual(findings_for("code.unmanaged_open", deleted_result), [])
+        self.assertEqual(findings_for("code.deep_control_flow", deleted_result), [])
+
+    def test_deep_finding_follows_the_changed_node_only(self) -> None:
+        root, repo = init_repo()
+        deep = (
+            "def depth_five():\n"
+            "    if a:\n"
+            "        for b in items:\n"
+            "            while d:\n"
+            "                with e:\n"
+            "                    try:\n"
+            "                        touch()\n"
+            "                    except Error:\n"
+            "                        pass\n"
+            "\n"
+            "def edited():\n"
+            "    return 1\n"
+        )
+        try:
+            base = commit(repo, "netbox/sample.py", deep, "base")
+            inner = commit(repo, "netbox/sample.py", deep.replace("touch()", "touch()  # changed"), "inner")
+            _structure, inner_result = evaluate_repo(repo, base, inner)
+            outer = commit(repo, "netbox/sample.py", deep.replace("if a:", "if a:  # outer"), "outer")
+            _structure, outer_result = evaluate_repo(repo, base, outer)
+            sibling = commit(repo, "netbox/sample.py", deep.replace("return 1", "return 2"), "sibling")
+            _structure, sibling_result = evaluate_repo(repo, base, sibling)
+            removed = commit(repo, "netbox/sample.py", "def edited():\n    return 1\n", "removed")
+            _structure, removed_result = evaluate_repo(repo, inner, removed)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+        inner_findings = findings_for("code.deep_control_flow", inner_result)
+        self.assertEqual(len(inner_findings), 1)
+        self.assertEqual(inner_findings[0]["evidence"][0]["control_kind"], "try")
+        self.assertEqual(inner_findings[0]["evidence"][0]["nesting_depth"], 5)
+        self.assertEqual(findings_for("code.deep_control_flow", outer_result), [])
+        self.assertEqual(findings_for("code.deep_control_flow", sibling_result), [])
+        self.assertEqual(findings_for("code.deep_control_flow", removed_result), [])
+
+    def test_branch_score_denominator_stays_ten_when_new_rules_match(self) -> None:
+        root, repo = init_repo()
+        try:
+            commit(repo, "netbox/sample.py", "def edited():\n    return 1\n", "base")
+            git(repo, "checkout", "-b", "feature")
+            commit(
+                repo,
+                "netbox/sample.py",
+                "def edited(path):\n"
+                "    if a:\n"
+                "        for b in items:\n"
+                "            while d:\n"
+                "                with e:\n"
+                "                    try:\n"
+                "                        handle = open(path)\n"
+                "                        return handle\n"
+                "                    finally:\n"
+                "                        pass\n",
+                "head",
+            )
+            report = analyze_branches(repo, "main", "feature")
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+        ids = {item["rule_id"] for item in report["findings"]}
+        self.assertIn("code.unmanaged_open", ids)
+        self.assertIn("code.deep_control_flow", ids)
+        self.assertIn("code", report["summary"]["domains"])
+        self.assertEqual(report["score_basis"]["maximum_points"], 10)
+        self.assertEqual(
+            report["score_basis"]["earned_points"],
+            report["score_basis"]["configuration"]["test_collaboration_weight"],
+        )
+        self.assertEqual(report["score_basis"]["configuration"]["rule_weights"]["code.unmanaged_open"], 0)
+        self.assertEqual(report["score_basis"]["configuration"]["rule_weights"]["code.deep_control_flow"], 0)

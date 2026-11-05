@@ -17,6 +17,7 @@ type Evidence = {
   path: string; node_id: string; node_kind: string; structural_change_type: string;
   lines: number[]; qualified_name?: string; source_segment?: string;
   capture_form?: string; callee_name?: string; handler_body_is_single_pass?: boolean;
+  used_as_with_context?: boolean; nesting_depth?: number; control_kind?: string;
 };
 type Finding = {
   rule_id: string; severity: string; message: string;
@@ -77,6 +78,8 @@ const ruleLabels: Record<string, string> = {
   "code.swallowed_exception": "静默吞异常",
   "code.bare_exception": "宽泛或裸异常捕获",
   "code.dynamic_execution": "动态代码执行",
+  "code.unmanaged_open": "未用 with 管理的 open",
+  "code.deep_control_flow": "深层控制流嵌套",
 };
 const initialConfig: Config = {
   enabled_rules: Object.keys(ruleLabels),
@@ -84,6 +87,7 @@ const initialConfig: Config = {
     "api.signature_changed": 2, "auth.permission_structure_changed": 3, "data.transaction_structure_changed": 2,
     "config.configuration_structure_changed": 1, "code.exception_structure_changed": 1,
     "code.swallowed_exception": 0, "code.bare_exception": 0, "code.dynamic_execution": 0,
+    "code.unmanaged_open": 0, "code.deep_control_flow": 0,
   },
   test_collaboration_weight: 1, test_collaboration_enabled: true, thresholds: { medium: 30, high: 65 },
 };
@@ -101,6 +105,8 @@ function roleLabel(role: string) { return role === "business" ? "业务" : role 
 function shortSha(value?: string) { return value ? value.slice(0, 7) : "—"; }
 function evidenceDetail(item: Evidence) {
   if (item.capture_form) return `捕获形式 ${item.capture_form}`;
+  if (typeof item.nesting_depth === "number") return `嵌套深度 ${item.nesting_depth}`;
+  if (item.used_as_with_context === false) return "直接 open 未作为 with 上下文";
   if (item.callee_name) return `直接调用 ${item.callee_name}`;
   if (item.handler_body_is_single_pass) return "处理体只有 pass";
   return "";

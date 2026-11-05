@@ -14,7 +14,7 @@
 
 分析只读取已提交快照，不执行 checkout、fetch、merge、pull，不纳入未提交工作区。
 
-v1.1 的 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution` 读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。它们不替换既有五条结构规则。JSON 登记册仍不是运行时配置。
+v1.1 的代码异味规则读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。004 接入 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution`。005 在同一管道接入 `code.unmanaged_open` 和 `code.deep_control_flow`。它们不替换既有五条结构规则。`code.hardcoded_secret` 和 `code.global_mutable_state` 已有卡片，005 没有为它们接入检测器。JSON 登记册仍不是运行时配置。
 
 ## Python 分层
 
