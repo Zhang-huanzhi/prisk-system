@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from prisk.domain.rules import RULE_CATALOG, evaluate_rules
+from prisk.domain.rules import RULE_CATALOG, evaluate_rules, validate_rule_catalog
 
 
 def change(kind: str, change_type: str, node_id: str = "head:function:example:1", name: str = "example") -> dict:
@@ -29,9 +29,20 @@ def stage04(files: list[dict], **summary: bool) -> dict:
 
 
 class RuleTests(unittest.TestCase):
-    def test_catalog_has_four_scenes(self) -> None:
-        self.assertEqual(len(RULE_CATALOG), 4)
-        self.assertEqual({item["scene"] for item in RULE_CATALOG}, {"interface", "auth", "data_transaction", "config_exception"})
+    def test_catalog_has_five_two_part_domain_rules(self) -> None:
+        self.assertEqual(len(RULE_CATALOG), 5)
+        self.assertEqual(
+            {item["rule_id"] for item in RULE_CATALOG},
+            {
+                "api.signature_changed",
+                "auth.permission_structure_changed",
+                "data.transaction_structure_changed",
+                "config.configuration_structure_changed",
+                "code.exception_structure_changed",
+            },
+        )
+        self.assertTrue(all("scene" not in item for item in RULE_CATALOG))
+        validate_rule_catalog()
 
     def test_interface_signature_rule_has_traceable_evidence(self) -> None:
         result = evaluate_rules(stage04([{
@@ -40,10 +51,12 @@ class RuleTests(unittest.TestCase):
             "parse_status": {"file": "ok"},
             "structural_changes": [change("function", "signature_changed")],
         }]))
-        finding = next(item for item in result["findings"] if item["rule_id"] == "interface.signature_changed")
+        finding = next(item for item in result["findings"] if item["rule_id"] == "api.signature_changed")
         self.assertEqual(finding["evidence"][0]["path"], "netbox/dcim/api/views.py")
         self.assertEqual(finding["evidence"][0]["lines"], [12])
         self.assertEqual(finding["confidence"], "structural")
+        self.assertNotIn("scene", finding)
+        self.assertEqual(result["summary"]["domains"], ["api"])
 
     def test_auth_data_and_config_rules(self) -> None:
         result = evaluate_rules(stage04([
@@ -55,7 +68,9 @@ class RuleTests(unittest.TestCase):
         ids = {item["rule_id"] for item in result["findings"]}
         self.assertIn("auth.permission_structure_changed", ids)
         self.assertIn("data.transaction_structure_changed", ids)
-        self.assertIn("config.exception_structure_changed", ids)
+        self.assertIn("config.configuration_structure_changed", ids)
+        self.assertIn("code.exception_structure_changed", ids)
+        self.assertEqual(result["summary"]["domains"], ["auth", "code", "config", "data"])
 
     def test_testing_collaboration_is_auxiliary_only(self) -> None:
         result = evaluate_rules(stage04([]))

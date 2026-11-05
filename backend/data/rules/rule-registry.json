@@ -2,7 +2,7 @@
   "schema_version": "rule-registry.v1",
   "rules": [
     {
-      "rule_id": "smell.swallowed_exception",
+      "rule_id": "code.swallowed_exception",
       "name": "静默吞异常模式",
       "version": "v1",
       "rule_family": "code_smell",
@@ -51,7 +51,7 @@
           "待实现: head Python 源码 AST",
           "三点 Diff 新增行"
         ],
-        "finding": "smell.swallowed_exception Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.swallowed_exception Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -92,7 +92,7 @@
       }
     },
     {
-      "rule_id": "smell.bare_exception",
+      "rule_id": "code.bare_exception",
       "name": "宽泛或裸异常捕获",
       "version": "v1",
       "rule_family": "code_smell",
@@ -132,7 +132,11 @@
             "source": "待实现: head AST ExceptHandler.type",
             "value_type": "string",
             "operator": "contains",
-            "threshold": ["bare", "Exception", "BaseException"],
+            "threshold": [
+              "bare",
+              "Exception",
+              "BaseException"
+            ],
             "required": true
           }
         ],
@@ -141,7 +145,7 @@
           "待实现: head Python 源码 AST",
           "三点 Diff 新增行"
         ],
-        "finding": "smell.bare_exception Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.bare_exception Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -181,7 +185,7 @@
       }
     },
     {
-      "rule_id": "smell.dynamic_execution",
+      "rule_id": "code.dynamic_execution",
       "name": "动态代码执行调用",
       "version": "v1",
       "rule_family": "code_smell",
@@ -221,7 +225,10 @@
             "source": "待实现: head AST Call.func.id",
             "value_type": "string",
             "operator": "contains",
-            "threshold": ["eval", "exec"],
+            "threshold": [
+              "eval",
+              "exec"
+            ],
             "required": true
           }
         ],
@@ -230,7 +237,7 @@
           "待实现: head Python 源码 AST",
           "三点 Diff 新增行"
         ],
-        "finding": "smell.dynamic_execution Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.dynamic_execution Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -271,7 +278,7 @@
       }
     },
     {
-      "rule_id": "smell.hardcoded_secret",
+      "rule_id": "code.hardcoded_secret",
       "name": "敏感凭据硬编码",
       "version": "v1",
       "rule_family": "code_smell",
@@ -320,7 +327,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "smell.hardcoded_secret Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.hardcoded_secret Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -358,7 +365,7 @@
       }
     },
     {
-      "rule_id": "smell.unmanaged_open",
+      "rule_id": "code.unmanaged_open",
       "name": "悬空资源泄漏",
       "version": "v1",
       "rule_family": "code_smell",
@@ -407,7 +414,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "smell.unmanaged_open Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.unmanaged_open Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -445,7 +452,7 @@
       }
     },
     {
-      "rule_id": "smell.dead_code_after_exit",
+      "rule_id": "code.dead_code_after_exit",
       "name": "退出语句后的死代码",
       "version": "v1",
       "rule_family": "code_smell",
@@ -494,7 +501,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "smell.dead_code_after_exit Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.dead_code_after_exit Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -532,7 +539,7 @@
       }
     },
     {
-      "rule_id": "smell.deep_control_flow",
+      "rule_id": "code.deep_control_flow",
       "name": "深层控制流嵌套",
       "version": "v1",
       "rule_family": "code_smell",
@@ -581,7 +588,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "smell.deep_control_flow Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.deep_control_flow Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -619,7 +626,7 @@
       }
     },
     {
-      "rule_id": "smell.global_mutable_state",
+      "rule_id": "code.global_mutable_state",
       "name": "全局可变状态污染",
       "version": "v1",
       "rule_family": "code_smell",
@@ -668,7 +675,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "smell.global_mutable_state Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "code.global_mutable_state Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -706,7 +713,7 @@
       }
     },
     {
-      "rule_id": "smell.test_collaboration_gap",
+      "rule_id": "workflow.test_collaboration_gap",
       "name": "业务变更缺少测试协同",
       "version": "v1",
       "rule_family": "code_smell",
@@ -755,7 +762,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "smell.test_collaboration_gap Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "workflow.test_collaboration_gap Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -793,7 +800,7 @@
       }
     },
     {
-      "rule_id": "contract.drf_public_parameter_added",
+      "rule_id": "api.drf_public_parameter_added",
       "name": "公有接口新增必填参数",
       "version": "v1",
       "rule_family": "backend_contract",
@@ -842,7 +849,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "contract.drf_public_parameter_added Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "api.drf_public_parameter_added Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -881,7 +888,7 @@
       }
     },
     {
-      "rule_id": "contract.drf_public_parameter_removed",
+      "rule_id": "api.drf_public_parameter_removed",
       "name": "公有接口删除既有参数",
       "version": "v1",
       "rule_family": "backend_contract",
@@ -930,7 +937,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "contract.drf_public_parameter_removed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "api.drf_public_parameter_removed Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -969,7 +976,7 @@
       }
     },
     {
-      "rule_id": "contract.django_url_pattern_changed",
+      "rule_id": "api.django_url_pattern_changed",
       "name": "路由映射变化",
       "version": "v1",
       "rule_family": "backend_contract",
@@ -1018,7 +1025,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "contract.django_url_pattern_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "api.django_url_pattern_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1057,7 +1064,7 @@
       }
     },
     {
-      "rule_id": "contract.drf_viewset_action_changed",
+      "rule_id": "api.drf_viewset_action_changed",
       "name": "ViewSet 暴露动作变化",
       "version": "v1",
       "rule_family": "backend_contract",
@@ -1106,7 +1113,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "contract.drf_viewset_action_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "api.drf_viewset_action_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1145,7 +1152,7 @@
       }
     },
     {
-      "rule_id": "contract.drf_permission_decorator_removed",
+      "rule_id": "auth.drf_permission_decorator_removed",
       "name": "安全装饰器剥离",
       "version": "v1",
       "rule_family": "backend_contract",
@@ -1194,7 +1201,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "contract.drf_permission_decorator_removed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "auth.drf_permission_decorator_removed Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1233,7 +1240,7 @@
       }
     },
     {
-      "rule_id": "contract.drf_permission_policy_downgrade",
+      "rule_id": "auth.drf_permission_policy_downgrade",
       "name": "DRF 权限策略显式降级",
       "version": "v1",
       "rule_family": "backend_contract",
@@ -1282,7 +1289,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "contract.drf_permission_policy_downgrade Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "auth.drf_permission_policy_downgrade Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1321,7 +1328,7 @@
       }
     },
     {
-      "rule_id": "contract.drf_object_permission_bypass",
+      "rule_id": "auth.drf_object_permission_bypass",
       "name": "对象级权限过滤绕过",
       "version": "v1",
       "rule_family": "backend_contract",
@@ -1370,7 +1377,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "contract.drf_object_permission_bypass Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "auth.drf_object_permission_bypass Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1409,7 +1416,7 @@
       }
     },
     {
-      "rule_id": "contract.django_permission_module_changed",
+      "rule_id": "auth.django_permission_module_changed",
       "name": "权限定义模块逻辑变化",
       "version": "v1",
       "rule_family": "backend_contract",
@@ -1458,7 +1465,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "contract.django_permission_module_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "auth.django_permission_module_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1497,7 +1504,7 @@
       }
     },
     {
-      "rule_id": "impact.django_destructive_migration",
+      "rule_id": "data.django_destructive_migration",
       "name": "破坏性数据库迁移风险",
       "version": "v1",
       "rule_family": "breaking_impact",
@@ -1546,7 +1553,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "impact.django_destructive_migration Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "data.django_destructive_migration Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1585,7 +1592,7 @@
       }
     },
     {
-      "rule_id": "impact.django_non_null_constraint_tightened",
+      "rule_id": "data.django_non_null_constraint_tightened",
       "name": "非空约束收紧",
       "version": "v1",
       "rule_family": "breaking_impact",
@@ -1634,7 +1641,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "impact.django_non_null_constraint_tightened Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "data.django_non_null_constraint_tightened Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1673,7 +1680,7 @@
       }
     },
     {
-      "rule_id": "contract.django_raw_sql_execution",
+      "rule_id": "data.django_raw_sql_execution",
       "name": "绕过 ORM 的原生 SQL",
       "version": "v1",
       "rule_family": "backend_contract",
@@ -1722,7 +1729,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "contract.django_raw_sql_execution Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "data.django_raw_sql_execution Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1761,7 +1768,7 @@
       }
     },
     {
-      "rule_id": "impact.django_transaction_boundary_changed",
+      "rule_id": "data.django_transaction_boundary_changed",
       "name": "事务与并发边界变化",
       "version": "v1",
       "rule_family": "breaking_impact",
@@ -1810,7 +1817,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "impact.django_transaction_boundary_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "data.django_transaction_boundary_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1849,7 +1856,7 @@
       }
     },
     {
-      "rule_id": "contract.django_sensitive_settings_changed",
+      "rule_id": "config.django_sensitive_settings_changed",
       "name": "敏感配置变化",
       "version": "v1",
       "rule_family": "backend_contract",
@@ -1898,7 +1905,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "contract.django_sensitive_settings_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "config.django_sensitive_settings_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"
@@ -1937,7 +1944,7 @@
       }
     },
     {
-      "rule_id": "impact.large_change_scope",
+      "rule_id": "workflow.large_change_scope",
       "name": "大规模变更范围",
       "version": "v1",
       "rule_family": "breaking_impact",
@@ -2026,7 +2033,7 @@
           "stage04.v1 structural objects",
           "base/head Diff"
         ],
-        "finding": "impact.large_change_scope Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "workflow.large_change_scope Finding，包含规则 ID、严重度、影响类型和证据位置。",
         "evidence_location": [
           "file path",
           "node or diff lines"

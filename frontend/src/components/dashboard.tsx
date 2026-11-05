@@ -9,7 +9,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Rule = {
-  rule_id: string; scene: string; severity: string; trigger: string;
+  rule_id: string; severity: string; trigger: string;
   evidence_type: string; applicable_scope: string; suggested_action: string;
   limitations: string; default_weight: number; enabled_by_default: boolean;
 };
@@ -18,7 +18,7 @@ type Evidence = {
   lines: number[]; qualified_name?: string; source_segment?: string;
 };
 type Finding = {
-  rule_id: string; scene: string; severity: string; message: string;
+  rule_id: string; severity: string; message: string;
   suggested_action: string; evidence: Evidence[];
 };
 type DiffLine = { kind: "context" | "add" | "delete"; old_line: number | null; new_line: number | null; text: string };
@@ -39,7 +39,7 @@ type Report = {
   base_sha?: string; head_sha?: string; score: number; risk_level: string;
   score_basis: { earned_points: number; maximum_points: number; matched_rule_ids: string[]; test_collaboration: boolean; configuration: Config };
   summary: {
-    finding_count: number; scenes: string[]; files_changed: number; business_files: number;
+    finding_count: number; domains: string[]; files_changed: number; business_files: number;
     test_files: number; additions: number; deletions: number; business_changed: boolean;
     test_changed: boolean; test_cochanged: boolean; test_collaboration_gap: boolean; parse_degraded: boolean;
   };
@@ -47,7 +47,7 @@ type Report = {
 };
 type PRItem = {
   pr_number: number; title: string; author?: string; url?: string; status: string;
-  score: number; risk_level: string; finding_count: number; scenes: string[]; additions: number; deletions: number;
+  score: number; risk_level: string; finding_count: number; domains: string[]; additions: number; deletions: number;
 };
 type Dataset = {
   counts: { records: number; analyzable: number; excluded: number; with_findings: number; without_findings: number; levels: Record<string, number> };
@@ -64,27 +64,29 @@ const tabs: { id: TabId; label: string; icon: typeof FileText }[] = [
   { id: "rules", label: "风险规则", icon: ShieldAlert },
   { id: "scoring", label: "评分配置", icon: SlidersHorizontal },
 ];
-const sceneLabels: Record<string, string> = {
-  interface: "接口行为", auth: "认证与权限", data_transaction: "数据与事务", config_exception: "配置与异常",
+const domainLabels: Record<string, string> = {
+  api: "接口行为", auth: "认证与权限", data: "数据与持久化", config: "应用配置", code: "代码结构", workflow: "过程协同",
 };
 const ruleLabels: Record<string, string> = {
-  "interface.signature_changed": "接口签名变化",
+  "api.signature_changed": "接口签名变化",
   "auth.permission_structure_changed": "权限结构变化",
   "data.transaction_structure_changed": "数据 / 事务结构变化",
-  "config.exception_structure_changed": "配置 / 异常结构变化",
+  "config.configuration_structure_changed": "配置结构变化",
+  "code.exception_structure_changed": "异常处理结构变化",
 };
 const initialConfig: Config = {
   enabled_rules: Object.keys(ruleLabels),
-  rule_weights: { "interface.signature_changed": 2, "auth.permission_structure_changed": 3, "data.transaction_structure_changed": 2, "config.exception_structure_changed": 1 },
+  rule_weights: { "api.signature_changed": 2, "auth.permission_structure_changed": 3, "data.transaction_structure_changed": 2, "config.configuration_structure_changed": 1, "code.exception_structure_changed": 1 },
   test_collaboration_weight: 1, test_collaboration_enabled: true, thresholds: { medium: 30, high: 65 },
 };
 
 function riskLabel(level: string) { return level === "high" ? "优先复核" : level === "medium" ? "建议复核" : "常规"; }
 function riskClass(level: string) { return level === "high" ? "risk-high" : level === "medium" ? "risk-medium" : "risk-low"; }
-function sceneIcon(scene: string) {
-  if (scene === "interface") return <Network size={15} />;
-  if (scene === "auth") return <LockKeyhole size={15} />;
-  if (scene === "data_transaction") return <Settings2 size={15} />;
+function ruleDomain(ruleId: string) { return ruleId.split(".", 1)[0]; }
+function domainIcon(domain: string) {
+  if (domain === "api") return <Network size={15} />;
+  if (domain === "auth") return <LockKeyhole size={15} />;
+  if (domain === "data") return <Settings2 size={15} />;
   return <AlertCircle size={15} />;
 }
 function roleLabel(role: string) { return role === "business" ? "业务" : role === "test" ? "测试" : "其他"; }
@@ -103,7 +105,7 @@ export function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
-  const [sceneFilter, setSceneFilter] = useState("all");
+  const [domainFilter, setDomainFilter] = useState("all");
   const [expandedRule, setExpandedRule] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -277,9 +279,9 @@ export function Dashboard() {
   const filteredPrs = useMemo(() => (dataset?.prs ?? []).filter((item) => {
     if (item.status !== "ok") return false;
     if (riskFilter !== "all" && item.risk_level !== riskFilter) return false;
-    if (sceneFilter !== "all" && !item.scenes.includes(sceneFilter)) return false;
+    if (domainFilter !== "all" && !item.domains.includes(domainFilter)) return false;
     return `${item.pr_number} ${item.title} ${item.author ?? ""}`.toLowerCase().includes(search.toLowerCase());
-  }), [dataset, riskFilter, sceneFilter, search]);
+  }), [dataset, riskFilter, domainFilter, search]);
 
   const selectedFile = report?.files.find((file) => file.path === selectedPath) ?? null;
   const matchedRuleIds = new Set(report?.findings.map((finding) => finding.rule_id) ?? []);
@@ -405,7 +407,7 @@ export function Dashboard() {
           <header className="drawer-header"><div><span className="eyebrow">FROZEN SAMPLE</span><h2 id="drawer-title">选择 Pull Request</h2><p>{dataset?.counts.analyzable ?? 0} 条可分析 PR</p></div><button className="icon-button" title="关闭" onClick={() => setDrawerOpen(false)}><X size={18} /></button></header>
           <div className="drawer-controls"><label className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索编号、标题或作者" /></label>
             <div className="drawer-filters"><label><Filter size={14} /><select aria-label="风险等级" value={riskFilter} onChange={(event) => setRiskFilter(event.target.value)}><option value="all">全部等级</option><option value="high">优先复核</option><option value="medium">建议复核</option><option value="low">常规</option></select></label>
-              <label><ListFilter size={14} /><select aria-label="风险场景" value={sceneFilter} onChange={(event) => setSceneFilter(event.target.value)}><option value="all">全部场景</option>{Object.entries(sceneLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label></div>
+              <label><ListFilter size={14} /><select aria-label="关注域" value={domainFilter} onChange={(event) => setDomainFilter(event.target.value)}><option value="all">全部关注域</option>{Object.entries(domainLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label></div>
           </div>
           <div className="drawer-pr-list">{filteredPrs.map((item) => <button key={item.pr_number} className={`drawer-pr ${item.pr_number === activePr ? "selected" : ""}`} onClick={() => choosePr(item)}>
             <span className="drawer-pr-main"><span className="pr-number">#{item.pr_number}</span><strong>{item.title}</strong><small>{item.author ?? "NetBox contributor"}</small></span>
@@ -453,14 +455,14 @@ function Overview({ report, baselineScore, onShowRules, onShowCode, onLocate }: 
       <div className="score-summary"><span>当前复核优先级</span><strong>{report.score}<small>/100</small></strong><span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span><small>基线 {baselineScore ?? report.score} · 阈值 {report.score_basis.configuration.thresholds.medium}/{report.score_basis.configuration.thresholds.high}</small></div>
       <div className="summary-details">
         <div className="summary-stat"><span>变更文件</span><strong>{report.summary.files_changed}</strong></div><div className="summary-stat"><span>新增行</span><strong className="plus">+{report.summary.additions}</strong></div><div className="summary-stat"><span>删除行</span><strong className="minus">−{report.summary.deletions}</strong></div><div className="summary-stat"><span>业务 / 测试文件</span><strong>{report.summary.business_files} / {report.summary.test_files}</strong></div>
-        <div className="summary-stat"><span>规则命中</span><strong>{report.findings.length}</strong></div><div className="summary-stat"><span>命中场景</span><strong className="scene-stat">{report.summary.scenes.map((scene) => sceneLabels[scene] ?? scene).join("、") || "无"}</strong></div>
+        <div className="summary-stat"><span>规则命中</span><strong>{report.findings.length}</strong></div><div className="summary-stat"><span>命中关注域</span><strong className="scene-stat">{report.summary.domains.map((domain) => domainLabels[domain] ?? domain).join("、") || "无"}</strong></div>
       </div>
     </div>
     <div className={`collab-banner ${report.summary.test_cochanged ? "success" : "attention"}`}><span className="collab-icon">{report.summary.test_cochanged ? <Check size={16} /> : <AlertCircle size={16} />}</span><span>{report.summary.test_cochanged ? "业务代码与测试文件有协同变更" : report.summary.business_changed ? "有业务代码变更，但没有测试文件协同" : "本次变更未涉及业务代码"}</span><small>辅助复核信号，不单独构成风险判断</small></div>
     <div className="overview-columns">
       <section className="overview-section"><div className="section-heading"><div><h2>重点风险线索</h2><p>当前分析命中的结构规则</p></div><button className="text-action" onClick={onShowRules}>查看全部 <ChevronRight size={14} /></button></div>
         {topFindings.length ? <div className="overview-finding-list">{topFindings.map((finding, index) => <button className="overview-finding" key={`${finding.rule_id}-${index}`} onClick={() => finding.evidence[0] && onLocate(finding.evidence[0])}>
-          <span className={`finding-symbol scene-${finding.scene}`}>{sceneIcon(finding.scene)}</span><span className="overview-finding-main"><strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong><small>{finding.evidence.length} 条证据 · {finding.evidence[0]?.path}</small></span><ArrowUpRight size={15} />
+          <span className={`finding-symbol domain-${ruleDomain(finding.rule_id)}`}>{domainIcon(ruleDomain(finding.rule_id))}</span><span className="overview-finding-main"><strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong><small>{finding.evidence.length} 条证据 · {finding.evidence[0]?.path}</small></span><ArrowUpRight size={15} />
         </button>)}</div> : <div className="empty-state compact"><Check size={17} />当前四类规则均未命中，仍可检查全部代码变更。</div>}
       </section>
       <section className="overview-section change-overview"><div className="section-heading"><div><h2>变更范围</h2><p>{report.diff_mode === "three_dot" ? "来自 base...head 三点 Diff" : "来自冻结 PR 三点 Diff"}</p></div><button className="text-action" onClick={onShowCode}>审查代码 <ChevronRight size={14} /></button></div>
@@ -514,7 +516,7 @@ function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate, m
     <section className="rules-matched-section"><div className="section-heading"><div><h2>本次分析命中</h2><p>{report.findings.length} 条规则线索 · 展开证据可定位至代码行</p></div><span className="section-number">{report.findings.length}</span></div>
       {report.findings.length ? <div className="matched-findings">{report.findings.map((finding, index) => <article className="matched-finding" key={`${finding.rule_id}-${index}`}>
         <button className="matched-finding-head" onClick={() => setExpandedRule(expandedRule === `${finding.rule_id}-${index}` ? null : `${finding.rule_id}-${index}`)} aria-expanded={expandedRule === `${finding.rule_id}-${index}`}>
-          <span className={`finding-symbol scene-${finding.scene}`}>{sceneIcon(finding.scene)}</span><span className="matched-finding-title"><small>{finding.rule_id}</small><strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong><span>{finding.message}</span></span>
+          <span className={`finding-symbol domain-${ruleDomain(finding.rule_id)}`}>{domainIcon(ruleDomain(finding.rule_id))}</span><span className="matched-finding-title"><small>{finding.rule_id}</small><strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong><span>{finding.message}</span></span>
           <span className={`severity-tag severity-${finding.severity}`}>{severityLabel(finding.severity)}</span><span className="evidence-count">{finding.evidence.length} 证据</span>{expandedRule === `${finding.rule_id}-${index}` ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
         {expandedRule === `${finding.rule_id}-${index}` && <div className="matched-evidence-list"><p>复核建议：{finding.suggested_action}</p>{finding.evidence.map((item, evidenceIndex) => <div className="rule-evidence" key={`${item.node_id}-${evidenceIndex}`}>
@@ -525,8 +527,8 @@ function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate, m
     </section>
     <section className="rule-catalog-section"><div className="section-heading"><div><h2>规则目录</h2><p>当前实现的规则、触发条件与适用边界</p></div><span className="catalog-count">{catalog.length} 条规则</span></div>
       <div className="rule-catalog">{catalog.map((rule) => <article className="catalog-rule" key={rule.rule_id}>
-        <div className="catalog-rule-title"><span className={`finding-symbol scene-${rule.scene}`}>{sceneIcon(rule.scene)}</span><div><small>{rule.rule_id}</small><h3>{ruleLabels[rule.rule_id] ?? rule.rule_id}</h3></div><span className={`catalog-state ${matchedRuleIds.has(rule.rule_id) ? "hit" : "miss"}`}>{matchedRuleIds.has(rule.rule_id) ? "本次命中" : "本次未命中"}</span></div>
-        <div className="catalog-fields"><CatalogField label="场景 / 严重程度" value={`${sceneLabels[rule.scene] ?? rule.scene} · ${severityLabel(rule.severity)}`} /><CatalogField label="触发条件" value={rule.trigger} /><CatalogField label="证据类型" value={rule.evidence_type} /><CatalogField label="适用范围" value={rule.applicable_scope} /><CatalogField label="复核建议" value={rule.suggested_action} /><CatalogField label="当前限制" value={rule.limitations} /></div>
+        <div className="catalog-rule-title"><span className={`finding-symbol domain-${ruleDomain(rule.rule_id)}`}>{domainIcon(ruleDomain(rule.rule_id))}</span><div><small>{rule.rule_id}</small><h3>{ruleLabels[rule.rule_id] ?? rule.rule_id}</h3></div><span className={`catalog-state ${matchedRuleIds.has(rule.rule_id) ? "hit" : "miss"}`}>{matchedRuleIds.has(rule.rule_id) ? "本次命中" : "本次未命中"}</span></div>
+        <div className="catalog-fields"><CatalogField label="关注域 / 严重程度" value={`${domainLabels[ruleDomain(rule.rule_id)] ?? ruleDomain(rule.rule_id)} · ${severityLabel(rule.severity)}`} /><CatalogField label="触发条件" value={rule.trigger} /><CatalogField label="证据类型" value={rule.evidence_type} /><CatalogField label="适用范围" value={rule.applicable_scope} /><CatalogField label="复核建议" value={rule.suggested_action} /><CatalogField label="当前限制" value={rule.limitations} /></div>
       </article>)}</div>
     </section>
   </div>;
@@ -545,7 +547,7 @@ function ScoringView({ report, catalog, config, setConfig, onWeight, onToggle, o
     <section className="scoring-summary"><div><span>当前分析评分</span><strong>{report.score}<small>/100</small></strong><span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span></div><div className="scoring-equation"><strong>{report.score_basis.earned_points}</strong><span>/</span><strong>{report.score_basis.maximum_points}</strong><small>已得权重 / 可得权重</small></div><div className="scoring-baseline"><span>默认分数</span><strong>{baselineScore ?? report.score}</strong><small>仅当前分析的默认配置结果</small></div></section>
     <div className="scoring-layout"><section className="scoring-controls"><div className="section-heading"><div><h2>规则权重</h2><p>开关和权重只用于当前 PR 重算</p></div><button className="icon-button" title="恢复默认" onClick={onReset}><RotateCcw size={16} /></button></div>
       <div className="weight-rule-list">{catalog.map((rule) => <div className="weight-rule" key={rule.rule_id}>
-        <label className="rule-toggle"><input type="checkbox" checked={config.enabled_rules.includes(rule.rule_id)} onChange={() => onToggle(rule.rule_id)} /><span className="checkmark"><Check size={12} /></span><span className={`finding-symbol scene-${rule.scene}`}>{sceneIcon(rule.scene)}</span><span><strong>{ruleLabels[rule.rule_id] ?? rule.rule_id}</strong><small>{rule.rule_id}</small></span></label>
+        <label className="rule-toggle"><input type="checkbox" checked={config.enabled_rules.includes(rule.rule_id)} onChange={() => onToggle(rule.rule_id)} /><span className="checkmark"><Check size={12} /></span><span className={`finding-symbol domain-${ruleDomain(rule.rule_id)}`}>{domainIcon(ruleDomain(rule.rule_id))}</span><span><strong>{ruleLabels[rule.rule_id] ?? rule.rule_id}</strong><small>{rule.rule_id}</small></span></label>
         <div className="weight-slider"><input type="range" min={0} max={5} step={1} value={config.rule_weights[rule.rule_id] ?? rule.default_weight} disabled={!config.enabled_rules.includes(rule.rule_id)} onChange={(event) => onWeight(rule.rule_id, Number(event.target.value))} aria-label={`${rule.rule_id} 权重`} /><output>{config.rule_weights[rule.rule_id] ?? rule.default_weight}</output></div>
       </div>)}</div>
       <div className="auxiliary-weight"><label><span><strong>测试协同缺失</strong><small>业务文件有变更、测试文件未协同</small></span><input type="checkbox" checked={config.test_collaboration_enabled} onChange={(event) => setConfig((current) => ({ ...current, test_collaboration_enabled: event.target.checked }))} /></label><div className="weight-slider"><input type="range" min={0} max={5} step={1} value={config.test_collaboration_weight} disabled={!config.test_collaboration_enabled} onChange={(event) => setConfig((current) => ({ ...current, test_collaboration_weight: Number(event.target.value) }))} aria-label="测试协同缺失权重" /><output>{config.test_collaboration_weight}</output></div></div>

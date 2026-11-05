@@ -2,7 +2,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 规则 ID | `smell.dynamic_execution` |
+| 规则 ID | `code.dynamic_execution` |
 | 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `registered` |
 | 负责人 | `Prisk-System` |
 | 风险性质 / 依赖层级 | `pr_intrinsic` / `language` |
@@ -50,3 +50,4 @@ text = "eval(source)"
 ## 有效性计划
 
 `literature_inherited`：后续以 `eval`/`exec` 直接调用、可信与不可信来源仅作为人工语义差异、`compile` 排除、遮蔽、别名、属性调用、注释字符串和新增行边界构造样例；以卡片定义为判定依据，检查 Finding 及位置。CWE/OWASP/Bandit 支持动机和可比规则，不证明本项目检测器准确性。数据集和验收标准待确定，目前没有实现或验证结果。
+

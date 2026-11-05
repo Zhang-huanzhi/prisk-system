@@ -2,7 +2,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 规则 ID | `smell.swallowed_exception` |
+| 规则 ID | `code.swallowed_exception` |
 | 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `registered` |
 | 负责人 | `Prisk-System` |
 | 风险性质 / 依赖层级 | `pr_intrinsic` / `language` |
@@ -56,3 +56,4 @@ except ValueError:
 ## 有效性计划
 
 `literature_inherited`：后续使用构造的裸及具名捕获、单个 `pass`、带日志/`raise`、新增行与未改动行、语法错误等正反例，以本卡片为人工判定依据，检查 Finding 和行号。CWE/PEP 支持问题分类和设计动机，不证明检测器准确性。数据集和验收阈值待确定；当前没有实现测试或实证结果。Python 异常组、重命名和移动代码的处理待后续设计。
+

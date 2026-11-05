@@ -8,16 +8,17 @@ from pathlib import Path
 from typing import Any
 
 from ..domain.changes import load_records
-from ..domain.rules import RULE_CATALOG
+from ..domain.rules import RULE_CATALOG, rule_domain
 
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "enabled_rules": [rule["rule_id"] for rule in RULE_CATALOG],
     "rule_weights": {
-        "interface.signature_changed": 2,
+        "api.signature_changed": 2,
         "auth.permission_structure_changed": 3,
         "data.transaction_structure_changed": 2,
-        "config.exception_structure_changed": 1,
+        "config.configuration_structure_changed": 1,
+        "code.exception_structure_changed": 1,
     },
     "test_collaboration_weight": 1,
     "test_collaboration_enabled": True,
@@ -25,10 +26,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
 }
 
 RULE_SCOPES = {
-    "interface.signature_changed": "API、serializer、view、viewset 和 URL 相关 Python 文件",
+    "api.signature_changed": "API、serializer、view、viewset 和 URL 相关 Python 文件",
     "auth.permission_structure_changed": "权限、认证路径，以及权限装饰器和权限调用节点",
     "data.transaction_structure_changed": "model、migration、manager，以及事务和数据库调用节点",
-    "config.exception_structure_changed": "settings、configuration 文件，以及异常处理节点",
+    "config.configuration_structure_changed": "settings 和 configuration 文件",
+    "code.exception_structure_changed": "异常处理节点",
 }
 
 
@@ -97,9 +99,9 @@ class DemoData:
             item.get("path") or item.get("new_path") or item.get("old_path"): item
             for item in stage04.get("files", [])
         }
-        scenes = sorted({item.get("scene") for item in enriched_findings if item.get("scene")})
+        domains = sorted({rule_domain(item["rule_id"]) for item in enriched_findings})
         return {
-            "schema_version": "stage07.report.v1",
+            "schema_version": "stage07.report.v2",
             "status": rule_record.get("status", "error"),
             "repo": stage03.get("repo", rule_record.get("repo")),
             "pr_number": pr_number,
@@ -121,7 +123,7 @@ class DemoData:
             },
             "summary": {
                 "finding_count": len(enriched_findings),
-                "scenes": scenes,
+                "domains": domains,
                 "files_changed": summary.get("files_changed", len(files)),
                 "business_files": summary.get("business_files", 0),
                 "test_files": summary.get("test_files", 0),
@@ -178,7 +180,7 @@ class DemoData:
         level_counts = Counter(item["risk_level"] for item in analyses if item["status"] == "ok")
         hit_count = sum(item["summary"]["finding_count"] > 0 for item in analyses if item["status"] == "ok")
         return {
-            "schema_version": "stage06.dataset.v1",
+            "schema_version": "stage06.dataset.v2",
             "counts": {
                 "records": len(analyses),
                 "analyzable": sum(item["status"] == "ok" for item in analyses),
@@ -198,7 +200,7 @@ class DemoData:
                     "score": item["score"],
                     "risk_level": item["risk_level"],
                     "finding_count": item["summary"]["finding_count"],
-                    "scenes": item["summary"]["scenes"],
+                    "domains": item["summary"]["domains"],
                     "additions": item["summary"]["additions"],
                     "deletions": item["summary"]["deletions"],
                 }

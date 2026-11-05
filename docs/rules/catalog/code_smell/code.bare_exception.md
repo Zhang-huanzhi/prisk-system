@@ -2,7 +2,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 规则 ID | `smell.bare_exception` |
+| 规则 ID | `code.bare_exception` |
 | 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `registered` |
 | 负责人 | `Prisk-System` |
 | 风险性质 / 依赖层级 | `pr_intrinsic` / `language` |
@@ -54,3 +54,4 @@ except ValueError:
 ## 有效性计划
 
 `literature_inherited`：后续构造裸捕获、`Exception`、`BaseException`、元组、具体异常、遮蔽、别名和差异边界样例，以卡片定义为判定依据检查命中与证据；覆盖 Python 版本及阈值待确定。当前未实现或验证。
+

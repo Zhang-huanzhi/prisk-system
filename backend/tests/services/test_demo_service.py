@@ -44,7 +44,7 @@ class DemoServiceTests(unittest.TestCase):
             shutil.rmtree(root, ignore_errors=True)
         self.assertEqual(report["files"][0]["hunks"][0]["lines"][1]["kind"], "add")
         self.assertEqual(report["files"][0]["parse_status"]["head"], "ok")
-        self.assertEqual(len(catalog), 4)
+        self.assertEqual(len(catalog), 5)
         self.assertTrue(all(item.get("rule_id") and item.get("applicable_scope") and "default_weight" in item for item in catalog))
 
     def test_config_is_deterministic_and_rejects_invalid_thresholds(self) -> None:
@@ -58,9 +58,9 @@ class DemoServiceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_config({"rule_weights": {"auth.permission_structure_changed": 9}})
 
-    def test_default_config_has_four_rules_and_threshold_order(self) -> None:
+    def test_default_config_has_five_rules_and_threshold_order(self) -> None:
         normalized = normalize_config(None)
-        self.assertEqual(len(normalized["enabled_rules"]), 4)
+        self.assertEqual(len(normalized["enabled_rules"]), 5)
         self.assertLess(normalized["thresholds"]["medium"], normalized["thresholds"]["high"])
 
     def test_scoring_is_rule_weighted_and_evidence_is_enriched(self) -> None:
@@ -80,15 +80,15 @@ class DemoServiceTests(unittest.TestCase):
             }) + "\n", encoding="utf-8")
             stage05.write_text(json.dumps({
                 "status": "ok", "pr_number": 9, "summary": {"test_collaboration": True, "parse_degraded": False},
-                "findings": [{"rule_id": "auth.permission_structure_changed", "scene": "auth", "severity": "high", "suggested_action": "复核权限边界", "evidence": [{"path": "netbox/core/models.py", "node_id": "head:call:atomic:1", "node_kind": "call", "structural_change_type": "call_touched", "lines": [12]}]}],
+                "findings": [{"rule_id": "auth.permission_structure_changed", "severity": "high", "suggested_action": "复核权限边界", "evidence": [{"path": "netbox/core/models.py", "node_id": "head:call:atomic:1", "node_kind": "call", "structural_change_type": "call_touched", "lines": [12]}]}],
             }) + "\n", encoding="utf-8")
             data = DemoData(stage03, stage04, stage05)
             baseline = data.analyze(9)
             changed = data.analyze(9, {"rule_weights": {"auth.permission_structure_changed": 5}})
         finally:
             shutil.rmtree(root, ignore_errors=True)
-        self.assertEqual(baseline["score"], 44)
-        self.assertEqual(changed["score"], 55)
+        self.assertEqual(baseline["score"], 40)
+        self.assertEqual(changed["score"], 50)
         self.assertEqual(baseline["findings"][0]["evidence"][0]["source_segment"], "atomic()")
         self.assertTrue(baseline["summary"]["test_collaboration_gap"])
 
