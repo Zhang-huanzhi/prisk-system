@@ -2,7 +2,7 @@
 task_id: "007"
 target_version: "v1.1.0"
 title: "测试协同复核提示"
-status: "In Progress"
+status: "Accepted"
 branch: "feat/007-test-collaboration"
 date: "2026-11-06"
 ---
@@ -13,7 +13,9 @@ date: "2026-11-06"
 
 在 Accepted 001–006 之上，把 `workflow.test_collaboration_gap` 从草稿变成一条保守的 PR 级复核提示。提示只使用三点 Diff 已经留下的文件状态、新增行数和删除行数，以及版本化源码里的默认路径分类。
 
-Finding 只要求复核生产代码路径和测试计划。它不说明测试缺失、覆盖不足、回归、外部破坏、缺陷概率或因果测试债务。本迭代不计算 Precision 或 Recall，也不跑 NetBox 实验。状态保持 In Progress，直到维护者接受。
+Finding 只要求复核生产代码路径和测试计划。它不说明测试缺失、覆盖不足、回归、外部破坏、缺陷概率或因果测试债务。本迭代不计算 Precision 或 Recall，也不跑 NetBox 实验。
+
+维护者已接受本迭代。交付分支是 `feat/007-test-collaboration`，交付记录是 [PR #7](https://github.com/Zhang-huanzhi/prisk-system/pull/7)。写下这条提交时，该 PR 尚未合并。本提交只把状态改为 Accepted，不改实现。
 
 ## 范围
 
@@ -21,6 +23,7 @@ Finding 只要求复核生产代码路径和测试计划。它不说明测试缺
 - 命中时产生一条普通 Finding，并让历史摘要字段 `summary.test_collaboration` 只在这条 Finding 出现时为 true。评分仍用这个字段和原来的权重，不重算已保存的 demo stage05。
 - 路径分类、纯删除、纯重命名、仅文档、仅测试、无生产代码、未知路径和缺少行数都有构造测试。已跟踪的 `backend/data/demo/` 用来核对摘要与文件列表不一致时未分析，以及已保存分数不变。
 - 更新当前规则卡片、登记册、知识库索引、架构说明和 v1.1 入口。登记册仍不是运行时配置。
+- 交付记录是 [PR #7](https://github.com/Zhang-huanzhi/prisk-system/pull/7)，分支 `feat/007-test-collaboration`。本提交只把状态改为 Accepted，不改实现。写下这条提交时该 PR 尚未合并。
 
 ## 不做事项
 
@@ -29,7 +32,7 @@ Finding 只要求复核生产代码路径和测试计划。它不说明测试缺
 - 不把 JSON 登记册改成运行时配置。
 - 不提高其他规则的权重，不把默认可得权重改成 11，不改写已保存 demo stage05 的分数或 Finding。
 - 不读取 gitignore 的大型 frozen-netbox stage04，不运行 NetBox 实验，不声称经验有效性。
-- 不创建 tag，不合并，不把本记录标成 Accepted。
+- 不创建 tag，也不在本提交中合并。交付是 [PR #7](https://github.com/Zhang-huanzhi/prisk-system/pull/7)。本记录状态为 Accepted。写下这条提交时该 PR 尚未合并。
 
 ## 技术方案
 

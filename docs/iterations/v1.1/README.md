@@ -7,7 +7,7 @@
 
 ## 当前迭代
 
-v1.0.0 发布后，新增功能、问题修复和工程改造从这里建立编号迭代文档。v1.0.0 冻结目录不回写新行为。001、002、003、004、005、006 为 Accepted。004 把三条语言级代码异味规则接入 AST 与 Finding 管道；005 在同一管道增加 `code.unmanaged_open` 和 `code.deep_control_flow`，并把演示默认输入改为已跟踪的 `backend/data/demo/`。006 在同一管道接入 `code.hardcoded_secret` 和 `code.global_mutable_state`，并已合并为 [PR #6](https://github.com/Zhang-huanzhi/prisk-system/pull/6)。007 正在把 `workflow.test_collaboration_gap` 接成文件变更复核提示，状态仍是 In Progress。JSON 登记册仍不是运行时配置。v1.1 入口本身仍是 In Progress。
+v1.0.0 发布后，新增功能、问题修复和工程改造从这里建立编号迭代文档。v1.0.0 冻结目录不回写新行为。001、002、003、004、005、006、007 为 Accepted。004 把三条语言级代码异味规则接入 AST 与 Finding 管道；005 在同一管道增加 `code.unmanaged_open` 和 `code.deep_control_flow`，并把演示默认输入改为已跟踪的 `backend/data/demo/`。006 在同一管道接入 `code.hardcoded_secret` 和 `code.global_mutable_state`，并已合并为 [PR #6](https://github.com/Zhang-huanzhi/prisk-system/pull/6)。007 把 `workflow.test_collaboration_gap` 接成文件变更复核提示，交付记录是 [PR #7](https://github.com/Zhang-huanzhi/prisk-system/pull/7)。写下这次索引更新时，该 PR 尚未合并。JSON 登记册仍不是运行时配置。v1.1 入口本身仍是 In Progress。
 
 ## 迭代文档
 
