@@ -6,7 +6,7 @@ Prisk-System 是一个本地 Git 分支代码审计工具。它读取已提交�
 
 ## 当前版本
 
-当前工作区准备作为 v1.0.0 基线发布。代码、测试、运行时样本和冻结文档共同构成这一版本；发布后新增功能、修复和工程改造进入 `docs/iterations/`，不回写 `docs/versions/v1.0.0/`。冻结版本、架构、运维和 ADR 入口见 `docs/`。
+当前工作区准备作为 v1.0.0 基线发布。代码、测试、运行时样本和冻结文档共同构成这一版本；发布后的新工作进入 `docs/tasks/`，不回写 `docs/versions/v1.0.0/`。文档入口、当前架构、运维和 ADR 见 `docs/`。开发与协作前先读 [核心蓝图](docs/blueprint.md)：它是目标系统规格，不是当前实现。
 
 ## 目录结构
 
@@ -21,7 +21,7 @@ Prisk-System/
 │  ├─ tests/                Python 单元与集成测试
 │  └─ pyproject.toml        Python 依赖和包配置
 ├─ frontend/                Next.js 看板及 npm 配置
-├─ docs/                    生命周期文档、ADR、版本和迭代记录
+├─ docs/                    规范、任务、版本、研究规则和当前架构
 └─ AGENTS.md                协作与工程边界
 ```
 

@@ -6,7 +6,7 @@
 - 上一级 `Prisk/` 是笔记工作区；`Prisk-Note/`、`EiheiZone-experience/` 和其他相邻目录不属于本仓库。
 - `backend/` 是唯一 Python 工作区，包含 `prisk/`、`tests/`、`pyproject.toml` 和 `uv.lock`。
 - `frontend/` 是独立的 Next.js 工作区。
-- `docs/` 保存当前工程文档、ADR、迭代记录和冻结版本记录。
+- `docs/` 保存当前工程文档、规范、任务、ADR 和冻结版本记录。
 
 ## 本地环境
 
@@ -29,12 +29,13 @@ npm --prefix frontend run build
 ## 修改原则
 
 - 代码、测试和当前文档保持 `backend/`、`frontend/`、`docs/` 的边界。
-- 分支命名按工作类型使用 `docs/`（文档与规范）、`feat/`（功能）、`fix/`（缺陷修复）或 `ops/`（工程与运维）；分支名使用简短的 kebab-case 描述。
+- 任何变更，不论规模，都必须对应一条任务。不存在可以不建任务的小改动例外。
+- 分支只使用 `feat/`、`fix/`、`docs/`、`refactor/`、`exp/`、`chore/`，形式为 `<type>/<三位任务编号>-<短英文名>`，并与该任务一对一。规范见 `docs/standards/branching-and-tasks.md`。
 - 冻结版本文档中的历史路径只用于记录基线，不作为当前入口。
 - 不修改上一级笔记工作区，不复制阶段数据、实验仓库、凭证或本地秘密。
 - 不自动提交、推送、合并或创建版本标签。
 
 ## 版本发布边界
 
-- 当前工作区按待发布的 v1.0.0 基线维护；发布后新增工作进入 `docs/iterations/`，不回写 `docs/versions/v1.0.0/`。
+- 当前工作区按待发布的 v1.0.0 基线维护；发布后新增工作进入 `docs/tasks/`，不回写 `docs/versions/v1.0.0/`。`docs/iterations/` 只保留迁移对照。
 - 发布前必须完成后端测试、前端 lint/typecheck/build、`git diff --check` 和敏感信息检查；提交、推送和创建 tag 由用户执行。

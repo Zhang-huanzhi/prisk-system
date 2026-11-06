@@ -13,7 +13,7 @@ date: "2026-11-04"
 
 ## 目标与范围
 
-建立[规则知识库](../../rules/README.md)，按 `code_smell`、`backend_contract`、`breaking_impact` 三类阵营组织规则卡片。首批完善三条 Python 语言级代码异味规则，并将两条 PR 级过程信号纳入后续候选。
+建立[规则知识库](../rules/README.md)，按 `code_smell`、`backend_contract`、`breaking_impact` 三类阵营组织规则卡片。首批完善三条 Python 语言级代码异味规则，并将两条 PR 级过程信号纳入后续候选。
 
 本任务不实现检测器、不运行 NetBox 实验、不预填验证结果。结构化登记册当前不是运行时配置；规则卡片是设计与验证记录的主要来源。
 
@@ -42,16 +42,16 @@ docs/rules/
 
 以下三条规则状态为 `registered`，但尚未实现检测器：
 
-- [`smell.swallowed_exception`](../../rules/catalog/code_smell/smell.swallowed_exception.md)：处理体只有 `pass` 的异常分支；依据包含 CWE-390、PEP 20、Python 语言参考和异常处理研究。
-- [`smell.bare_exception`](../../rules/catalog/code_smell/smell.bare_exception.md)：裸 `except`、`Exception` 或 `BaseException` 捕获；依据包含 PEP 8、CWE-396 和 Python 异常层次文档，并区分裸捕获与 `except Exception:` 的语义。
-- [`smell.dynamic_execution`](../../rules/catalog/code_smell/smell.dynamic_execution.md)：直接调用 `eval` 或 `exec`；依据包含 CWE-95、OWASP A03、Bandit B307/B102 和 Python 官方函数文档。`compile` 已明确排除，因为它本身只编译、不执行。
+- [`smell.swallowed_exception`](../rules/catalog/code_smell/smell.swallowed_exception.md)：处理体只有 `pass` 的异常分支；依据包含 CWE-390、PEP 20、Python 语言参考和异常处理研究。
+- [`smell.bare_exception`](../rules/catalog/code_smell/smell.bare_exception.md)：裸 `except`、`Exception` 或 `BaseException` 捕获；依据包含 PEP 8、CWE-396 和 Python 异常层次文档，并区分裸捕获与 `except Exception:` 的语义。
+- [`smell.dynamic_execution`](../rules/catalog/code_smell/smell.dynamic_execution.md)：直接调用 `eval` 或 `exec`；依据包含 CWE-95、OWASP A03、Bandit B307/B102 和 Python 官方函数文档。`compile` 已明确排除，因为它本身只编译、不执行。
 
 每张卡片都已写明检测对象、触发与不触发条件、机器特征、输入输出、代码示例、限制、人工复核要求和验证计划。卡片中的 `registered` 只表示登记完成，不表示实现或有效性验证完成。
 
 ### 3. 过程信号候选
 
-- [`impact.test_collaboration_gap`](../../rules/catalog/breaking_impact/impact.test_collaboration_gap.md)：生产代码变化而同一 PR 没有测试文件变化。已补充纯删除、删除旧测试、外部测试仓库和不完整 Diff 等边界，并计划探索 NetBox 维护者评论与标签的弱监督用途。
-- [`impact.large_change_scope`](../../rules/catalog/breaking_impact/impact.large_change_scope.md)：按变更行数、文件数和模块数提示大范围复核。已补充 `fixtures/`、`migrations/`、生成文件和格式化噪声的统计边界，要求同时保留原始和过滤后计数。
+- [`impact.test_collaboration_gap`](../rules/catalog/breaking_impact/impact.test_collaboration_gap.md)：生产代码变化而同一 PR 没有测试文件变化。已补充纯删除、删除旧测试、外部测试仓库和不完整 Diff 等边界，并计划探索 NetBox 维护者评论与标签的弱监督用途。
+- [`impact.large_change_scope`](../rules/catalog/breaking_impact/impact.large_change_scope.md)：按变更行数、文件数和模块数提示大范围复核。已补充 `fixtures/`、`migrations/`、生成文件和格式化噪声的统计边界，要求同时保留原始和过滤后计数。
 
 两条卡片保持 `draft`，不计入已登记卡片数量。
 

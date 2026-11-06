@@ -36,11 +36,11 @@ date: "2026-11-04"
 
 ## 交付物
 
-- [规则元数据 JSON Schema](../../schemas/rule-metadata.schema.json)；
-- [计划规则登记册](../../../backend/data/rules/rule-registry.json)：覆盖三类规则草案；
-- [规则卡片模板](../../rules/rule-card-template.md)：单条规则的论文和工程说明模板；
-- [规则责任矩阵](../../rules/rule-responsibility-matrix.md)：三类规则的责任矩阵；
-- [登记册初始化脚本](../../../backend/scripts/generate-rule-registry.ps1)：生成新的登记册文件，不覆盖现有文件。
+- [规则元数据 JSON Schema](../schemas/rule-metadata.schema.json)；
+- [计划规则登记册](../../backend/data/rules/rule-registry.json)：覆盖三类规则草案；
+- [规则卡片模板](../rules/rule-card-template.md)：单条规则的论文和工程说明模板；
+- [规则责任矩阵](../rules/rule-responsibility-matrix.md)：三类规则的责任矩阵；
+- [登记册初始化脚本](../../backend/scripts/generate-rule-registry.ps1)：生成新的登记册文件，不覆盖现有文件。
 
 ## 有效性责任
 
