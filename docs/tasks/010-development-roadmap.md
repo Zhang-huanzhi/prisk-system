@@ -13,7 +13,7 @@ date: "2026-11-06"
 
 把用户确认的开发推进大纲放入 [docs/roadmap.md](../roadmap.md)，并在 [文档入口](../README.md) 增加指向它的规划条目。`target_version` 只表示这条文档工作记在尚未归档的 v1.1.0 任务线上。它不表示 v1.1.0 至 v1.4.0 已经发布，也不表示大纲里的后续版本已经实现。
 
-用户尚未接受本任务。状态保持 In Progress。Git 分支、本文件和前言 `branch` 都是 `docs/010-development-roadmap`。本提交不合并、不打 tag，也不把任务移入 `docs/versions/`。
+用户尚未接受本任务。状态保持 In Progress。Git 分支、本文件和前言 `branch` 都是 `docs/010-development-roadmap`。交付记录是 [PR #10](https://github.com/Zhang-huanzhi/prisk-system/pull/10)。写下这条记录时该 PR 尚未合并。本提交不合并、不打 tag，也不把任务移入 `docs/versions/`。
 
 ## 编号核对
 
