@@ -2,7 +2,7 @@
 task_id: "006"
 target_version: "v1.1.0"
 title: "剩余语言级代码异味"
-status: "In Progress"
+status: "Accepted"
 branch: "feat/006-remaining-code-smells"
 date: "2026-11-06"
 ---
@@ -15,7 +15,7 @@ date: "2026-11-06"
 
 Finding 只是复核线索。`confidence` 仍是 `structural`。命中不表示秘密已经确认，不表示漏洞，不表示可变状态已经串扰，也不提供 Precision、Recall 或 NetBox 实证。
 
-本记录状态是 In Progress。维护者尚未接受本迭代。
+维护者已接受本迭代。交付分支是 `feat/006-remaining-code-smells`，交付记录是 [PR #6](https://github.com/Zhang-huanzhi/prisk-system/pull/6)。写下这条提交时，该 PR 尚未合并。
 
 ## 范围
 
@@ -24,10 +24,11 @@ Finding 只是复核线索。`confidence` 仍是 `structural`。命中不表示�
 - 新解析补充绑定和可变状态节点，并让旧快照在切片无法判断时进入 `summary.unanalyzed`，而不是记为通过。
 - 运行时目录、前端中文名和证据摘要带上这两条规则。
 - 更新 v1.1 迭代索引、架构说明和责任矩阵里的当前描述。
+- 交付记录是 [PR #6](https://github.com/Zhang-huanzhi/prisk-system/pull/6)，分支 `feat/006-remaining-code-smells`。本提交只把状态改为 Accepted，不改实现。写下这条提交时该 PR 尚未合并。
 
 ## 不做事项
 
-- 不把本迭代标为 Accepted，不打开 PR，不合并，不创建 tag。
+- 不创建 tag，也不在本提交中合并。交付是 [PR #6](https://github.com/Zhang-huanzhi/prisk-system/pull/6)。本记录状态为 Accepted。写下这条提交时该 PR 尚未合并。
 - 不实现 `workflow.test_collaboration_gap`、`workflow.large_change_scope`，也不实现三条 Django/DRF 草稿。
 - 不把 JSON 登记册改成运行时配置。
 - 不提高其他规则的权重，不提高 `maximum_points`，不重算冻结 stage04/05，不上传被忽略的大型 frozen-netbox JSONL。
@@ -77,9 +78,13 @@ Finding 只是复核线索。`confidence` 仍是 `structural`。命中不表示�
 - 三张契约卡片和两条过程草稿仍是 `draft`。运行时目录里没有它们。
 - 不声称概率、缺陷、秘密、漏洞、串扰、Precision、Recall 或 NetBox 验证。
 
+## 交付
+
+维护者已接受本迭代。交付分支是 `feat/006-remaining-code-smells`，交付记录是 [PR #6](https://github.com/Zhang-huanzhi/prisk-system/pull/6)。写下这条提交时，该 PR 尚未合并。本提交不改检测器、权重或测试结果。
+
 ## 实际测试
 
-仓库没有 GitHub Actions。以下是本工作区实际命令，不是 CI，也不是 NetBox、Precision 或 Recall 验证。输入是构造样例和已跟踪的小型 `backend/data/demo/`，没有读取被 gitignore 的大型 frozen-netbox stage04。
+仓库没有 GitHub Actions。以下是本工作区实际命令，不是 CI，也不是 NetBox、Precision 或 Recall 验证。输入是构造样例和已跟踪的小型 `backend/data/demo/`，没有读取被 gitignore 的大型 frozen-netbox stage04。这些结果属于交付到 [PR #6](https://github.com/Zhang-huanzhi/prisk-system/pull/6) 的实现；接受状态这一笔不改它们。写下这条提交时该 PR 尚未合并。
 
 - `uv run --project backend python -m unittest discover -s backend/tests -t backend`：79 项全部通过，退出码 0。
 - `npm --prefix frontend run lint`：通过。
