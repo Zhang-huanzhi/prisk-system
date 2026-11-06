@@ -24,6 +24,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "code.dynamic_execution": 0,
         "code.unmanaged_open": 0,
         "code.deep_control_flow": 0,
+        "code.hardcoded_secret": 0,
+        "code.global_mutable_state": 0,
     },
     "test_collaboration_weight": 1,
     "test_collaboration_enabled": True,
@@ -41,6 +43,8 @@ RULE_SCOPES = {
     "code.dynamic_execution": "Python 直接名称 eval 或 exec 调用，不含 compile",
     "code.unmanaged_open": "Python 直接名称 open 调用，且不是 with 或 async with 的上下文表达式",
     "code.deep_control_flow": "Python if、for、while、with、try 的嵌套深度大于固定阈值 4",
+    "code.hardcoded_secret": "Python 凭据名字上长度不少于 8 且不在占位符表中的 str 字面量",
+    "code.global_mutable_state": "Python 函数体内的 global，或模块与类体中的列表、字典、集合绑定",
 }
 
 

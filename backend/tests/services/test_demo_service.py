@@ -44,7 +44,7 @@ class DemoServiceTests(unittest.TestCase):
             shutil.rmtree(root, ignore_errors=True)
         self.assertEqual(report["files"][0]["hunks"][0]["lines"][1]["kind"], "add")
         self.assertEqual(report["files"][0]["parse_status"]["head"], "ok")
-        self.assertEqual(len(catalog), 10)
+        self.assertEqual(len(catalog), 12)
         self.assertTrue(all(item.get("rule_id") and item.get("applicable_scope") and "default_weight" in item for item in catalog))
 
     def test_config_is_deterministic_and_rejects_invalid_thresholds(self) -> None:
@@ -60,12 +60,14 @@ class DemoServiceTests(unittest.TestCase):
 
     def test_default_config_keeps_historical_score_denominator(self) -> None:
         normalized = normalize_config(None)
-        self.assertEqual(len(normalized["enabled_rules"]), 10)
+        self.assertEqual(len(normalized["enabled_rules"]), 12)
         self.assertEqual(normalized["rule_weights"]["code.swallowed_exception"], 0)
         self.assertEqual(normalized["rule_weights"]["code.bare_exception"], 0)
         self.assertEqual(normalized["rule_weights"]["code.dynamic_execution"], 0)
         self.assertEqual(normalized["rule_weights"]["code.unmanaged_open"], 0)
         self.assertEqual(normalized["rule_weights"]["code.deep_control_flow"], 0)
+        self.assertEqual(normalized["rule_weights"]["code.hardcoded_secret"], 0)
+        self.assertEqual(normalized["rule_weights"]["code.global_mutable_state"], 0)
         self.assertEqual(sum(normalized["rule_weights"][rule_id] for rule_id in normalized["enabled_rules"]), 9)
         self.assertLess(normalized["thresholds"]["medium"], normalized["thresholds"]["high"])
 

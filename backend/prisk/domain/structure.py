@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import io
 import json
 import subprocess
+import tokenize
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, TypedDict
@@ -78,6 +80,72 @@ def _expr_text(source: str, node: ast.AST | None) -> str | None:
         except (AttributeError, ValueError):
             value = None
     return value
+
+
+def _string_token_count(segment: str) -> int | None:
+    """Count STRING tokens. More than one means implicit concatenation."""
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(segment).readline)
+        return sum(token.type == tokenize.STRING for token in tokens)
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return None
+
+
+def _literal_facts(value: ast.AST | None, segment: str | None) -> dict[str, Any]:
+    """Classify a binding value without applying the secret-name policy.
+
+    A qualifying str fact requires one STRING token. Implicit concatenation is
+    kept distinct because the parser folds it into a single Constant. f-strings
+    stay JoinedStr nodes and are non-literals. Bytes are never str facts.
+    """
+    if isinstance(value, ast.Constant) and isinstance(value.value, str):
+        count = _string_token_count(segment or "")
+        if count == 1:
+            return {"literal_kind": "str", "literal_length": len(value.value), "literal_text": value.value}
+        if count is not None and count >= 2:
+            return {"literal_kind": "implicit_str_concat", "literal_length": len(value.value), "literal_text": None}
+        return {"literal_kind": "non_literal", "literal_length": None, "literal_text": None}
+    if isinstance(value, ast.Constant) and isinstance(value.value, bytes):
+        return {"literal_kind": "bytes", "literal_length": len(value.value), "literal_text": None}
+    return {"literal_kind": "non_literal", "literal_length": None, "literal_text": None}
+
+
+def _container_kind(value: ast.AST | None) -> str | None:
+    """Return the mutable-display kind, or None when the value is not one."""
+    if isinstance(value, ast.List):
+        return "list_display"
+    if isinstance(value, ast.Dict):
+        return "dict_display"
+    if isinstance(value, ast.Set):
+        return "set_display"
+    if (
+        isinstance(value, ast.Call)
+        and isinstance(value.func, ast.Name)
+        and value.func.id in {"list", "dict", "set"}
+        and not value.args
+        and not value.keywords
+    ):
+        return f"{value.func.id}_call"
+    return None
+
+
+def _span_cover(nodes: list[ast.AST]) -> ast.AST:
+    """Build a location-only node covering every located node in the list."""
+    located = [node for node in nodes if getattr(node, "lineno", None) is not None]
+    start = min(located, key=lambda node: (node.lineno, getattr(node, "col_offset", 0) or 0))
+    end = max(
+        located,
+        key=lambda node: (
+            getattr(node, "end_lineno", None) or node.lineno,
+            getattr(node, "end_col_offset", 0) or 0,
+        ),
+    )
+    cover = ast.Name(id="_span", ctx=ast.Load())
+    cover.lineno = start.lineno
+    cover.col_offset = getattr(start, "col_offset", 0) or 0
+    cover.end_lineno = getattr(end, "end_lineno", None) or end.lineno
+    cover.end_col_offset = getattr(end, "end_col_offset", None) or cover.col_offset
+    return cover
 
 
 def _fingerprint(node: ast.AST) -> str:
@@ -153,10 +221,12 @@ class _StructureVisitor(ast.NodeVisitor):
         self.side = side
         self.nodes: list[dict[str, Any]] = []
         self.scope: list[str] = []
+        self.scope_kinds: list[str] = []
         self.function_depth = 0
         self.control_depth = 0
         self.in_exception_group = False
         self._with_context_call_ids: set[int] = set()
+        self._global_counts: list[int] = []
         self._counts: Counter[str] = Counter()
 
     def _qualified_name(self, name: str | None = None) -> str:
@@ -164,6 +234,9 @@ class _StructureVisitor(ast.NodeVisitor):
         if name:
             values.append(name)
         return ".".join(values) if values else "<module>"
+
+    def _innermost_scope_kind(self) -> str:
+        return self.scope_kinds[-1] if self.scope_kinds else "module"
 
     def _add_node(
         self,
@@ -238,8 +311,10 @@ class _StructureVisitor(ast.NodeVisitor):
         saved_depth = self.control_depth
         self.control_depth = 0
         self.scope.append(node.name)
+        self.scope_kinds.append("class")
         for item in node.body:
             self.visit(item)
+        self.scope_kinds.pop()
         self.scope.pop()
         self.control_depth = saved_depth
 
@@ -247,14 +322,24 @@ class _StructureVisitor(ast.NodeVisitor):
         kind = "async_function" if isinstance(node, ast.AsyncFunctionDef) else "function"
         qualified_name = self._qualified_name(node.name)
         decorators = self._decorators(node, qualified_name)
+        details = {
+            "signature": _function_signature(self.source, node),
+            "decorators": decorators,
+            # 006 records literal bindings and function-body global statements as
+            # their own nodes. These flags tell old-snapshot fallback not to
+            # scan this function again.
+            "literal_bindings_recorded": True,
+            "contains_global_statement": False,
+        }
         self._add_node(
             kind,
             node,
             node.name,
             qualified_name,
             f"{kind}:{qualified_name}",
-            {"signature": _function_signature(self.source, node), "decorators": decorators},
+            details,
         )
+        self._record_parameter_defaults(node, qualified_name)
         for decorator in node.decorator_list:
             self.visit(decorator)
         for default in [*node.args.defaults, *node.args.kw_defaults]:
@@ -270,6 +355,8 @@ class _StructureVisitor(ast.NodeVisitor):
         if node.returns is not None:
             self.visit(node.returns)
         self.scope.append(node.name)
+        self.scope_kinds.append("function")
+        self._global_counts.append(0)
         self.function_depth += 1
         saved_depth = self.control_depth
         self.control_depth = 0
@@ -277,7 +364,10 @@ class _StructureVisitor(ast.NodeVisitor):
             self.visit(item)
         self.control_depth = saved_depth
         self.function_depth -= 1
+        global_count = self._global_counts.pop()
+        self.scope_kinds.pop()
         self.scope.pop()
+        details["contains_global_statement"] = global_count > 0
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self._visit_function(node)
@@ -303,22 +393,114 @@ class _StructureVisitor(ast.NodeVisitor):
         if self.function_depth == 0 and (not self.scope or self.scope):
             scope = ".".join(self.scope) or "<module>"
             value = node.value if isinstance(node, (ast.Assign, ast.AnnAssign)) else None
+            if value is None:
+                value_form = "no_value"
+            else:
+                value_form = _container_kind(value) or "not_mutable"
             for target in self._field_targets(node):
                 qualified_name = f"{scope}.{target.id}"
                 details = {
                     "scope": scope,
                     "annotation": _annotation(self.source, node if isinstance(node, ast.AnnAssign) else None),
                     "value_fingerprint": _fingerprint(value) if value is not None else None,
+                    "value_form": value_form,
                 }
                 self._add_node("field", node, target.id, qualified_name, f"field:{qualified_name}", details)
 
     def visit_Assign(self, node: ast.Assign) -> None:
         self._visit_field(node)
+        self._record_assignment(node)
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         self._visit_field(node)
+        self._record_assignment(node)
         self.generic_visit(node)
+
+    def _record_parameter_defaults(self, node: ast.FunctionDef | ast.AsyncFunctionDef, qualified_name: str) -> None:
+        args = node.args
+        positional = list(getattr(args, "posonlyargs", [])) + list(args.args)
+        paired: list[tuple[ast.arg, ast.expr | None]] = [(item, None) for item in positional]
+        offset = len(positional) - len(args.defaults)
+        for index, default in enumerate(args.defaults):
+            paired[offset + index] = (positional[offset + index], default)
+        paired.extend(zip(args.kwonlyargs, args.kw_defaults))
+        for parameter, default in paired:
+            if default is None:
+                continue
+            facts = _literal_facts(default, _expr_text(self.source, default))
+            cover = _span_cover([parameter, default])
+            qualified = f"{qualified_name}.{parameter.arg}"
+            self._add_node(
+                "literal_binding",
+                cover,
+                parameter.arg,
+                qualified,
+                f"literal:{qualified}:parameter_default:{parameter.lineno}:{parameter.col_offset}",
+                {"binding_name": parameter.arg, "binding_form": "parameter_default", **facts},
+                cover,
+            )
+
+    def _record_assignment(self, node: ast.Assign | ast.AnnAssign) -> None:
+        value = node.value
+        if value is None:
+            return
+        facts = _literal_facts(value, _expr_text(self.source, value))
+        targets = list(node.targets) if isinstance(node, ast.Assign) else [node.target]
+        for target in targets:
+            if isinstance(target, ast.Name):
+                binding_name, binding_form = target.id, "name_assignment"
+            elif isinstance(target, ast.Attribute):
+                binding_name, binding_form = target.attr, "attribute_assignment"
+            else:
+                continue
+            qualified = self._qualified_name(binding_name)
+            self._add_node(
+                "literal_binding",
+                node,
+                binding_name,
+                qualified,
+                f"literal:{qualified}:{binding_form}:{target.lineno}:{target.col_offset}",
+                {"binding_name": binding_name, "binding_form": binding_form, **facts},
+            )
+        if self._innermost_scope_kind() == "function":
+            return
+        kind = _container_kind(value)
+        if kind is None:
+            return
+        labels = [text for target in targets if (text := _expr_text(self.source, target))]
+        qualified = self._qualified_name()
+        self._add_node(
+            "mutable_state",
+            node,
+            labels[0] if len(labels) == 1 else None,
+            qualified,
+            f"mutable:{qualified}:mutable_binding:{node.lineno}:{node.col_offset}",
+            {
+                "mutable_state_form": "mutable_binding",
+                "binding_targets": labels,
+                "value_kind": kind,
+            },
+        )
+
+    def visit_Global(self, node: ast.Global) -> None:
+        # Class and module global statements are legal but are not this rule's object.
+        if self._innermost_scope_kind() != "function" or not self._global_counts:
+            return
+        self._global_counts[-1] += 1
+        qualified = self._qualified_name()
+        self._add_node(
+            "mutable_state",
+            node,
+            ",".join(node.names),
+            qualified,
+            f"mutable:{qualified}:global_statement:{node.lineno}:{node.col_offset}",
+            {
+                "mutable_state_form": "global_statement",
+                "binding_targets": list(node.names),
+                "value_kind": None,
+            },
+        )
 
     def visit_Call(self, node: ast.Call) -> None:
         callee = _expr_text(self.source, node.func) or ""
@@ -339,6 +521,19 @@ class _StructureVisitor(ast.NodeVisitor):
                 "used_as_with_context": id(node) in self._with_context_call_ids,
             },
         )
+        for keyword in node.keywords:
+            if not isinstance(keyword.arg, str):
+                continue
+            facts = _literal_facts(keyword.value, _expr_text(self.source, keyword.value))
+            qualified = self._qualified_name(keyword.arg)
+            self._add_node(
+                "literal_binding",
+                keyword,
+                keyword.arg,
+                qualified,
+                f"literal:{qualified}:keyword_argument:{keyword.lineno}:{keyword.col_offset}",
+                {"binding_name": keyword.arg, "binding_form": "keyword_argument", **facts},
+            )
         self.generic_visit(node)
 
     def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
@@ -554,7 +749,10 @@ def _structural_changes(base_nodes: list[dict[str, Any]], head_nodes: list[dict[
             before = before_items[index] if index < len(before_items) else None
             after = after_items[index] if index < len(after_items) else None
             kind = (after or before)["kind"]
-            if kind == "control_flow":
+            # Smell-only nodes stay out of the coarse structural change list.
+            # A new if, binding, or global must not become node_added for the
+            # path-based api/auth/data/config rules.
+            if kind in {"control_flow", "literal_binding", "mutable_state"}:
                 continue
             if before is None:
                 change_type = "decorator_added" if kind == "decorator" else "node_added"

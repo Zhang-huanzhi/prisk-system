@@ -10,7 +10,7 @@
 | `architecture.md` | Python 分层、Web 和数据边界 | 随架构更新 |
 | `operations.md` | uv、npm、API、看板、测试和本地报告 | 持续更新 |
 | `versions/v1.0.0/` | 系统基线、阶段状态和可复用冻结证据 | Frozen |
-| `iterations/v1.1/` | 发布后的下一阶段迭代入口 | Planned |
+| `iterations/v1.1/` | 发布后的下一阶段迭代入口 | In Progress |
 | `adr/` | 长期架构和仓库边界决策 | 按需新增 |
 
 生命周期规则：源码和测试进入 Git；versions 保存冻结阶段事实及必要的可复核产物；iterations 保存活动计划和实际验证；本机依赖、上游仓库克隆、API 响应缓存和临时文件不进入 Git。冻结目录不收录个人材料，样本中的贡献者身份字段应脱敏。

@@ -75,12 +75,14 @@ class RuleRegistryTests(unittest.TestCase):
                 "code.swallowed_exception",
                 "code.bare_exception",
                 "code.dynamic_execution",
+                "code.hardcoded_secret",
                 "code.unmanaged_open",
                 "code.deep_control_flow",
+                "code.global_mutable_state",
             ],
         )
         registered = [rule["rule_id"] for rule in self.registry["rules"] if rule["lifecycle"] == "registered"]
-        self.assertEqual(registered, ["code.hardcoded_secret", "code.global_mutable_state"])
+        self.assertEqual(registered, [])
 
     def test_draft_backend_contract_cards_are_linked_and_not_runtime_rules(self) -> None:
         from prisk.domain.rules import RULE_CATALOG
@@ -92,7 +94,8 @@ class RuleRegistryTests(unittest.TestCase):
             "auth.drf_permission_decorator_removed",
             "data.django_raw_sql_execution",
         ]
-        self.assertTrue({"code.hardcoded_secret", "code.global_mutable_state", *expected}.isdisjoint(catalog_ids))
+        self.assertTrue(set(expected).isdisjoint(catalog_ids))
+        self.assertTrue({"code.hardcoded_secret", "code.global_mutable_state"} <= catalog_ids)
         for rule_id in expected:
             rule = next(item for item in self.registry["rules"] if item["rule_id"] == rule_id)
             self.assertEqual(rule["lifecycle"], "draft")

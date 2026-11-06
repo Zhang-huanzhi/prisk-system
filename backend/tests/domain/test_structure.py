@@ -42,6 +42,12 @@ class StructureUnitTests(unittest.TestCase):
         function = next(node for node in parsed["nodes"] if node["kind"] == "function")
         self.assertEqual(function["details"]["signature"]["parameters"][1]["name"], "value")
         self.assertEqual(function["details"]["signature"]["returns"], "str")
+        self.assertTrue(function["details"]["literal_bindings_recorded"])
+        self.assertFalse(function["details"]["contains_global_statement"])
+        field = next(node for node in parsed["nodes"] if node["kind"] == "field")
+        self.assertEqual(field["details"]["value_form"], "not_mutable")
+        defaults = [node for node in parsed["nodes"] if node["kind"] == "literal_binding"]
+        self.assertTrue(any(node["details"]["binding_form"] == "parameter_default" for node in defaults))
 
     def test_syntax_error_has_location_and_no_nodes(self) -> None:
         parsed = parse_python_source("def broken(:\n    pass\n", "netbox/broken.py", "head")
