@@ -11,7 +11,7 @@ from typing import Any
 
 from .changes import load_records, write_jsonl
 from .code_smells import CODE_SMELL_RULES, collect_code_smell_findings
-from .test_collaboration import COLLABORATION_RULE_ID, collect_test_collaboration
+from .test_collaboration import COLLABORATION_RULE_ID, collaboration_terminal, collect_test_collaboration
 
 
 RULE_SCHEMA_VERSION = "stage05.v2"
@@ -182,8 +182,235 @@ def _testing_collaboration(finding: dict[str, Any] | None) -> bool:
     return finding is not None
 
 
+_TERMINAL_HIT = "Hit"
+_TERMINAL_NOT_FOUND = "NotFound"
+_TERMINAL_UNANALYZED = "Unanalyzed"
+_REASON_FRAMEWORK = "missing_framework_context"
+_REASON_CONTEXT = "context_not_established"
+_REASON_PRIOR = "prior_stage_unavailable"
+_REASON_DETAILS = "unsupported_stage04_details"
+_SMELL_RULE_IDS = frozenset(rule["rule_id"] for rule in CODE_SMELL_RULES)
+_PATH_RULES = {
+    "api.signature_changed": _INTERFACE_PATH,
+    "config.configuration_structure_changed": _CONFIG_PATH,
+}
+
+
+def _record_path(file_item: dict[str, Any]) -> str:
+    return str(file_item.get("path") or file_item.get("new_path") or file_item.get("old_path") or "")
+
+
+def _head_state(file_item: dict[str, Any]) -> str | None:
+    status = file_item.get("parse_status")
+    if not isinstance(status, dict):
+        return None
+    head = status.get("head")
+    return str(head) if isinstance(head, str) else None
+
+
+def _is_python_file(file_item: dict[str, Any]) -> bool:
+    path = _record_path(file_item).lower()
+    if path.endswith((".py", ".pyi")) or file_item.get("is_python") is True:
+        return True
+    return _head_state(file_item) in {"ok", "failed"}
+
+
+def _structurally_scanned(file_item: dict[str, Any]) -> bool:
+    if not isinstance(file_item.get("structural_changes"), list):
+        return False
+    return _head_state(file_item) not in {"failed", "skipped"}
+
+
+def _parse_reason(file_item: dict[str, Any]) -> str:
+    for error in file_item.get("errors") or []:
+        if isinstance(error, dict) and error.get("code"):
+            return str(error["code"])
+    if _head_state(file_item) == "failed":
+        return "head_parse_failed"
+    return _REASON_CONTEXT
+
+
+def _object(path: str, node_id: str | None = None) -> dict[str, str]:
+    item = {"path": path}
+    if node_id:
+        item["node_id"] = node_id
+    return item
+
+
+def _dedupe_objects(objects: list[dict[str, str]]) -> list[dict[str, str]]:
+    seen: set[tuple[str, str]] = set()
+    unique: list[dict[str, str]] = []
+    for item in objects:
+        key = (item.get("path", ""), item.get("node_id", ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+    unique.sort(key=lambda item: (item.get("path", ""), item.get("node_id", "")))
+    return unique
+
+
+def _reasons_from_pairs(pairs: list[tuple[str, dict[str, str]]]) -> list[dict[str, Any]]:
+    grouped: dict[str, list[dict[str, str]]] = {}
+    for reason, obj in pairs:
+        grouped.setdefault(reason, []).append(obj)
+    return [
+        {"reason": reason, "objects": _dedupe_objects(objects)}
+        for reason, objects in sorted(grouped.items())
+    ]
+
+
+def _terminal(rule_id: str, state: str, reasons: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    item: dict[str, Any] = {"rule_id": rule_id, "state": state}
+    if state == _TERMINAL_UNANALYZED:
+        item["reasons"] = reasons or [{"reason": _REASON_CONTEXT, "objects": []}]
+    return item
+
+
+def _blocking_reasons(files: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    pairs = [
+        (_parse_reason(file_item), _object(_record_path(file_item)))
+        for file_item in files
+        if not _structurally_scanned(file_item)
+    ]
+    return _reasons_from_pairs(pairs)
+
+
+def _path_scoped_terminal(rule_id: str, files: list[dict[str, Any]], pattern: re.Pattern[str]) -> dict[str, Any]:
+    in_scope = [item for item in files if pattern.search(_normalized_path(_record_path(item)))]
+    if not in_scope:
+        return _terminal(rule_id, _TERMINAL_UNANALYZED, [{"reason": _REASON_FRAMEWORK, "objects": []}])
+    blocking = _blocking_reasons(in_scope)
+    if blocking:
+        return _terminal(rule_id, _TERMINAL_UNANALYZED, blocking)
+    return _terminal(rule_id, _TERMINAL_NOT_FOUND)
+
+
+def _kind_terminal(
+    rule_id: str,
+    files: list[dict[str, Any]],
+    *,
+    path_pattern: re.Pattern[str],
+    kinds: frozenset[str],
+) -> dict[str, Any]:
+    """Auth and data rules inspect a path scope plus selected node kinds.
+
+    A failed or missing Python structural scan can hide those kinds, so it
+    stays Unanalyzed. A diff with neither the path nor those kinds has no
+    framework context and is not NotFound.
+    """
+    blocking = _blocking_reasons([item for item in files if _is_python_file(item)])
+    if blocking:
+        return _terminal(rule_id, _TERMINAL_UNANALYZED, blocking)
+    scoped = [item for item in files if path_pattern.search(_normalized_path(_record_path(item)))]
+    saw_kind = False
+    for item in files:
+        changes = item.get("structural_changes")
+        if not isinstance(changes, list):
+            continue
+        for change in changes:
+            if isinstance(change, dict) and str(change.get("kind") or "") in kinds:
+                saw_kind = True
+                break
+    if any(not _structurally_scanned(item) for item in scoped):
+        return _terminal(rule_id, _TERMINAL_UNANALYZED, _blocking_reasons(scoped))
+    if scoped or saw_kind:
+        return _terminal(rule_id, _TERMINAL_NOT_FOUND)
+    return _terminal(rule_id, _TERMINAL_UNANALYZED, [{"reason": _REASON_FRAMEWORK, "objects": []}])
+
+
+def _exception_terminal(files: list[dict[str, Any]]) -> dict[str, Any]:
+    python_files = [item for item in files if _is_python_file(item)]
+    if not python_files:
+        return _terminal(
+            "code.exception_structure_changed",
+            _TERMINAL_UNANALYZED,
+            [{"reason": _REASON_CONTEXT, "objects": []}],
+        )
+    blocking = _blocking_reasons(python_files)
+    if blocking:
+        return _terminal("code.exception_structure_changed", _TERMINAL_UNANALYZED, blocking)
+    return _terminal("code.exception_structure_changed", _TERMINAL_NOT_FOUND)
+
+
+def _smell_terminal(
+    rule_id: str,
+    trace: dict[str, dict[str, Any]],
+    parse_failures: list[dict[str, Any]],
+) -> dict[str, Any]:
+    info = trace.get(rule_id) or {"examined": 0, "gaps": []}
+    pairs: list[tuple[str, dict[str, str]]] = []
+    for gap in info.get("gaps") or []:
+        if not isinstance(gap, dict):
+            continue
+        node_id = str(gap.get("node_id") or "") or None
+        pairs.append((_REASON_DETAILS, _object(str(gap.get("path") or ""), node_id)))
+    for failure in parse_failures:
+        pairs.append((
+            str(failure.get("reason") or "head_parse_failed"),
+            _object(str(failure.get("path") or "")),
+        ))
+    reasons = _reasons_from_pairs(pairs)
+    if reasons:
+        return _terminal(rule_id, _TERMINAL_UNANALYZED, reasons)
+    if int(info.get("examined") or 0) > 0:
+        return _terminal(rule_id, _TERMINAL_NOT_FOUND)
+    return _terminal(rule_id, _TERMINAL_UNANALYZED, [{"reason": _REASON_CONTEXT, "objects": []}])
+
+
+def _unavailable_outcomes(enabled: set[str]) -> list[dict[str, Any]]:
+    return [
+        _terminal(rule["rule_id"], _TERMINAL_UNANALYZED, [{"reason": _REASON_PRIOR, "objects": []}])
+        for rule in RULE_CATALOG
+        if rule["rule_id"] in enabled
+    ]
+
+
+def _rule_outcomes(
+    record: dict[str, Any],
+    enabled: set[str],
+    findings: list[dict[str, Any]],
+    smell_trace: dict[str, dict[str, Any]],
+    collaboration_finding: dict[str, Any] | None,
+    collaboration_gaps: list[dict[str, str]],
+    parse_failures: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """One terminal state per enabled rule. Hit is exactly the rules with findings."""
+    finding_ids = {item.get("rule_id") for item in findings}
+    files = [item for item in record.get("files") or [] if isinstance(item, dict)]
+    outcomes: list[dict[str, Any]] = []
+    for rule in RULE_CATALOG:
+        rule_id = rule["rule_id"]
+        if rule_id not in enabled:
+            continue
+        if rule_id in finding_ids:
+            outcomes.append(_terminal(rule_id, _TERMINAL_HIT))
+            continue
+        if rule_id in _PATH_RULES:
+            outcomes.append(_path_scoped_terminal(rule_id, files, _PATH_RULES[rule_id]))
+        elif rule_id == "auth.permission_structure_changed":
+            outcomes.append(_kind_terminal(
+                rule_id, files, path_pattern=_AUTH_PATH, kinds=frozenset({"decorator", "call"}),
+            ))
+        elif rule_id == "data.transaction_structure_changed":
+            outcomes.append(_kind_terminal(
+                rule_id, files, path_pattern=_DATA_PATH, kinds=frozenset({"call"}),
+            ))
+        elif rule_id == "code.exception_structure_changed":
+            outcomes.append(_exception_terminal(files))
+        elif rule_id in _SMELL_RULE_IDS:
+            outcomes.append(_smell_terminal(rule_id, smell_trace, parse_failures))
+        elif rule_id == COLLABORATION_RULE_ID:
+            state, reasons = collaboration_terminal(record, collaboration_finding, collaboration_gaps)
+            outcomes.append(_terminal(rule_id, state, reasons))
+        else:
+            outcomes.append(_terminal(rule_id, _TERMINAL_UNANALYZED, [{"reason": _REASON_CONTEXT, "objects": []}]))
+    return outcomes
+
+
 def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] | None = None) -> dict[str, Any]:
     status = stage04_record.get("status")
+    enabled = set((rule_config or {}).get("enabled_rules", [item["rule_id"] for item in RULE_CATALOG]))
     if status == "excluded":
         return {
             "schema_version": RULE_SCHEMA_VERSION,
@@ -191,6 +418,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             "repo": stage04_record.get("repo"),
             "pr_number": stage04_record.get("pr_number"),
             "findings": [],
+            "rule_outcomes": _unavailable_outcomes(enabled),
             "summary": {"finding_count": 0, "domains": [], "test_collaboration": False, "parse_degraded": False, "unanalyzed": []},
             "errors": [],
         }
@@ -201,11 +429,11 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             "repo": stage04_record.get("repo"),
             "pr_number": stage04_record.get("pr_number"),
             "findings": [],
+            "rule_outcomes": _unavailable_outcomes(enabled),
             "summary": {"finding_count": 0, "domains": [], "test_collaboration": False, "parse_degraded": False, "unanalyzed": []},
             "errors": stage04_record.get("errors", []),
         }
 
-    enabled = set((rule_config or {}).get("enabled_rules", [item["rule_id"] for item in RULE_CATALOG]))
     findings: list[dict[str, Any]] = []
     for rule in RULE_CATALOG:
         if rule["rule_id"] not in enabled:
@@ -218,7 +446,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
                     matched_by_path.setdefault(path, []).append(change)
         for path, changes in sorted(matched_by_path.items()):
             findings.append(_finding(rule, path, changes))
-    smell_findings, smell_gaps = collect_code_smell_findings(stage04_record, enabled)
+    smell_findings, smell_gaps, smell_trace = collect_code_smell_findings(stage04_record, enabled)
     findings.extend(smell_findings)
     collaboration_finding, collaboration_gaps = collect_test_collaboration(stage04_record, enabled)
     if collaboration_finding is not None:
@@ -229,6 +457,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
         for file_item in stage04_record.get("files", [])
     )
     domains = sorted({rule_domain(item["rule_id"]) for item in findings})
+    parse_failures = _unanalyzed_files(stage04_record)
     return {
         "schema_version": RULE_SCHEMA_VERSION,
         "status": "ok",
@@ -237,12 +466,21 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
         "base_sha": stage04_record.get("base_sha"),
         "head_sha": stage04_record.get("head_sha"),
         "findings": findings,
+        "rule_outcomes": _rule_outcomes(
+            stage04_record,
+            enabled,
+            findings,
+            smell_trace,
+            collaboration_finding,
+            collaboration_gaps,
+            parse_failures,
+        ),
         "summary": {
             "finding_count": len(findings),
             "domains": domains,
             "test_collaboration": _testing_collaboration(collaboration_finding),
             "parse_degraded": degraded,
-            "unanalyzed": [*_unanalyzed_files(stage04_record), *smell_gaps, *collaboration_gaps],
+            "unanalyzed": [*parse_failures, *smell_gaps, *collaboration_gaps],
         },
         "errors": [],
     }

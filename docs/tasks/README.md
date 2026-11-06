@@ -2,9 +2,9 @@
 
 这里只放尚未随版本归档的任务：未完成的任务，以及已经接受、但目标版本还没有冻结进 `docs/versions/` 的任务。
 
-v1.1.0 仍未归档，所以 001–008 留在本目录。不建立 `docs/versions/v1.1/` 或 `docs/versions/v1.1.0/`。v1.0.0 阶段 08 不是任务 008。
+v1.1.0 仍未归档，所以 001–009 留在本目录。不建立 `docs/versions/v1.1/` 或 `docs/versions/v1.1.0/`。v1.0.0 阶段 08 不是任务 008，也没有冻结的阶段 09 占用任务 009。
 
-001–007 的前言都有 `branch`。下表引用原值，不把它们改写成现行分支形式。008 为 Accepted，其前言 `branch` 仍是 `docs/008-docs-structure-blueprint`。接受不把 008 移入 `docs/versions/`。
+001–007 的前言都有 `branch`。下表引用原值，不把它们改写成现行分支形式。008 为 Accepted，其前言 `branch` 仍是 `docs/008-docs-structure-blueprint`。009 为 Accepted，其前言 `branch` 仍是 `feat/009-explicit-rule-outcomes`。接受不把 008 或 009 移入 `docs/versions/`。
 
 | 任务 | 状态 | 前言中的 `branch` | 记录 |
 | --- | --- | --- | --- |
@@ -16,6 +16,7 @@ v1.1.0 仍未归档，所以 001–008 留在本目录。不建立 `docs/version
 | 006 | Accepted | `feat/006-remaining-code-smells` | [剩余语言级代码异味](006-remaining-code-smells.md) |
 | 007 | Accepted | `feat/007-test-collaboration` | [测试协同复核提示](007-test-collaboration.md) |
 | 008 | Accepted | `docs/008-docs-structure-blueprint` | [文档信息架构与核心蓝图](008-docs-structure-blueprint.md) |
+| 009 | Accepted | `feat/009-explicit-rule-outcomes` | [显式规则终态](009-explicit-rule-outcomes.md) |
 
 [v1.1 入口原文](v1.1-entry.md) 随文件迁出后保留。其中“写下这次索引更新时，该 PR 尚未合并”是当时的句子，008 不改写。
 

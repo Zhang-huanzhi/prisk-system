@@ -117,6 +117,16 @@ class DemoData:
             for item in stage04.get("files", [])
         }
         domains = sorted({rule_domain(item["rule_id"]) for item in enriched_findings})
+        stored_outcomes = rule_record.get("rule_outcomes")
+        if isinstance(stored_outcomes, list):
+            rule_outcomes = [
+                item for item in stored_outcomes
+                if isinstance(item, dict) and item.get("rule_id") in enabled
+            ]
+            outcome_availability = "recorded"
+        else:
+            rule_outcomes = None
+            outcome_availability = "unavailable"
         return {
             "schema_version": "stage07.report.v2",
             "status": rule_record.get("status", "error"),
@@ -175,10 +185,13 @@ class DemoData:
                 for item in files
             ],
             "findings": enriched_findings,
+            "rule_outcomes": rule_outcomes,
+            "rule_outcome_availability": outcome_availability,
             "limitations": [
                 "分数用于排列人工复核优先级，不是缺陷概率或安全结论。",
                 "当前权重和阈值是可调演示参数，尚未通过独立标注集校准。",
                 "规则命中仅表示对应结构值得检查，需结合业务上下文人工确认。",
+                "未发现只表示该规则已在适用上下文中完整执行；无法分析不是通过，也不表示代码安全。历史快照没有终态时，不能把缺少 Finding 当成未发现。",
             ],
         }
 

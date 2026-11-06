@@ -1,6 +1,6 @@
 # Prisk-System 架构
 
-本文件描述当前实现。目标系统写在 [核心蓝图](blueprint.md)。蓝图是目标规格；其中的机器学习、权重调优、动态配置、NotFound 全量跟踪和 NetBox 实证验证都不是本文件已经落地的行为。
+本文件描述当前实现。目标系统写在 [核心蓝图](blueprint.md)。蓝图是目标规格。机器学习、权重调优、动态配置和 NetBox 实证验证不是本文件已经落地的行为。009 为当前 13 条运行时规则记录显式终态；上下文不能成立时不记 NotFound，已保存历史也不补写。
 
 ## 运行链路
 
@@ -17,6 +17,18 @@
 分析只读取已提交快照，不执行 checkout、fetch、merge、pull，不纳入未提交工作区。
 
 v1.1 的代码异味规则读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。004 接入 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution`。005 在同一管道接入 `code.unmanaged_open` 和 `code.deep_control_flow`。006 在同一管道接入 `code.hardcoded_secret` 和 `code.global_mutable_state`。它们不替换既有五条结构规则，也不表示秘密、漏洞或可变状态串扰已经发生。007 的 `workflow.test_collaboration_gap` 不读 AST，只读三点 Diff 留下的文件状态和新增/删除行数，并使用源码中的默认路径分类。证据不足时写入既有的 `summary.unanalyzed`。它的默认权重仍是原来的测试协同权重 1，不另加一分，默认可得权重仍是 10。JSON 登记册仍不是运行时配置。
+
+## 规则终态
+
+新鲜的 `evaluate_rules` 在原有 Finding 之外写入 `rule_outcomes`。schema 仍是 `stage05.v2`。每个已启用规则恰好一条，状态只为 `Hit`、`NotFound` 或 `Unanalyzed`。
+
+- `Hit`：现有检测器产出了该规则的 Finding。只有这个状态产生 Finding。命中不表示其余对象都已查完；`summary.unanalyzed` 仍保留解析或证据缺口。
+- `NotFound`：该规则的上下文适用，并且该上下文已经完整执行，没有 Finding。零条 Finding 本身不是 NotFound。
+- `Unanalyzed`：解析失败或降级、结构细节不足、缺少框架或路径上下文、没有可判断对象、没有文件变更通道，或前置阶段不是 `ok`。结果带 `reasons` 和 `objects`。它不加分，不是通过，也不是代码安全。
+
+`api.signature_changed` 与 `config.configuration_structure_changed` 只在对应路径被结构扫描完整覆盖、且没有命中时记 NotFound。`auth.permission_structure_changed` 与 `data.transaction_structure_changed` 还要看到对应路径，或看到它们会检查的装饰器、调用；Python 解析不完整时不能记 NotFound。没有这些上下文时原因是 `missing_framework_context`。`code.exception_structure_changed` 只在全部 Python 文件的结构变更都已扫描、且没有异常处理变更时记 NotFound。代码异味只在实际检查过适用节点、并且没有该规则的缺口和解析失败时记 NotFound；没有该类节点是 `context_not_established`。`workflow.test_collaboration_gap` 在文件变更通道完整且没有生产代码缺测试特征时记 NotFound。只有 AST、没有文件变更通道时原因是 `missing_file_change_channel`，不额外写入 `summary.unanalyzed`。
+
+已保存的 demo stage05 没有 `rule_outcomes`。演示 API 原样返回历史 Finding 和分数，`rule_outcome_availability` 为 `unavailable`，不把缺少 Finding 回填成 NotFound。分支分析是新鲜执行，终态为 `recorded`。评分仍只按 Finding 和原来的 `summary.test_collaboration` 计。默认权重不变，异味权重仍是 0，默认可得权重仍是 10。
 
 ## Python 分层
 
