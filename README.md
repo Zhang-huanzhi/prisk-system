@@ -27,7 +27,7 @@ Prisk-System/
 
 ## 初始化开发环境
 
-Python 需要 3.13 或更高版本，Node.js 用于看板开发。
+Python 需要 3.12 或更高版本，Node.js 用于看板开发。
 
 Python 只保留一个项目虚拟环境：`backend/.venv`。根目录不创建 `.venv`；使用 `uv --project backend` 时，uv 会自动使用或创建后端环境。
 

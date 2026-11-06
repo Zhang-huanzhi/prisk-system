@@ -2,7 +2,7 @@
 task_id: "009"
 target_version: "v1.1.0"
 title: "显式规则终态"
-status: "In Progress"
+status: "Accepted"
 branch: "feat/009-explicit-rule-outcomes"
 date: "2026-11-06"
 ---
@@ -13,7 +13,7 @@ date: "2026-11-06"
 
 在一次分析里，为现有 13 条运行时规则分别给出恰好一个终态：`Hit`、`NotFound` 或 `Unanalyzed`。只有 `Hit` 生成 Finding。`NotFound` 只在该规则已经完整执行、并且它的上下文适用时记录。零条 Finding 本身不是 `NotFound`。解析降级、证据不足、缺少框架或路径上下文、缺少前置阶段数据，都保持 `Unanalyzed`，并带上原因和对象。这些状态不加分，不是通过，也不是代码安全。
 
-本任务不改检测器语义、规则 ID、13 条运行时目录、默认权重或评分公式。已保存的 demo 与历史快照不重写。没有用户接受前，本记录保持 In Progress。交付分支是 `feat/009-explicit-rule-outcomes`，交付记录是 [PR #9](https://github.com/Zhang-huanzhi/prisk-system/pull/9)。写下这条记录时该 PR 尚未合并，本任务也不合并、不打 tag。
+本任务不改检测器语义、规则 ID、13 条运行时目录、默认权重或评分公式。已保存的 demo 与历史快照不重写。用户已接受本任务。交付分支仍是 `feat/009-explicit-rule-outcomes`，交付记录是 [PR #9](https://github.com/Zhang-huanzhi/prisk-system/pull/9)。本提交把状态改为 Accepted，并把项目声明从 `requires-python >=3.13` 调整为 `>=3.12`。写下这条记录时该 PR 尚未合并，本提交也不合并、不打 tag、不删除分支。
 
 ## 编号核对
 
@@ -30,8 +30,9 @@ date: "2026-11-06"
 
 - 不把 JSON 登记册改成运行时配置，不引入机器学习，不对 NetBox 作有效性声明。
 - 不新增规则，不改检测器命中条件，不把无法成立的规则一律写成 `NotFound`。
-- 不重写已保存 demo、历史 Finding 或分数，不把任务标成 Accepted，不合并，不打 tag，不删除分支。
-- 不修改 `docs/blueprint.md`。不实现与本目标无关的 T010。
+- 不重写已保存 demo、历史 Finding 或分数。本提交不合并，不打 tag，不删除分支。
+- 不修改 `docs/blueprint.md`，不改写 v1.0.0 冻结目录，不改写 007 里当时的 Python 声明句子。不实现与本目标无关的 T010。
+- 不把 `requires-python` 降到 3.12 以下。
 
 ## 技术方案
 
@@ -51,6 +52,7 @@ date: "2026-11-06"
 - 演示报告仍是 `stage07.report.v2`，分支报告仍是 `stage08.branch-report.v1`。二者增加 `rule_outcomes` 与 `rule_outcome_availability`。
 - Finding、`summary.unanalyzed`、`test_collaboration` 和分数计算保持原样。
 - 已保存 demo PR 12 仍是 3/10、分数 30，Finding 仍只有 `api.signature_changed`。
+- `backend/pyproject.toml` 与 `backend/uv.lock` 的 `requires-python` 现为 `>=3.12`。仓库没有 Python 分类器（classifiers）。根 README 的当前版本要求改为 3.12 或更高。
 
 ## 验收
 
@@ -63,7 +65,7 @@ date: "2026-11-06"
 
 ## 实际测试
 
-本工作区没有 GitHub Actions，也没有 `uv`。系统 Python 是 3.12.3，`pyproject.toml` 写的是 `>=3.13`。下面的命令是本机实际执行，不是 3.13 运行时，也不是 CI。
+本工作区没有 GitHub Actions，也没有 `uv`。项目声明现为 `requires-python >=3.12`。系统 Python 是 3.12.3，与该声明一致。下面的命令是本机实际执行，也不是 CI。声明改为 `>=3.12` 之后，后端套件已在这个 3.12.3 运行时重新执行。
 
 在 `backend/` 下：
 
@@ -90,4 +92,4 @@ date: "2026-11-06"
 - 分支分析仍执行默认启用的全部目录。评分请求里的开关只影响计分，不把已执行规则从终态里删掉。这与原先分支 Finding 列表不被该开关裁剪的行为一致。
 - 已保存快照没有终态。界面标为未记录，不回填。
 - 测试协同在文件通道完整且没有「生产代码变更且没有测试路径变更」时是 NotFound，包括一次只改文档的变更。这只说明该复核特征没有出现，不是测试已经足够，也不是代码安全。
-- 本环境没有按 `>=3.13` 运行，也没有 GitHub CI 结果。
+- 后端 97 项测试已在 Python 3.12.3 上通过，项目声明是 `requires-python >=3.12`。本环境没有 GitHub CI 结果。

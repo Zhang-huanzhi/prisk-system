@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "本地 Git 分支代码审计与结构化变更分析工具"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = []
 
 [build-system]
