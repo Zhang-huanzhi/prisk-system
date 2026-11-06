@@ -18,13 +18,13 @@ Django 应用里大多数查询走 ORM。直接执行 SQL 字符串时，参数�
 
 ## 检测定义
 
-拟定调用集合还没有冻结，迁移目录是否排除也还没有项目配置。因此保持 `draft`，不写检测器。
+005 的拟定合同如下。与后面的「011 补强」冲突时，以 011 补强为准。调用闭集和路径政策当时都未冻结，因此保持 `draft`，不写检测器。
 
 - 拟定对象：head AST 里与新增行相交的调用。候选形态包括 `cursor.execute`、`cursor.executemany`、`cursor.callproc`、`connection.cursor`、`schema_editor.execute`、`QuerySet.raw`、`Manager.raw`、`RawSQL(...)` 和 `QuerySet.extra`。这些大多是属性调用，不能照搬 `code.dynamic_execution` 的“只认直接名称”。
 - 拟定触发：调用的属性名或直接名称落在冻结后的名单里，且调用节点与新增行相交。每个调用一条 Finding，证据写出实际匹配到的名字，便于区分 `execute` 和 `extra`。
-- 拟定不触发：ORM 的 `filter`、`exclude`、`update`；字符串里出现 `SELECT` 但没有这些调用；未改动的历史 SQL。迁移文件是否整目录排除，必须由显式路径配置决定。配置缺失时，迁移候选标记未评估，不能默认当成业务 SQL，也不能默认忽略。
-- 拟定特征：`sql_callee`（调用的属性名或 `RawSQL` 直接名称，`contains` 冻结名单）；`call_changed`（与新增行相交，布尔值，`eq true`）；`path_policy`（迁移排除配置存在且已套用，枚举 `included` 或 `excluded`）。`path_policy` 未配置时不产生通过结论。
-- 输入与证据：head AST、三点 Diff，以及尚未提供的路径策略。影响类型设计为 `pr_intrinsic_risk`。Finding 不截取 SQL 字符串来判断它是否安全。
+- 拟定不触发：ORM 的 `filter`、`exclude`、`update`；字符串里出现 `SELECT` 但没有这些调用；未改动的历史 SQL。
+- 拟定特征：`sql_callee`（调用的属性名或 `RawSQL` 直接名称，`contains` 下面「011 补强」的闭集）；`call_changed`（与新增行相交，布尔值，`eq true`）。路径只作为证据，不作为通过或忽略条件。
+- 输入与证据：同一文件的 head AST 和三点 Diff。影响类型设计为 `pr_intrinsic_risk`。Finding 不截取 SQL 字符串来判断它是否安全。
 
 示例：
 
@@ -40,6 +40,25 @@ Device.objects.raw("SELECT * FROM dcim_device")
 Device.objects.filter(name=name)
 note = "SELECT * FROM dcim_device"
 ```
+
+## 011 补强
+
+005 要求迁移路径政策缺失时既不默认纳入、也不默认忽略。011 保持这个拒绝：不新增路径政策，不把 `migrations` 记成安全，也不把业务文件记成更危险。路径写进证据，供人工看调用落在迁移、命令还是视图附近。政策仍未设定，所以不能把“没有政策”写成 NotFound 或写成排除。
+
+设计上的 Hit 闭集只包括调用节点已经能提供的名字：
+
+- `direct_callee_name` 为 `RawSQL`；
+- `callee` 的最后一段是 `execute`、`executemany` 或 `raw`。
+
+这三项覆盖文档中的 [`cursor.execute`](https://docs.djangoproject.com/en/stable/topics/db/sql/#executing-custom-sql-directly)、`executemany` 的同一游标接口、[`Manager.raw()`](https://docs.djangoproject.com/en/stable/topics/db/sql/#performing-raw-queries) 和 [`RawSQL`](https://docs.djangoproject.com/en/stable/ref/models/expressions/#django.db.models.expressions.RawSQL)。接收者没有类型。`report.execute(...)` 也会符合最后一段 `execute`。这是已知的宽匹配，证据必须带上完整 `callee`，不能只写 `execute`。
+
+`extra`、`callproc` 和 `schema_editor.execute` 不在闭集里。[`QuerySet.extra`](https://docs.djangoproject.com/en/stable/ref/models/querysets/#extra) 与游标执行不是同一接口；[`callproc`](https://docs.djangoproject.com/en/stable/topics/db/sql/#calling-stored-procedures) 是存储过程。见到最后一段是 `extra`、`callproc`，或 `callee` 含有 `schema_editor` 时，记 Unanalyzed，原因是 `missing_framework_context`，不是 Hit，也不是 NotFound。
+
+`callee` 为空或调用切片被截断到不能确认最后一段时，记 `unsupported_stage04_details`。别名 `run = cursor.execute` 之后的 `run(...)` 仍然漏报，不为此做数据流。
+
+构造正例：`cursor.execute("SELECT id FROM dcim_device WHERE name = %s", [name])` 与新增行相交。构造反例：`Device.objects.filter(name=name)`。构造边界：`QuerySet.extra(...)` 记 Unanalyzed。迁移文件里的 `cursor.execute` 与视图文件里的同形调用使用同一闭集，路径留在证据里。
+
+这些边界写清之后，卡片仍是 `draft`。闭集还没有构造测试，接收者也还没有收窄，因此不写成 `registered`。
 
 ## 依据
 
@@ -57,9 +76,9 @@ note = "SELECT * FROM dcim_device"
 
 ## 未冻结、因此保持 draft 的部分
 
-- 属性调用名单是否包含 `extra`、`callproc` 和 `schema_editor.execute`。
-- `*/migrations/*.py` 的排除或单独标记没有成为项目配置。排除迁移不能顺便关闭破坏性迁移等其他规则。
-- 004 的直接名称风格覆盖不了 `cursor.execute`。新的属性链规则还没有写成可测试的 stage04 字段。
+- `extra`、`callproc` 和 `schema_editor.execute` 明确不在 Hit 闭集，见到时 Unanalyzed。以后若要纳入，需要另一次评审。
+- 迁移目录仍然没有纳入或排除政策。011 不发明该政策，也不让它阻断上面的名字闭集。排除迁移不能顺便关闭破坏性迁移等其他规则。
+- `callee` 已经在 call 节点上。缺的是按闭集读取它的检测器和构造测试，不是一张跨文件调用图。
 
 ## 有效性计划
 

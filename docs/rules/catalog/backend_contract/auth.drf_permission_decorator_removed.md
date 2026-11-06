@@ -18,7 +18,7 @@
 
 ## 检测定义
 
-拟定合同如下。装饰器名单和“删除后是否仍有等价类属性”都还没冻结，所以生命周期保持 `draft`，本迭代没有检测器。
+005 的拟定合同如下。与后面的「011 补强」冲突时，以 011 补强为准。生命周期保持 `draft`，没有检测器。
 
 - 拟定对象：函数、方法或类上的装饰器表达式。候选名单需要在实现前固定，当前只能列出需要裁决的来源：DRF 的 `permission_classes`、`authentication_classes` 装饰器，以及 Django 的 `login_required`、`permission_required`、`user_passes_test`。NetBox 自己的封装是否并入，尚未决定。
 - 拟定触发：同一函数或类在 base 上有名单内装饰器，head 上该装饰器表达式消失，且消失处与删除行相交。一条装饰器一条 Finding。只改装饰器参数不算删除，留给降级规则。
@@ -36,6 +36,25 @@ def endpoint(request):
 
 若 head 删除这一行，而函数仍是视图，则符合拟定触发。若删除的是 `@action(detail=True)`，不符合。
 
+## 011 补强
+
+本节把装饰器名单写成供评审的闭集。它还不是运行配置，生命周期仍是 `draft`。样例都是构造样例。下面的 Unanalyzed 是设计预期，不是 009 对这条规则的运行结果。
+
+同一函数或同一类上，base 有、head 没有，且删除行与该装饰器相交时，才进入设计触发。名字的最后一段必须属于：
+
+- DRF：`permission_classes`、`authentication_classes`。函数视图上的写法见 [API 参考里的装饰器示例](https://www.django-rest-framework.org/api-guide/permissions/#setting-the-permission-policy)。
+- Django：[`login_required`](https://docs.djangoproject.com/en/stable/topics/auth/default/#the-login-required-decorator)、[`permission_required`](https://docs.djangoproject.com/en/stable/topics/auth/default/#the-permission-required-decorator)、[`user_passes_test`](https://docs.djangoproject.com/en/stable/topics/auth/default/#django.contrib.auth.decorators.user_passes_test)。
+
+NetBox 或项目自己的包装装饰器不在闭集里。见到未列入的名字时不记 Hit。`@action` 仍不是权限装饰器。
+
+不读取其他文件的 `DEFAULT_PERMISSION_CLASSES`。文档说明类属性或装饰器会忽略设置里的默认列表；装饰器消失以后，默认列表可能重新生效。本规则只记录闭集装饰器消失，不判断视图因此变成匿名可访问。
+
+同一文件、同一类或同一函数的 head 里若出现 `permission_classes = ...` 赋值，不把装饰器消失记成 Hit，也不记成 NotFound。这可能是挪到类属性。记 Unanalyzed，原因是 `missing_framework_context`。不比较两边的权限类是否等价。空列表和 `AllowAny` 仍只属于 [`auth.drf_permission_policy_downgrade`](auth.drf_permission_policy_downgrade.md)。
+
+装饰器表达式截断、工厂调用或别名，记 `unsupported_stage04_details`。stage04 已有装饰器节点和 `decorator_removed` 这一变化类型；缺的是这份闭集被实现任务接受，以及“同一文件出现类属性时改为 Unanalyzed”这条抑制。在那之前不接入检测器。
+
+构造正例：`@permission_classes([IsAuthenticated])` 整行删除，同一函数没有新的 `permission_classes` 赋值。构造反例：删除的是 `@action(detail=True)`。构造边界：装饰器删除的同时，类上新增 `permission_classes = [IsAuthenticated]`，记 Unanalyzed。
+
 ## 依据
 
 - [DRF `@api_view` 与权限装饰器](https://www.django-rest-framework.org/api-guide/views/#api_view) 说明函数视图可以用装饰器设置 `permission_classes` 和 `authentication_classes`。
@@ -51,10 +70,10 @@ def endpoint(request):
 
 ## 未冻结、因此保持 draft 的部分
 
-- DRF 装饰器、Django 认证装饰器和 NetBox 封装的最终名单。
-- 删除装饰器但新增等价类属性时如何抑制 Finding。
-- 与 `auth.drf_permission_policy_downgrade` 的切分：空列表和 `AllowAny` 不在本规则里实现。
-- stage04 目前没有稳定的“装饰器前后配对”字段专用于这张名单。
+- 011 给出了五段直接名称，供以后的实现评审使用。NetBox 封装仍不在里面。名单还没有写进运行时代码。
+- 同一文件出现 `permission_classes` 赋值时记 Unanalyzed，不声称两边等价。
+- 空列表和 `AllowAny` 仍不在本规则里。
+- 不因为 stage04 已经能表示 `decorator_removed`，就把本卡片改成 `registered`。抑制条件和闭集都还没有构造测试。
 
 ## 有效性计划
 
