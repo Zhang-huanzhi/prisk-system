@@ -15,10 +15,10 @@
 | `docs/architecture.md` | 当前实现 |
 | `docs/operations.md` | 当前本地运维 |
 | `docs/standards/` | 文档、任务、分支和开发流程规范 |
+| `docs/standards/development-roadmap.md` | 开发推进规划。This is a planning document and is not evidence of completion or implemented functionality. |
 | `docs/tasks/` | 未完成，或已接受但尚未随版本归档的任务 |
 | `docs/versions/v1.0.0/` | 已冻结的 v1.0.0 阶段档案 |
 | `docs/versions/README.md` | 各版本的范围、冻结状态和任务索引 |
-| `docs/iterations/README.md` | 旧迭代路径到当前路径的对照 |
 | `docs/rules/` | 研究规则卡片和索引 |
 | `docs/schemas/` | 研究元数据 schema |
 | `docs/assets/` | 研究资产；当前状态写在该目录 README |
@@ -34,4 +34,4 @@
 
 ## 冻结文本
 
-`docs/versions/v1.0.0/` 里的历史结论保持原句。其中指向 `docs/iterations/` 的句子是冻结当时的路径。当前入口以本规范和 [迭代目录对照](../iterations/README.md) 为准。008 只在 v1.0.0 的 README 末尾增加了任务索引，没有改写前面的结论。
+`docs/versions/v1.0.0/` 里的历史结论保持原句。正文里的 `docs/iterations/` 是冻结当时的路径。当前任务在 [活动任务](../tasks/README.md)。
