@@ -2,7 +2,7 @@
 task_id: "011"
 target_version: "v1.1.0"
 title: "规则卡片与结构可行性"
-status: "In Progress"
+status: "Accepted"
 branch: "docs/011-rule-card-feasibility"
 date: "2026-11-06"
 ---
@@ -15,7 +15,7 @@ date: "2026-11-06"
 
 本任务不实现检测器，不改权重，不把任何卡片写成 `registered` 或 `validated`，也不产生 Hit / NotFound / Unanalyzed 的运行结果。009 的终态机器仍只覆盖当前 13 条运行时规则。
 
-状态是 In Progress。用户尚未接受。分支、本文件和前言 `branch` 都是 `docs/011-rule-card-feasibility`。
+用户已接受本任务。状态为 Accepted。分支、本文件和前言 `branch` 仍是 `docs/011-rule-card-feasibility`。交付记录是 [PR #11](https://github.com/Zhang-huanzhi/prisk-system/pull/11)。本提交不合并、不打 tag、不删除分支，也不启动 012。接受不表示实证结果，也不把卡片生命周期改成 `validated`。
 
 ## 依赖
 
@@ -37,7 +37,7 @@ date: "2026-11-06"
 - 不把 JSON 登记册改成运行时配置，也不把研究候选 20 条说成运行时 13 条。
 - 不下载真实 PR 补丁，不做命中、标注难度、Precision 或 Recall 试点。
 - 不启动 012，不合并，不打 tag，不删除分支。
-- 不把本任务写成 Accepted。
+- 本提交只把状态改为 Accepted。不改卡片、登记册或运行时代码。
 - 不改 001–010 的状态、结论和前言 `branch`。
 - 不改 `docs/blueprint.md` 和 `docs/standards/development-roadmap.md`。
 - 不清理 002 里有意留下的旧卡片路径，不改冻结版本文档。
@@ -65,3 +65,5 @@ date: "2026-11-06"
 - `docs/rules/catalog/` 下规则卡片 20 张，对应 20 条候选。筛选页清单为局部 Diff/AST 8、有界框架上下文 10、延后 2，另有 3 条排除。
 - 本次新增和改写的活动 Markdown 里，相对链接都能解析。这些文件里新引用的 Django 与 DRF 文档锚点已对照页面 `id`。`git diff --check` 通过。
 - 002 的历史坏链不在本次检查的通过范围里。三条排除项登记册里的占位依据句子仍保留。
+
+本状态提交只把任务改为 Accepted，并同步活动索引。没有改卡片、登记册或运行时代码。没有运行后端 unittest，也没有运行前端 lint、typecheck 或 build。`git diff --check` 在提交前通过。
