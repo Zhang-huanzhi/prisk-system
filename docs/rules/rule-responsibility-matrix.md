@@ -18,4 +18,4 @@
 
 Precision、Recall、阈值和样本量应在后续验证设计中说明依据，不在登记阶段预填结论。
 
-迭代 004 已为 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution` 接入检测器，并用构造样例检查工程实现正确性。迭代 005 用同样方式接入 `code.unmanaged_open` 和 `code.deep_control_flow`，并为 `code.hardcoded_secret`、`code.global_mutable_state` 和三条 Django/DRF 契约写出卡片。这不产生 Precision、Recall 或 NetBox 实证结论。三条契约卡片仍是 `draft`，没有检测器。
+迭代 004 已为 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution` 接入检测器，并用构造样例检查工程实现正确性。迭代 005 用同样方式接入 `code.unmanaged_open` 和 `code.deep_control_flow`，并为 `code.hardcoded_secret`、`code.global_mutable_state` 和三条 Django/DRF 契约写出卡片。迭代 006 把这两条剩余的语言级代码异味接入同一 AST/Diff Finding 管道，并用构造样例检查它们是否按卡片工作。这不产生 Precision、Recall 或 NetBox 实证结论。三条契约卡片仍是 `draft`，没有检测器。`workflow.test_collaboration_gap` 和 `workflow.large_change_scope` 也仍是 `draft`。

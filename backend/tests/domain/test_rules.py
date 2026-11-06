@@ -30,7 +30,7 @@ def stage04(files: list[dict], **summary: bool) -> dict:
 
 class RuleTests(unittest.TestCase):
     def test_catalog_has_structural_and_code_smell_rules(self) -> None:
-        self.assertEqual(len(RULE_CATALOG), 10)
+        self.assertEqual(len(RULE_CATALOG), 12)
         self.assertEqual(
             {item["rule_id"] for item in RULE_CATALOG},
             {
@@ -44,6 +44,8 @@ class RuleTests(unittest.TestCase):
                 "code.dynamic_execution",
                 "code.unmanaged_open",
                 "code.deep_control_flow",
+                "code.hardcoded_secret",
+                "code.global_mutable_state",
             },
         )
         self.assertTrue(all("scene" not in item for item in RULE_CATALOG))

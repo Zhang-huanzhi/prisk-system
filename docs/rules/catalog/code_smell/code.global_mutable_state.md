@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 规则 ID | `code.global_mutable_state` |
-| 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `registered` |
+| 版本 / 阵营 / 生命周期 | `v1` / `code_smell` / `implemented` |
 | 负责人 | `Prisk-System` |
 | 风险性质 / 依赖层级 | `pr_intrinsic` / `language` |
 | 适用范围 | Python 源文件及其 PR 差异 |
@@ -14,7 +14,7 @@
 
 模块或类体里的列表、字典和集合会被导入该模块的调用方共享。函数里的 `global` 则明确表示要重新绑定模块级名字。两种写法都可能使一次请求或一次测试改到另一处的状态。共享容器也可能是有意的缓存，所以命中只要求复核，不表示已经发生串扰。
 
-本规则不覆盖函数默认参数里的可变对象。那是另一类绑定，留待单独定义。本迭代只登记卡片，不接入检测器。
+本规则不覆盖函数默认参数里的可变对象。那是另一类绑定，留待单独定义。迭代 006 按本卡片接入检测器。命中只要求复核，不表示已经发生串扰。
 
 ## 检测定义
 
@@ -24,6 +24,7 @@
 - 不触发：`nonlocal`；函数内的 `items = []`；模块级的整数、字符串、元组、`None` 和名字引用；`cache.append(...)` 这类就地修改而没有新的绑定语句；`collections.defaultdict`、`deque` 和其他构造调用；只删除绑定。头 AST 不可用时标记未分析，不视作通过。
 - 特征：`mutable_state_form`（枚举 `global_statement` 或 `mutable_binding`，`contains` 这两个值之一）；`binding_changed`（节点行范围与新增行相交，布尔值，`eq true`）。两个形式满足一个即可，不要求同一个节点同时具备。
 - 输入与证据：head Python AST 和三点 Diff 新增行。影响类型设计为 `pr_intrinsic_risk`。证据应带形式、名字列表或绑定目标，以及代码切片。
+- 实现：新解析写入 `mutable_state`。`global` 只在最内层作用域是函数或异步函数时报告；模块顶层和类体里的 `global` 不报告。可变绑定的作用域是模块体或类体，包括模块级 `if` 中的赋值，以及函数里嵌套类的类体；函数体内的同形赋值不报告。这些节点不进入既有五条规则的 `structural_changes`。006 之前没有 `mutable_state` 时，field 用赋值切片判断值形态，完整函数切片用来恢复 `global` 和嵌套类里的容器。切片缺失、截断或无法判断时进入 `summary.unanalyzed`，原因是 `unsupported_stage04_details`。这不是通过。没有节点、也没有可判断切片，不能当成已经没有可变状态。
 
 触发：
 
@@ -65,4 +66,4 @@ def closure():
 
 ## 有效性计划
 
-`literature_inherited`：语言文档说明了 `global` 和可变对象的语义。本迭代没有检测器，也没有构造测试结果。实现迭代应覆盖两种形式、函数内列表、元组、`nonlocal`、`defaultdict`、新增行和只删除。NetBox 上是否常见、是否造成串扰，留到实证迭代，现在不写结论。
+`literature_inherited`：迭代 006 已按本卡片检查两种形式、模块级 `if`、嵌套类、函数内列表、元组、`nonlocal`、`defaultdict`、带参数的 `list`、`builtins.list`、函数默认参数里的列表、只删除、新增行和旧切片。这些构造测试只证明检测器按定义工作。NetBox 上是否常见、是否造成串扰，留到实证迭代，现在不写结论。

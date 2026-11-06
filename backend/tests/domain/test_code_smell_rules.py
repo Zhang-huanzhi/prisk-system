@@ -1024,3 +1024,369 @@ class SecondBatchCodeSmellTests(unittest.TestCase):
         )
         self.assertEqual(report["score_basis"]["configuration"]["rule_weights"]["code.unmanaged_open"], 0)
         self.assertEqual(report["score_basis"]["configuration"]["rule_weights"]["code.deep_control_flow"], 0)
+
+
+SECRET_SAMPLE = r'''
+password = "correct-horse"
+note = "token=ak_live_0123456789"
+db_password = "this-name-is-not-exact"
+token = "short"
+passwd = "changeme"
+api_key = "PASSWORD"
+secret = "your-secret"
+access_key = "1234567"
+private_key = "12345678"
+client_secret = "sample"
+auth_token = "sample-value"
+Password = "correct-horse"
+apikey = "ak_live_0123456789"
+
+def login(token="tok_0123456789", other="short"):
+    client.connect(client_secret="cs_0123456789")
+    self.api_key = "ak_live_0123456789"
+
+class Box:
+    secret_key: str = "sk_live_0123456789"
+
+def keyword_only(*, passwd="pw_0123456789"):
+    return passwd
+
+def no_default(token):
+    return token
+
+def annotation_only():
+    password: str
+    return password
+
+def comparisons():
+    return password == "correct-horse"
+
+def joined():
+    token = "0123" "456789"
+
+def bytes_value():
+    token = b"0123456789abcd"
+
+def fstring_value():
+    token = f"0123456789abcd"
+
+def getenv_value():
+    password = os.getenv("PASSWORD")
+
+def name_value():
+    password = SECRET_VALUE
+
+def unpack():
+    a, password = "x", "long-secret-value-xx"
+
+def both_names():
+    password = token = "correct-horse"
+
+def placeholder_case():
+    password = "ChAnGeMe"
+
+def spaces():
+    password = ""
+    token = "        "
+
+def subscript():
+    data["password"] = "correct-horse"
+
+def aug():
+    password += "correct-horse"
+
+def walrus():
+    if (password := "correct-horse"):
+        return password
+
+def lambda_default():
+    return lambda token="tok_0123456789": token
+
+class ClassKeyword(password="correct-horse-extra"):
+    pass
+
+def attr_chain():
+    obj.auth.secret_key = "sk_live_0123456789"
+
+"""
+password = "correct-horse-doc"
+"""
+# password = "correct-horse-comment"
+'''
+
+
+MUTABLE_SAMPLE = '''
+global MODULE_ONLY
+CACHE = {}
+OTHER = []
+REGISTRY = {1}
+BUILT = list()
+BUILT_DICT = dict()
+BUILT_SET = set()
+LIMIT = 3
+PAIR = (1, 2)
+NAME = OTHER
+flags = None
+text = "cache"
+left = right = []
+a, b = [], {}
+if flag:
+    LAZY = {}
+
+class Registry:
+    items = []
+    global CACHE
+
+def reset(value):
+    global CACHE
+    CACHE = value
+
+def reset_many():
+    global CACHE, OTHER
+
+async def reset_async():
+    global FLAGS
+
+def local_only():
+    items = []
+    return items
+
+def closure():
+    nonlocal CACHE
+
+def inplace():
+    CACHE.append(1)
+
+CONFIG: dict = {}
+
+def defaults(items=[]):
+    return items
+
+def calls():
+    cache = defaultdict(list)
+    queue = deque()
+    values = list(items)
+    builtin = builtins.list()
+    comp = [item for item in items]
+    copied = list()
+
+class Nested:
+    data = set()
+
+def outer():
+    class Inner:
+        items = []
+    def inner():
+        global NESTED
+
+def drop():
+    del CACHE
+'''
+
+
+class RemainingCodeSmellTests(unittest.TestCase):
+    def test_secret_bindings_follow_the_card_name_length_and_placeholder_tables(self) -> None:
+        result = evaluate_rules(stage04_from_source(SECRET_SAMPLE))
+        secrets = findings_for("code.hardcoded_secret", result)
+        observed = sorted(
+            (item["evidence"][0]["binding_form"], item["evidence"][0]["binding_name"], item["evidence"][0]["qualified_name"])
+            for item in secrets
+        )
+        self.assertEqual(
+            observed,
+            [
+                ("attribute_assignment", "api_key", "login.api_key"),
+                ("attribute_assignment", "secret_key", "attr_chain.secret_key"),
+                ("keyword_argument", "client_secret", "login.client_secret"),
+                ("name_assignment", "Password", "Password"),
+                ("name_assignment", "apikey", "apikey"),
+                ("name_assignment", "auth_token", "auth_token"),
+                ("name_assignment", "password", "both_names.password"),
+                ("name_assignment", "password", "password"),
+                ("name_assignment", "private_key", "private_key"),
+                ("name_assignment", "secret_key", "Box.secret_key"),
+                ("name_assignment", "token", "both_names.token"),
+                ("name_assignment", "token", "spaces.token"),
+                ("parameter_default", "passwd", "keyword_only.passwd"),
+                ("parameter_default", "token", "login.token"),
+            ],
+        )
+        password = next(item for item in secrets if item["evidence"][0]["qualified_name"] == "password")
+        self.assertEqual(password["confidence"], "structural")
+        self.assertEqual(password["impact_type"], "pr_intrinsic_risk")
+        self.assertEqual(password["evidence"][0]["value_length"], 13)
+        self.assertEqual(password["evidence"][0]["value_preview"], "co…se")
+        self.assertNotIn("literal_text", password["evidence"][0])
+        self.assertNotIn("correct-horse", password["message"])
+        self.assertIn("不表示秘密已经确认", password["message"])
+        self.assertNotIn("漏洞已经", password["message"])
+        self.assertIn("correct-horse", password["evidence"][0]["source_segment"])
+        spaces = next(item for item in secrets if item["evidence"][0]["qualified_name"] == "spaces.token")
+        self.assertEqual(spaces["evidence"][0]["value_length"], 8)
+        self.assertEqual(spaces["evidence"][0]["value_preview"], "  …  ")
+        self.assertEqual(result["summary"]["unanalyzed"], [])
+
+    def test_mutable_state_reports_both_forms_and_skips_local_and_other_constructors(self) -> None:
+        result = evaluate_rules(stage04_from_source(MUTABLE_SAMPLE))
+        mutable = findings_for("code.global_mutable_state", result)
+        observed = sorted(
+            (
+                item["evidence"][0]["mutable_state_form"],
+                tuple(item["evidence"][0]["binding_targets"]),
+                item["evidence"][0].get("value_kind"),
+                item["evidence"][0]["qualified_name"],
+            )
+            for item in mutable
+        )
+        self.assertEqual(
+            observed,
+            [
+                ("global_statement", ("CACHE",), None, "reset"),
+                ("global_statement", ("CACHE", "OTHER"), None, "reset_many"),
+                ("global_statement", ("FLAGS",), None, "reset_async"),
+                ("global_statement", ("NESTED",), None, "outer.inner"),
+                ("mutable_binding", ("BUILT",), "list_call", "<module>"),
+                ("mutable_binding", ("BUILT_DICT",), "dict_call", "<module>"),
+                ("mutable_binding", ("BUILT_SET",), "set_call", "<module>"),
+                ("mutable_binding", ("CACHE",), "dict_display", "<module>"),
+                ("mutable_binding", ("CONFIG",), "dict_display", "<module>"),
+                ("mutable_binding", ("LAZY",), "dict_display", "<module>"),
+                ("mutable_binding", ("OTHER",), "list_display", "<module>"),
+                ("mutable_binding", ("REGISTRY",), "set_display", "<module>"),
+                ("mutable_binding", ("data",), "set_call", "Nested"),
+                ("mutable_binding", ("items",), "list_display", "Registry"),
+                ("mutable_binding", ("items",), "list_display", "outer.Inner"),
+                ("mutable_binding", ("left", "right"), "list_display", "<module>"),
+            ],
+        )
+        self.assertTrue(all(item["confidence"] == "structural" for item in mutable))
+        self.assertIn("不判断已经发生串扰", mutable[0]["message"])
+        self.assertEqual(result["summary"]["unanalyzed"], [])
+        parsed = parse_python_source(MUTABLE_SAMPLE, "netbox/sample.py", "head")
+        self.assertNotIn("MODULE_ONLY", {node.get("name") for node in parsed["nodes"] if node["kind"] == "mutable_state"})
+        reset = next(node for node in parsed["nodes"] if node["kind"] == "function" and node["name"] == "reset")
+        self.assertTrue(reset["details"]["contains_global_statement"])
+        local_only = next(node for node in parsed["nodes"] if node["kind"] == "function" and node["name"] == "local_only")
+        self.assertFalse(local_only["details"]["contains_global_statement"])
+
+    def test_new_nodes_do_not_enter_structural_changes(self) -> None:
+        root, repo = init_repo()
+        try:
+            base = commit(repo, "netbox/sample.py", "def edited():\n    return 1\n", "base")
+            head = commit(
+                repo,
+                "netbox/sample.py",
+                "CACHE = {}\n\ndef edited(token=\"tok_0123456789\"):\n    global CACHE\n    return token\n",
+                "head",
+            )
+            structure, result = evaluate_repo(repo, base, head)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+        kinds = {item["kind"] for item in structure["files"][0]["structural_changes"]}
+        self.assertTrue({"literal_binding", "mutable_state", "control_flow"}.isdisjoint(kinds))
+        self.assertEqual(len(findings_for("code.hardcoded_secret", result)), 1)
+        self.assertEqual(len(findings_for("code.global_mutable_state", result)), 2)
+        self.assertEqual(result["summary"]["unanalyzed"], [])
+
+    def test_added_lines_select_the_binding_and_delete_does_not_trigger(self) -> None:
+        root, repo = init_repo()
+        base_source = "password = \"correct-horse\"\nCACHE = {}\n\ndef edited():\n    return 1\n"
+        try:
+            base = commit(repo, "netbox/sample.py", base_source, "base")
+            other = commit(repo, "netbox/sample.py", base_source.replace("return 1", "return 2"), "other")
+            _structure, other_result = evaluate_repo(repo, base, other)
+            secret_head = commit(
+                repo,
+                "netbox/sample.py",
+                base_source.replace("correct-horse", "correct-horse-2"),
+                "secret",
+            )
+            _structure, secret_result = evaluate_repo(repo, base, secret_head)
+            removed = commit(repo, "netbox/sample.py", "def edited():\n    return 1\n", "removed")
+            _structure, removed_result = evaluate_repo(repo, secret_head, removed)
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+        self.assertEqual(findings_for("code.hardcoded_secret", other_result), [])
+        self.assertEqual(findings_for("code.global_mutable_state", other_result), [])
+        secrets = findings_for("code.hardcoded_secret", secret_result)
+        self.assertEqual(len(secrets), 1)
+        self.assertEqual(secrets[0]["evidence"][0]["binding_name"], "password")
+        self.assertEqual(findings_for("code.global_mutable_state", secret_result), [])
+        self.assertEqual(findings_for("code.hardcoded_secret", removed_result), [])
+        self.assertEqual(findings_for("code.global_mutable_state", removed_result), [])
+
+    def test_legacy_field_and_call_slices_recover_or_stay_unanalyzed(self) -> None:
+        record = _record_with([
+            _legacy_node("field", "cache", "CACHE = {}\n", {"value_fingerprint": "abc"}),
+            _legacy_node("field", "limit", "LIMIT = 3\n", {"value_fingerprint": "def"}),
+            _legacy_node("field", "pair", "left = right = []\n", {"value_fingerprint": "ghi"}, start_line=3, end_line=3),
+            _legacy_node("field", "pair-right", "left = right = []\n", {"value_fingerprint": "ghi"}, start_line=3, end_line=3),
+            _legacy_node("field", "password", "password = \"correct-horse\"\n", {"value_fingerprint": "jkl"}, start_line=4, end_line=4),
+            _legacy_node("field", "unknown", None, {"value_fingerprint": "mno"}, start_line=5, end_line=5),
+            _legacy_node("call", "keyword", "connect(client_secret=\"cs_0123456789\")", {"callee": "connect", "keyword_names": ["client_secret"]}),
+            _legacy_node("call", "plain", "open(path)", {"callee": "open", "keyword_names": []}),
+        ])
+        result = evaluate_rules(record)
+        mutable = findings_for("code.global_mutable_state", result)
+        self.assertEqual(
+            sorted(tuple(item["evidence"][0]["binding_targets"]) for item in mutable),
+            [("CACHE",), ("left", "right")],
+        )
+        secrets = findings_for("code.hardcoded_secret", result)
+        self.assertEqual(
+            sorted((item["evidence"][0]["binding_form"], item["evidence"][0]["binding_name"]) for item in secrets),
+            [("keyword_argument", "client_secret"), ("name_assignment", "password")],
+        )
+        self.assertEqual(result["summary"]["unanalyzed"], [{
+            "path": "netbox/legacy.py",
+            "reason": "unsupported_stage04_details",
+            "node_ids": ["plain", "unknown"],
+        }])
+
+    def test_legacy_function_slice_recovers_body_bindings_and_truncated_slice_is_unknown(self) -> None:
+        segment = "def reset():\n    password = \"correct-horse\"\n    global CACHE\n"
+        record = _record_with([
+            _legacy_node("function", "reset", segment, {"signature": {"parameters": [], "returns": None}}, start_line=1, end_line=3, changed_lines=[2, 3]),
+            _legacy_node("function", "truncated", "def long():\n    pass\n", {}, source_segment_truncated=True, start_line=10, end_line=12),
+        ])
+        result = evaluate_rules(record)
+        self.assertEqual(
+            [item["evidence"][0]["binding_name"] for item in findings_for("code.hardcoded_secret", result)],
+            ["password"],
+        )
+        globals_ = findings_for("code.global_mutable_state", result)
+        self.assertEqual([item["evidence"][0]["binding_targets"] for item in globals_], [["CACHE"]])
+        self.assertEqual(globals_[0]["evidence"][0]["start_line"], 3)
+        self.assertEqual(result["summary"]["unanalyzed"], [{
+            "path": "netbox/legacy.py",
+            "reason": "unsupported_stage04_details",
+            "node_ids": ["truncated"],
+        }])
+        disabled = evaluate_rules(record, {"enabled_rules": ["code.swallowed_exception"]})
+        self.assertEqual(disabled["findings"], [])
+        self.assertEqual(disabled["summary"]["unanalyzed"], [])
+
+    def test_branch_score_denominator_stays_ten_when_remaining_smells_match(self) -> None:
+        root, repo = init_repo()
+        try:
+            commit(repo, "netbox/sample.py", "def edited():\n    return 1\n", "base")
+            git(repo, "checkout", "-b", "feature")
+            commit(
+                repo,
+                "netbox/sample.py",
+                "CACHE = {}\n\ndef edited(password=\"correct-horse\"):\n    global CACHE\n    return password\n",
+                "head",
+            )
+            report = analyze_branches(repo, "main", "feature")
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+        ids = {item["rule_id"] for item in report["findings"]}
+        self.assertIn("code.hardcoded_secret", ids)
+        self.assertIn("code.global_mutable_state", ids)
+        self.assertEqual(report["score_basis"]["maximum_points"], 10)
+        self.assertEqual(report["score_basis"]["configuration"]["rule_weights"]["code.hardcoded_secret"], 0)
+        self.assertEqual(report["score_basis"]["configuration"]["rule_weights"]["code.global_mutable_state"], 0)
+        self.assertEqual(
+            report["score_basis"]["earned_points"],
+            report["score_basis"]["configuration"]["test_collaboration_weight"],
+        )

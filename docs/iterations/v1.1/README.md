@@ -7,7 +7,7 @@
 
 ## 当前迭代
 
-v1.0.0 发布后，新增功能、问题修复和工程改造从这里建立编号迭代文档。v1.0.0 冻结目录不回写新行为。001、002、003、004、005 为 Accepted。004 把三条语言级代码异味规则接入 AST 与 Finding 管道；005 在同一管道增加 `code.unmanaged_open` 和 `code.deep_control_flow`，并把演示默认输入改为已跟踪的 `backend/data/demo/`。JSON 登记册仍不是运行时配置。v1.1 入口本身仍是 In Progress。
+v1.0.0 发布后，新增功能、问题修复和工程改造从这里建立编号迭代文档。v1.0.0 冻结目录不回写新行为。001、002、003、004、005 为 Accepted。004 把三条语言级代码异味规则接入 AST 与 Finding 管道；005 在同一管道增加 `code.unmanaged_open` 和 `code.deep_control_flow`，并把演示默认输入改为已跟踪的 `backend/data/demo/`。006 继续接入 `code.hardcoded_secret` 和 `code.global_mutable_state`，状态仍是 In Progress，尚未 Accepted。JSON 登记册仍不是运行时配置。v1.1 入口本身仍是 In Progress。
 
 ## 迭代文档
 
@@ -16,7 +16,8 @@ v1.0.0 发布后，新增功能、问题修复和工程改造从这里建立编�
 - [v1.1.0-003 规则 ID 命名迁移与四拆五解耦](003-rule-id-naming-and-five-rules.md)
 - [v1.1.0-004 AST 代码异味检测器](004-ast-code-smell-detectors.md)
 - [v1.1.0-005 第二批代码异味与 Django 契约卡片](005-second-batch-code-smells.md)
+- [v1.1.0-006 剩余语言级代码异味](006-remaining-code-smells.md)
 
 ## 产物
 
-规则卡片和责任矩阵放在 [`docs/rules/`](../../rules/)，Schema 放在 [`docs/schemas/`](../../schemas/)，规则草案登记册和初始化脚本分别放在 [`backend/data/rules/`](../../../backend/data/rules/) 和 [`backend/scripts/`](../../../backend/scripts/)。登记册尚未接入运行时。005 之后，阶段 05 规则目录中的语言级异味规则是 004 的三条加上 `code.unmanaged_open` 和 `code.deep_control_flow`，都不从登记册加载。
+规则卡片和责任矩阵放在 [`docs/rules/`](../../rules/)，Schema 放在 [`docs/schemas/`](../../schemas/)，规则草案登记册和初始化脚本分别放在 [`backend/data/rules/`](../../../backend/data/rules/) 和 [`backend/scripts/`](../../../backend/scripts/)。登记册尚未接入运行时。006 之后，阶段 05 规则目录中的语言级异味规则是 004 的三条、005 的两条，再加上 `code.hardcoded_secret` 和 `code.global_mutable_state`，都不从登记册加载。

@@ -1,9 +1,10 @@
 """语言级代码异味规则。
 
 检测对象来自 head AST 节点：节点必须已经与三点 Diff 的新增行相交。
-命中只生成复核 Finding，不表示缺陷、漏洞、资源泄漏或执行已发生。
-004 的三条规则在旧节点上做有界回退。005 的 open 与控制流深度同样如此：
-无法按卡片语义判断的相关节点写入 summary.unanalyzed，而不是记为通过。
+命中只生成复核 Finding，不表示缺陷、漏洞、资源泄漏、秘密已确认或执行已发生。
+004 的三条规则在旧节点上做有界回退。005 的 open 与控制流深度同样如此。
+006 的字面量绑定和可变状态也一样：无法按卡片语义判断的相关节点写入
+summary.unanalyzed，而不是记为通过。
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import re
 import textwrap
 from typing import Any
 
-from .structure import _exception_type_names
+from .structure import _container_kind, _exception_type_names, _expr_text, _literal_facts
 
 
 BROAD_HANDLER_NAMES = ("bare", "Exception", "BaseException")
@@ -21,6 +22,62 @@ DYNAMIC_CALLEES = ("eval", "exec")
 OPEN_CALLEE = "open"
 CONTROL_FLOW_DEPTH_THRESHOLD = 4
 CONTROL_FLOW_KINDS = frozenset({"if", "for", "async_for", "while", "with", "async_with", "try", "try_star"})
+# Card constants. These are not runtime configuration.
+CREDENTIAL_BINDING_NAMES = frozenset({
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "access_key",
+    "private_key",
+    "client_secret",
+    "auth_token",
+    "secret_key",
+})
+SECRET_PLACEHOLDERS = frozenset({
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "changeme",
+    "placeholder",
+    "example",
+    "xxx",
+    "redacted",
+    "todo",
+    "test",
+    "dummy",
+    "none",
+    "null",
+    "default",
+    "fixme",
+    "sample",
+    "your-secret",
+    "your_secret",
+})
+SECRET_LITERAL_MIN_LENGTH = 8
+BINDING_FORMS = frozenset({
+    "name_assignment",
+    "attribute_assignment",
+    "keyword_argument",
+    "parameter_default",
+})
+MUTABLE_VALUE_KINDS = frozenset({
+    "list_display",
+    "dict_display",
+    "set_display",
+    "list_call",
+    "dict_call",
+    "set_call",
+})
+_BINDING_FORM_LABELS = {
+    "name_assignment": "直接名称赋值",
+    "attribute_assignment": "属性赋值",
+    "keyword_argument": "关键字参数",
+    "parameter_default": "参数默认值",
+}
 
 CODE_SMELL_RULES: list[dict[str, str]] = [
     {
@@ -62,6 +119,22 @@ CODE_SMELL_RULES: list[dict[str, str]] = [
         "evidence_type": "code_slice",
         "suggested_action": "复核该嵌套是否应拆分；深度阈值是卡片固定值 4，不是运行时配置",
         "limitations": "只比较固定深度阈值；不计算圈复杂度，不判断缺陷；elif 链、match 和推导式不增加深度",
+    },
+    {
+        "rule_id": "code.hardcoded_secret",
+        "severity": "medium",
+        "trigger": "新增行与凭据名字的赋值、属性赋值、关键字参数或函数默认值相交，且值是长度不少于 8、不在占位符表中的单个 str 字面量",
+        "evidence_type": "code_slice",
+        "suggested_action": "复核该字面量是示例、测试夹具还是应移出仓库的秘密；命中不是秘密已确认",
+        "limitations": "只做名字整段匹配和长度、占位符检查；不确认秘密，不判断漏洞，不扫描任意字符串内容",
+    },
+    {
+        "rule_id": "code.global_mutable_state",
+        "severity": "medium",
+        "trigger": "新增行与函数体内的 global 语句相交，或与模块、类体中的列表、字典、集合或无参 list/dict/set 绑定相交",
+        "evidence_type": "code_slice",
+        "suggested_action": "复核该共享绑定是否跨请求或跨测试可见，以及谁负责清空",
+        "limitations": "只表示 global 重新绑定或模块、类体可变容器；不判断串扰已经发生，不含函数内局部列表和 defaultdict",
     },
 ]
 
@@ -122,6 +195,27 @@ def _open_message() -> str:
         "直接调用 open，且该调用不是 with 或 async with 的上下文表达式。"
         "此线索只要求复核资源关闭路径，不判断泄漏已经发生。"
         "Path.open、io.open 和其他属性调用不在本规则范围内。"
+    )
+
+
+def _secret_message(name: str, form: str, length: int) -> str:
+    label = _BINDING_FORM_LABELS.get(form, form)
+    return (
+        f"绑定 {name}（{label}）的值是长度为 {length} 的 str 字面量。"
+        "此线索只要求复核它是示例、测试夹具还是仓库中的字面量，不表示秘密已经确认，也不表示存在漏洞。"
+    )
+
+
+def _mutable_message(form: str, targets: list[str]) -> str:
+    shown = "、".join(targets) if targets else "未命名绑定"
+    if form == "global_statement":
+        return (
+            f"函数体内的 global 语句声明了 {shown}。"
+            "此线索只表示重新绑定模块级名字，不要求随后的值是可变对象，也不判断已经发生串扰。"
+        )
+    return (
+        f"模块或类体把 {shown} 绑定到可变容器。"
+        "此线索只要求复核共享状态，不判断缓存是否有意设计，也不判断已经发生串扰。"
     )
 
 
@@ -526,6 +620,537 @@ def _control_findings(
     ], True
 
 
+def _credential_name(name: str) -> bool:
+    return name.casefold() in CREDENTIAL_BINDING_NAMES
+
+
+def _placeholder_value(text: str) -> bool:
+    return text.casefold() in SECRET_PLACEHOLDERS
+
+
+def _secret_qualifies(facts: dict[str, Any]) -> bool:
+    text = facts.get("literal_text")
+    length = facts.get("literal_length")
+    return (
+        facts.get("literal_kind") == "str"
+        and isinstance(text, str)
+        and isinstance(length, int)
+        and not isinstance(length, bool)
+        and length >= SECRET_LITERAL_MIN_LENGTH
+        and len(text) == length
+        and not _placeholder_value(text)
+    )
+
+
+def _value_preview(text: str) -> str:
+    return f"{text[:2]}…{text[-2:]}"
+
+
+def _prepared_segment(segment: str) -> str:
+    return textwrap.dedent(segment).strip("\n")
+
+
+def _one_statement(segment: str) -> ast.stmt | None:
+    prepared = _prepared_segment(segment)
+    if not prepared.strip():
+        return None
+    try:
+        tree = ast.parse(prepared)
+    except SyntaxError:
+        return None
+    if len(tree.body) != 1:
+        return None
+    return tree.body[0]
+
+
+def _one_expression(segment: str) -> ast.expr | None:
+    prepared = _prepared_segment(segment)
+    if not prepared.strip():
+        return None
+    try:
+        expression = ast.parse(prepared, mode="eval")
+    except SyntaxError:
+        return None
+    body = expression.body
+    return body if isinstance(body, ast.expr) else None
+
+
+def _value_facts(source: str, value: ast.AST) -> dict[str, Any]:
+    return _literal_facts(value, _expr_text(source, value))
+
+
+def _assignment_bindings(statement: ast.Assign | ast.AnnAssign, source: str) -> list[tuple[str, str, dict[str, Any]]]:
+    if statement.value is None:
+        return []
+    facts = _value_facts(source, statement.value)
+    targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+    bindings: list[tuple[str, str, dict[str, Any]]] = []
+    for target in targets:
+        if isinstance(target, ast.Name):
+            bindings.append((target.id, "name_assignment", facts))
+        elif isinstance(target, ast.Attribute):
+            bindings.append((target.attr, "attribute_assignment", facts))
+    return bindings
+
+
+def _assignment_labels(statement: ast.Assign | ast.AnnAssign, source: str) -> list[str]:
+    targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+    return [text for target in targets if (text := _expr_text(source, target))]
+
+
+def _call_keyword_facts(call: ast.Call, source: str) -> dict[str, dict[str, Any]]:
+    facts: dict[str, dict[str, Any]] = {}
+    for keyword in call.keywords:
+        if isinstance(keyword.arg, str):
+            facts[keyword.arg] = _value_facts(source, keyword.value)
+    return facts
+
+
+def _keywords_from_segment(segment: str) -> dict[str, dict[str, Any]] | None:
+    prepared = _prepared_segment(segment)
+    expression = _one_expression(prepared)
+    if isinstance(expression, ast.Call):
+        return _call_keyword_facts(expression, prepared)
+    wrapped_source = f"_({prepared})"
+    wrapped = _one_expression(wrapped_source)
+    if isinstance(wrapped, ast.Call):
+        return _call_keyword_facts(wrapped, wrapped_source)
+    return None
+
+
+def _parameter_defaults(function: ast.FunctionDef | ast.AsyncFunctionDef, source: str) -> list[tuple[str, dict[str, Any], int, int]]:
+    args = function.args
+    positional = list(getattr(args, "posonlyargs", [])) + list(args.args)
+    offset = len(positional) - len(args.defaults)
+    found: list[tuple[str, dict[str, Any], int, int]] = []
+    for index, default in enumerate(args.defaults):
+        parameter = positional[offset + index]
+        end_line = getattr(default, "end_lineno", None) or default.lineno
+        found.append((parameter.arg, _value_facts(source, default), parameter.lineno, end_line))
+    for parameter, default in zip(args.kwonlyargs, args.kw_defaults):
+        if default is None:
+            continue
+        end_line = getattr(default, "end_lineno", None) or default.lineno
+        found.append((parameter.arg, _value_facts(source, default), parameter.lineno, end_line))
+    return found
+
+
+def _recorded_literal(details: dict[str, Any]) -> dict[str, Any] | None:
+    kind = details.get("literal_kind")
+    if kind == "str":
+        text = details.get("literal_text")
+        length = details.get("literal_length")
+        if isinstance(text, str) and isinstance(length, int) and not isinstance(length, bool) and len(text) == length:
+            return {"literal_kind": "str", "literal_length": length, "literal_text": text}
+        return None
+    if kind in {"bytes", "implicit_str_concat", "non_literal"}:
+        return {"literal_kind": kind, "literal_length": None, "literal_text": None}
+    return None
+
+
+def _recover_literal_bindings(segment: str | None, truncated: bool) -> list[tuple[str, str, dict[str, Any]]] | None:
+    if truncated or not isinstance(segment, str) or not segment.strip():
+        return None
+    statement = _one_statement(segment)
+    prepared = _prepared_segment(segment)
+    if isinstance(statement, (ast.Assign, ast.AnnAssign)):
+        return _assignment_bindings(statement, prepared)
+    keywords = _keywords_from_segment(segment)
+    parameter_text = f"def _({prepared}):\n    pass\n"
+    parameter_statement = _one_statement(parameter_text)
+    defaults = None
+    if isinstance(parameter_statement, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        defaults = _parameter_defaults(parameter_statement, parameter_text)
+    # A bare name=value slice is both a keyword and a default. The form is not known.
+    if keywords is not None and defaults is not None:
+        return None
+    if keywords is not None:
+        return [(name, "keyword_argument", facts) for name, facts in keywords.items()]
+    if defaults is not None:
+        return [(name, "parameter_default", facts) for name, _facts, _start, _end in (
+            (item[0], item[1], item[2], item[3]) for item in defaults
+        )]
+    return None
+
+
+def _line_overlap(origin: int, lineno: int, end_lineno: int | None, changed_lines: set[int]) -> list[int]:
+    start = origin + lineno - 1
+    end = origin + (end_lineno or lineno) - 1
+    return sorted(line for line in changed_lines if start <= line <= end)
+
+
+def _narrow_node(node: dict[str, Any], start_line: int, end_line: int, changed_lines: list[int], segment: str | None) -> dict[str, Any]:
+    narrowed = dict(node)
+    narrowed["start_line"] = start_line
+    narrowed["end_line"] = end_line
+    narrowed["changed_lines"] = changed_lines
+    if segment:
+        narrowed["source_segment"] = segment
+        narrowed.pop("source_segment_truncated", None)
+    return narrowed
+
+
+def _secret_from_parts(
+    path: str,
+    file_item: dict[str, Any],
+    node: dict[str, Any],
+    bindings: list[tuple[str, str, dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    for name, form, facts in bindings:
+        if not _credential_name(name) or not _secret_qualifies(facts):
+            continue
+        text = str(facts["literal_text"])
+        findings.append(
+            _finding(
+                "code.hardcoded_secret",
+                _secret_message(name, form, int(facts["literal_length"])),
+                _evidence(
+                    path,
+                    file_item,
+                    node,
+                    binding_name=name,
+                    binding_form=form,
+                    value_length=int(facts["literal_length"]),
+                    value_preview=_value_preview(text),
+                ),
+            )
+        )
+    return findings
+
+
+def _mutable_finding(
+    path: str,
+    file_item: dict[str, Any],
+    node: dict[str, Any],
+    form: str,
+    targets: list[str],
+    value_kind: str | None = None,
+) -> dict[str, Any]:
+    details: dict[str, Any] = {"mutable_state_form": form, "binding_targets": targets}
+    if value_kind is not None:
+        details["value_kind"] = value_kind
+    return _finding(
+        "code.global_mutable_state",
+        _mutable_message(form, targets),
+        _evidence(path, file_item, node, **details),
+    )
+
+
+def _scan_legacy_function(node: dict[str, Any]) -> dict[str, list[dict[str, Any]]] | None:
+    """Recover globals, nested class containers, and credential bindings from one function slice."""
+    if node.get("source_segment_truncated"):
+        return None
+    segment = node.get("source_segment")
+    origin = node.get("start_line")
+    if not isinstance(segment, str) or not segment.strip() or not isinstance(origin, int):
+        return None
+    prepared = _prepared_segment(segment)
+    statement = _one_statement(segment)
+    if not isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        return None
+    changed = {int(line) for line in node.get("changed_lines") or []}
+    secrets: list[dict[str, Any]] = []
+    mutables: list[dict[str, Any]] = []
+
+    def add_secret(name: str, form: str, facts: dict[str, Any], lineno: int, end_lineno: int | None, source_segment: str | None) -> None:
+        lines = _line_overlap(origin, lineno, end_lineno, changed)
+        if not lines or not _credential_name(name) or not _secret_qualifies(facts):
+            return
+        secrets.append({
+            "name": name,
+            "form": form,
+            "facts": facts,
+            "start_line": origin + lineno - 1,
+            "end_line": origin + (end_lineno or lineno) - 1,
+            "lines": lines,
+            "segment": source_segment,
+        })
+
+    def add_mutable(form: str, targets: list[str], lineno: int, end_lineno: int | None, value_kind: str | None, source_segment: str | None) -> None:
+        lines = _line_overlap(origin, lineno, end_lineno, changed)
+        if not lines or not targets:
+            return
+        mutables.append({
+            "form": form,
+            "targets": targets,
+            "value_kind": value_kind,
+            "start_line": origin + lineno - 1,
+            "end_line": origin + (end_lineno or lineno) - 1,
+            "lines": lines,
+            "segment": source_segment,
+        })
+
+    def walk(statements: list[ast.stmt], scope: str) -> None:
+        for item in statements:
+            if isinstance(item, ast.Global) and scope == "function":
+                add_mutable("global_statement", list(item.names), item.lineno, item.end_lineno, None, ast.get_source_segment(prepared, item))
+            elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for name, facts, lineno, end_lineno in _parameter_defaults(item, prepared):
+                    add_secret(name, "parameter_default", facts, lineno, end_lineno, ast.get_source_segment(prepared, item.args))
+                walk(item.body, "function")
+            elif isinstance(item, ast.ClassDef):
+                walk(item.body, "class")
+            elif isinstance(item, (ast.Assign, ast.AnnAssign)):
+                if item.value is not None and scope == "class":
+                    kind = _container_kind(item.value)
+                    if kind is not None:
+                        add_mutable(
+                            "mutable_binding",
+                            _assignment_labels(item, prepared),
+                            item.lineno,
+                            item.end_lineno,
+                            kind,
+                            ast.get_source_segment(prepared, item),
+                        )
+                if item.value is not None:
+                    segment_text = ast.get_source_segment(prepared, item)
+                    for name, form, facts in _assignment_bindings(item, prepared):
+                        add_secret(name, form, facts, item.lineno, item.end_lineno, segment_text)
+            elif isinstance(item, ast.If):
+                walk(item.body, scope)
+                walk(item.orelse, scope)
+            elif isinstance(item, (ast.For, ast.AsyncFor, ast.While)):
+                walk(item.body, scope)
+                walk(item.orelse, scope)
+            elif isinstance(item, (ast.With, ast.AsyncWith)):
+                walk(item.body, scope)
+            elif isinstance(item, (ast.Try, ast.TryStar)):
+                walk(item.body, scope)
+                for handler in item.handlers:
+                    walk(handler.body, scope)
+                walk(item.orelse, scope)
+                walk(item.finalbody, scope)
+            elif isinstance(item, ast.Match):
+                for case in item.cases:
+                    walk(case.body, scope)
+
+    for name, facts, lineno, end_lineno in _parameter_defaults(statement, prepared):
+        add_secret(name, "parameter_default", facts, lineno, end_lineno, ast.get_source_segment(prepared, statement.args))
+    walk(statement.body, "function")
+    return {"secrets": secrets, "mutables": mutables}
+
+
+def _legacy_function_findings(
+    path: str,
+    file_item: dict[str, Any],
+    node: dict[str, Any],
+    *,
+    secrets: bool,
+    mutables: bool,
+) -> tuple[list[dict[str, Any]], bool]:
+    scanned = _scan_legacy_function(node)
+    if scanned is None:
+        return [], False
+    findings: list[dict[str, Any]] = []
+    if secrets:
+        for item in scanned["secrets"]:
+            narrowed = _narrow_node(node, item["start_line"], item["end_line"], item["lines"], item["segment"])
+            findings.extend(_secret_from_parts(path, file_item, narrowed, [(item["name"], item["form"], item["facts"])]))
+    if mutables:
+        for item in scanned["mutables"]:
+            narrowed = _narrow_node(node, item["start_line"], item["end_line"], item["lines"], item["segment"])
+            findings.append(_mutable_finding(path, file_item, narrowed, item["form"], item["targets"], item["value_kind"]))
+    return findings, True
+
+
+def _group_legacy_fields(file_item: dict[str, Any]) -> dict[tuple[Any, ...], list[dict[str, Any]]]:
+    groups: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+    for node in _head_nodes(file_item):
+        if node.get("kind") != "field":
+            continue
+        if "value_form" in (node.get("details") or {}):
+            continue
+        key = (node.get("start_line"), node.get("end_line"), node.get("source_segment"))
+        groups.setdefault(key, []).append(node)
+    return groups
+
+
+def _legacy_field_assignment(node: dict[str, Any]) -> tuple[ast.Assign | ast.AnnAssign, str] | None:
+    if node.get("source_segment_truncated"):
+        return None
+    segment = node.get("source_segment")
+    if not isinstance(segment, str) or not segment.strip():
+        return None
+    statement = _one_statement(segment)
+    if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
+        return None
+    return statement, _prepared_segment(segment)
+
+
+def _secret_findings(
+    path: str,
+    file_item: dict[str, Any],
+    node: dict[str, Any],
+    enabled: set[str],
+    *,
+    legacy_snapshot: bool,
+) -> tuple[list[dict[str, Any]], bool]:
+    if "code.hardcoded_secret" not in enabled:
+        return [], True
+    kind = node.get("kind")
+    if kind == "literal_binding":
+        details = node.get("details") or {}
+        recorded = _recorded_literal(details)
+        form = details.get("binding_form")
+        name = details.get("binding_name")
+        if isinstance(name, str) and form in BINDING_FORMS and recorded is not None:
+            return _secret_from_parts(path, file_item, node, [(name, str(form), recorded)]), True
+        recovered = _recover_literal_bindings(node.get("source_segment"), bool(node.get("source_segment_truncated")))
+        if recovered is None:
+            return [], False
+        return _secret_from_parts(path, file_item, node, recovered), True
+    if not legacy_snapshot:
+        return [], True
+    if kind == "field":
+        field_name = node.get("name")
+        details = node.get("details") or {}
+        if isinstance(field_name, str) and not _credential_name(field_name):
+            return [], True
+        if isinstance(field_name, str) and "value_fingerprint" in details and details.get("value_fingerprint") is None:
+            return [], True
+        parsed = _legacy_field_assignment(node)
+        if parsed is None:
+            return [], False
+        statement, source = parsed
+        bindings = _assignment_bindings(statement, source)
+        if isinstance(field_name, str):
+            bindings = [item for item in bindings if item[0] == field_name and item[1] == "name_assignment"]
+        return _secret_from_parts(path, file_item, node, bindings), True
+    if kind == "call":
+        details = node.get("details") or {}
+        recovered = None
+        if not node.get("source_segment_truncated") and isinstance(node.get("source_segment"), str):
+            recovered = _keywords_from_segment(node["source_segment"])
+        if "keyword_names" in details and isinstance(details.get("keyword_names"), list):
+            names = [item for item in details["keyword_names"] if isinstance(item, str) and _credential_name(item)]
+            if not names:
+                return [], True
+            if recovered is None:
+                return [], False
+            bindings = []
+            for name in names:
+                facts = recovered.get(name)
+                if facts is None:
+                    return [], False
+                bindings.append((name, "keyword_argument", facts))
+            return _secret_from_parts(path, file_item, node, bindings), True
+        if recovered is None:
+            return [], False
+        bindings = [(name, "keyword_argument", facts) for name, facts in recovered.items()]
+        return _secret_from_parts(path, file_item, node, bindings), True
+    if kind in {"function", "async_function"}:
+        if (node.get("details") or {}).get("literal_bindings_recorded") is True:
+            return [], True
+        findings, evaluable = _legacy_function_findings(path, file_item, node, secrets=True, mutables=False)
+        return findings, evaluable
+    return [], True
+
+
+def _mutable_findings(
+    path: str,
+    file_item: dict[str, Any],
+    node: dict[str, Any],
+    enabled: set[str],
+    *,
+    field_findings: dict[str, list[dict[str, Any]]],
+    field_gaps: set[str],
+) -> tuple[list[dict[str, Any]], bool]:
+    if "code.global_mutable_state" not in enabled:
+        return [], True
+    kind = node.get("kind")
+    if kind == "mutable_state":
+        details = node.get("details") or {}
+        form = details.get("mutable_state_form")
+        targets = details.get("binding_targets")
+        recorded = form in {"global_statement", "mutable_binding"} and isinstance(targets, list) and all(isinstance(item, str) and item for item in targets)
+        if recorded and form == "mutable_binding" and details.get("value_kind") not in MUTABLE_VALUE_KINDS:
+            recorded = False
+        if recorded:
+            return [_mutable_finding(path, file_item, node, str(form), list(targets), details.get("value_kind"))], True
+        if node.get("source_segment_truncated") or not isinstance(node.get("source_segment"), str):
+            return [], False
+        statement = _one_statement(node["source_segment"])
+        prepared = _prepared_segment(node["source_segment"])
+        if isinstance(statement, ast.Global) and statement.names:
+            return [_mutable_finding(path, file_item, node, "global_statement", list(statement.names))], True
+        if isinstance(statement, (ast.Assign, ast.AnnAssign)) and statement.value is not None:
+            value_kind = _container_kind(statement.value)
+            labels = _assignment_labels(statement, prepared)
+            if value_kind and labels:
+                return [_mutable_finding(path, file_item, node, "mutable_binding", labels, value_kind)], True
+            if value_kind is None:
+                return [], True
+        return [], False
+    if kind == "field":
+        node_id = str(node.get("node_id") or "")
+        if "value_form" in (node.get("details") or {}):
+            return [], True
+        if node_id in field_gaps:
+            return [], False
+        return field_findings.get(node_id, []), True
+    if kind in {"function", "async_function"}:
+        details = node.get("details") or {}
+        if isinstance(details.get("contains_global_statement"), bool):
+            return [], True
+        return _legacy_function_findings(path, file_item, node, secrets=False, mutables=True)
+    return [], True
+
+
+def _legacy_mutable_field_index(path: str, file_item: dict[str, Any]) -> tuple[dict[str, list[dict[str, Any]]], set[str]]:
+    findings: dict[str, list[dict[str, Any]]] = {}
+    gaps: set[str] = set()
+    for group in _group_legacy_fields(file_item).values():
+        node_ids = [str(node.get("node_id") or "") for node in group]
+        parsed = _legacy_field_assignment(group[0])
+        if parsed is None:
+            gaps.update(node_ids)
+            continue
+        statement, source = parsed
+        if statement.value is None:
+            continue
+        value_kind = _container_kind(statement.value)
+        if value_kind is None:
+            continue
+        labels = _assignment_labels(statement, source)
+        if not labels:
+            gaps.update(node_ids)
+            continue
+        findings[node_ids[0]] = [_mutable_finding(path, file_item, group[0], "mutable_binding", labels, value_kind)]
+    return findings, gaps
+
+
+def _dedupe_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Collapse the same 006 binding recovered from both an outer and an inner slice.
+
+    Other rules keep one finding per node. Their evidence often shares a legacy
+    fixture's line span, so this key must not apply to them.
+    """
+    seen: set[tuple[Any, ...]] = set()
+    unique: list[dict[str, Any]] = []
+    for item in findings:
+        if item["rule_id"] not in {"code.hardcoded_secret", "code.global_mutable_state"}:
+            unique.append(item)
+            continue
+        evidence = item["evidence"][0]
+        key = (
+            evidence.get("path"),
+            item["rule_id"],
+            evidence.get("binding_form") or evidence.get("mutable_state_form"),
+            evidence.get("binding_name"),
+            tuple(evidence.get("binding_targets") or []),
+            evidence.get("start_line"),
+            evidence.get("end_line"),
+            evidence.get("value_length"),
+            evidence.get("value_kind"),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+    return unique
+
+
 def collect_code_smell_findings(
     stage04_record: dict[str, Any],
     enabled: set[str],
@@ -537,17 +1162,40 @@ def collect_code_smell_findings(
     gaps: dict[str, list[str]] = {}
     for file_item in stage04_record.get("files", []):
         path = str(file_item.get("path") or file_item.get("new_path") or file_item.get("old_path") or "")
-        for node in _head_nodes(file_item):
+        head_nodes = _head_nodes(file_item)
+        legacy_secret_snapshot = not any(node.get("kind") == "literal_binding" for node in head_nodes)
+        field_findings, field_gaps = ({}, set())
+        if "code.global_mutable_state" in enabled:
+            field_findings, field_gaps = _legacy_mutable_field_index(path, file_item)
+        for node in head_nodes:
             handler_findings, handler_ok = _handler_findings(path, file_item, node, enabled)
             call_findings, call_ok = _call_findings(path, file_item, node, enabled)
             control_findings, control_ok = _control_findings(path, file_item, node, enabled)
-            if handler_ok and call_ok and control_ok:
+            secret_findings, secret_ok = _secret_findings(
+                path,
+                file_item,
+                node,
+                enabled,
+                legacy_snapshot=legacy_secret_snapshot,
+            )
+            mutable_node_findings, mutable_ok = _mutable_findings(
+                path,
+                file_item,
+                node,
+                enabled,
+                field_findings=field_findings,
+                field_gaps=field_gaps,
+            )
+            if handler_ok and call_ok and control_ok and secret_ok and mutable_ok:
                 findings.extend(handler_findings)
                 findings.extend(call_findings)
                 findings.extend(control_findings)
+                findings.extend(secret_findings)
+                findings.extend(mutable_node_findings)
                 continue
             node_id = str(node.get("node_id") or "")
             gaps.setdefault(path, []).append(node_id)
+    findings = _dedupe_findings(findings)
     findings.sort(
         key=lambda item: (
             item["evidence"][0].get("path") or "",

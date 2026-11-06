@@ -306,7 +306,7 @@
       "name": "硬编码敏感字面量",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "registered",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -331,7 +331,7 @@
         "why_worth_detecting": "字面量一旦进入提交就留在历史中；复核名字、长度和文件角色比扫描任意字符串更可解释。",
         "expected_consequence": "可能把真实秘密写入仓库，也可能只是测试夹具。命中本身不确认秘密。",
         "coverage_gap": "code.dynamic_execution 不看字符串绑定；config.django_sensitive_settings_changed 还是草稿，且只面向 Django 配置。",
-        "value": "为后续检测器固定名字表、长度 8 和占位符表。"
+        "value": "名字表、长度 8 和占位符表已接入 Finding 管道。命中只是字面量复核，不是秘密已确认。"
       },
       "definition": {
         "target": "赋值、属性赋值、关键字参数或函数默认值上的直接绑定名，值为长度不少于 8 且不在占位符表中的 str 常量",
@@ -405,17 +405,17 @@
       },
       "validation_obligation": {
         "level": "literature_inherited",
-        "method": "卡片已固定判定；检测器和构造测试留到后续实现迭代。",
-        "dataset": "构造样例尚未编写；NetBox 实证数据集待确定。",
+        "method": "迭代 006 的构造正例、反例和边界样例；实证数据集仍待确定。",
+        "dataset": "迭代 006 构造样例；NetBox 实证数据集待确定。",
         "oracle": "规则卡片定义。",
         "metrics": [
           "构造样例通过率",
           "证据完整率"
         ],
-        "acceptance_criteria": "实现迭代的构造样例按卡片命中；不预填 Precision、Recall 或秘密确认结论。",
+        "acceptance_criteria": "构造样例按卡片命中；不预填 Precision、Recall 或秘密确认结论。",
         "unresolved_questions": [
           "实证数据范围待补齐",
-          "本迭代没有检测器"
+          "误报与漏报边界待验证"
         ]
       }
     },
@@ -716,7 +716,7 @@
       "name": "全局可变状态",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "registered",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -741,7 +741,7 @@
         "why_worth_detecting": "共享可变对象和显式全局重新绑定会让一次调用改到其他调用看到的状态。",
         "expected_consequence": "可能造成跨请求或跨测试的状态残留；缓存和注册表也可能是有意设计。",
         "coverage_gap": "现有语言级规则不区分模块级可变绑定和 global 声明。函数默认参数里的可变对象不在本规则内。",
-        "value": "把两种结构形式写成可实现的卡片，本迭代不接入检测器。"
+        "value": "两种结构形式已接入 Finding 管道。命中只要求复核共享绑定，不判断串扰已经发生。"
       },
       "definition": {
         "target": "函数体内的 global 语句，或模块体、类体中值为列表、字典、集合或无参 list/dict/set 调用的赋值",
@@ -797,17 +797,17 @@
       },
       "validation_obligation": {
         "level": "literature_inherited",
-        "method": "卡片已固定两种形式；检测器和构造测试留到后续实现迭代。",
-        "dataset": "构造样例尚未编写；NetBox 实证数据集待确定。",
+        "method": "迭代 006 的构造正例、反例和边界样例；实证数据集仍待确定。",
+        "dataset": "迭代 006 构造样例；NetBox 实证数据集待确定。",
         "oracle": "规则卡片定义。",
         "metrics": [
           "构造样例通过率",
           "证据完整率"
         ],
-        "acceptance_criteria": "实现迭代的构造样例按卡片命中；不预填 Precision、Recall 或串扰结论。",
+        "acceptance_criteria": "构造样例按卡片命中；不预填 Precision、Recall 或串扰结论。",
         "unresolved_questions": [
           "实证数据范围待补齐",
-          "本迭代没有检测器"
+          "误报与漏报边界待验证"
         ]
       }
     },

@@ -18,6 +18,8 @@ type Evidence = {
   lines: number[]; qualified_name?: string; source_segment?: string;
   capture_form?: string; callee_name?: string; handler_body_is_single_pass?: boolean;
   used_as_with_context?: boolean; nesting_depth?: number; control_kind?: string;
+  binding_name?: string; binding_form?: string; value_length?: number; value_preview?: string;
+  mutable_state_form?: string; binding_targets?: string[];
 };
 type Finding = {
   rule_id: string; severity: string; message: string;
@@ -80,6 +82,8 @@ const ruleLabels: Record<string, string> = {
   "code.dynamic_execution": "动态代码执行",
   "code.unmanaged_open": "未用 with 管理的 open",
   "code.deep_control_flow": "深层控制流嵌套",
+  "code.hardcoded_secret": "硬编码敏感字面量",
+  "code.global_mutable_state": "全局可变状态",
 };
 const initialConfig: Config = {
   enabled_rules: Object.keys(ruleLabels),
@@ -88,6 +92,7 @@ const initialConfig: Config = {
     "config.configuration_structure_changed": 1, "code.exception_structure_changed": 1,
     "code.swallowed_exception": 0, "code.bare_exception": 0, "code.dynamic_execution": 0,
     "code.unmanaged_open": 0, "code.deep_control_flow": 0,
+    "code.hardcoded_secret": 0, "code.global_mutable_state": 0,
   },
   test_collaboration_weight: 1, test_collaboration_enabled: true, thresholds: { medium: 30, high: 65 },
 };
@@ -106,6 +111,9 @@ function shortSha(value?: string) { return value ? value.slice(0, 7) : "—"; }
 function evidenceDetail(item: Evidence) {
   if (item.capture_form) return `捕获形式 ${item.capture_form}`;
   if (typeof item.nesting_depth === "number") return `嵌套深度 ${item.nesting_depth}`;
+  if (item.binding_name) return `绑定 ${item.binding_name}，长度 ${item.value_length}`;
+  if (item.mutable_state_form === "global_statement") return `global ${(item.binding_targets || []).join("、")}`;
+  if (item.mutable_state_form === "mutable_binding") return `可变绑定 ${(item.binding_targets || []).join("、")}`;
   if (item.used_as_with_context === false) return "直接 open 未作为 with 上下文";
   if (item.callee_name) return `直接调用 ${item.callee_name}`;
   if (item.handler_body_is_single_pass) return "处理体只有 pass";
