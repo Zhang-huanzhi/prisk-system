@@ -1039,7 +1039,9 @@
         "risk_nature": "pr_intrinsic",
         "dependency_level": "framework",
         "applicability": [
-          "Python"
+          "Python",
+          "Django REST framework",
+          "同一文件的 Serializer 类体或带 api_view/action 的函数"
         ],
         "target_layer": [
           "ast_syntax",
@@ -1054,65 +1056,79 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "DRF 公有函数或接口删除既有参数 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "同一文件里已经声明的序列化器字段或已装饰视图参数在 head 中消失。",
+        "why_worth_detecting": "删除会改变已有请求或响应名字。可选字段和只读字段也在范围内，因此不并入新增必填规则。",
+        "expected_consequence": "旧客户端可能仍使用消失的名字。本规则不证明客户端已经失败。",
+        "coverage_gap": "api.signature_changed 不区分字段删除。api.drf_public_parameter_added 只看新增且必填。",
+        "value": "把同一文件表面和 Unanalyzed 条件写进设计，不跟随其他文件的路由或父类。"
       },
       "definition": {
-        "target": "DRF 公有函数或接口删除既有参数",
-        "trigger": "检测到与DRF 公有函数或接口删除既有参数一致的结构或变更条件时生成 Finding。",
+        "target": "同一 Serializer 类体中的字段赋值，或同一函数上带 @api_view/@action 的签名参数。",
+        "trigger": "适用表面成立，且字段名或参数名在 base 有、head 没有。类基类文本同时变化时 Unanalyzed。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
-            "value_type": "string",
-            "operator": "contains",
-            "threshold": "DRF 公有函数或接口删除既有参数",
-            "required": true
+            "name": "parameter_removed",
+            "source": "base 字段或签名参数有该名，head 没有",
+            "value_type": "boolean",
+            "operator": "eq",
+            "required": true,
+            "threshold": true
+          },
+          {
+            "name": "same_file_surface",
+            "source": "同一类基类文本或同一函数装饰器文本",
+            "value_type": "boolean",
+            "operator": "eq",
+            "required": true,
+            "threshold": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "名字仍在；只改 help_text；没有 api_view/action 的普通函数少了参数。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "同一文件的 base/head Python AST",
+          "三点 Diff 的新增行和删除行"
         ],
-        "finding": "api.drf_public_parameter_removed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "api.drf_public_parameter_removed 设计 Finding。011 不生成运行时 Finding。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "qualified name",
+          "removed parameter name",
+          "deleted lines"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "展示 base 字段或参数，以及 head 的同一类体或签名。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django REST framework: Serializers",
+          "Django REST framework: field required and read_only",
+          "Django REST framework: api_view and ViewSet action",
+          "Django REST framework: Routers, not followed across files"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "改名、Meta.fields 字符串或同文件动态 get_fields 可能看起来像删除。",
+        "false_negative": "父类字段、extra_kwargs 和运行时拼接的字段看不到。",
+        "dynamic_language": "循环或 locals() 生成的字段没有稳定赋值名。",
+        "does_not_decide": "不证明已有客户端已经失败。",
+        "manual_review": "需要看发布说明、继承，以及字段是请求还是响应。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "NetBox 真实 PR、人工标注和已知案例。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "跨文件路由图明确不做",
+          "Meta.fields 字符串未解析",
+          "没有检测器"
         ]
       }
     },
@@ -1127,7 +1143,10 @@
         "risk_nature": "pr_intrinsic",
         "dependency_level": "framework",
         "applicability": [
-          "Python"
+          "Python",
+          "Django path/re_path",
+          "DRF router.register",
+          "同一文件"
         ],
         "target_layer": [
           "ast_syntax",
@@ -1142,65 +1161,88 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "URL 模式增删改 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "同一文件的 path、re_path 或 router.register 调用中，路由文本或视图表达式发生变化。",
+        "why_worth_detecting": "路径字符串是 HTTP 表面的一部分，函数签名没变时仍可能对不上旧 URL。",
+        "expected_consequence": "已有 URL 可能无法匹配。本规则不证明线上已经 404。",
+        "coverage_gap": "api.signature_changed 不比较 route。api.drf_viewset_action_changed 不看 urlpatterns。",
+        "value": "把 route 字面量缺失定义为 Unanalyzed，并且不跟随 include()。"
       },
       "definition": {
-        "target": "URL 模式增删改",
-        "trigger": "检测到与URL 模式增删改一致的结构或变更条件时生成 Finding。",
+        "target": "同一文件中属性名最后一段为 path、re_path 或 register 的调用。",
+        "trigger": "调用新增、删除，或两侧 route/name 文本可读且不同。route 文本不可读时不记 Hit。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "routing_callee",
+            "source": "call.details.callee 的最后一段属性名",
             "value_type": "string",
             "operator": "contains",
-            "threshold": "URL 模式增删改",
+            "required": true,
+            "threshold": [
+              "path",
+              "re_path",
+              "register"
+            ]
+          },
+          {
+            "name": "route_text",
+            "source": "第一个位置参数或 route 关键字的字符串；当前节点还没有这栏",
+            "value_type": "string",
+            "operator": "changed",
             "required": true
+          },
+          {
+            "name": "call_changed",
+            "source": "调用节点与新增行或删除行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "required": true,
+            "threshold": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "route、view、name 文本都没变；include() 的目标模块在其他文件变化。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "同一文件的 base/head Python AST",
+          "三点 Diff",
+          "尚未结构化的位置参数字符串"
         ],
-        "finding": "api.django_url_pattern_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "api.django_url_pattern_changed 设计 Finding。011 不生成运行时 Finding。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "call slice",
+          "route text or unavailable"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "展示该调用，不展开 include() 的目标文件。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django: django.urls path, re_path, and include",
+          "Django REST framework: ViewSet router.register example"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "引号或原始字符串前缀变化可能在规范化前看起来不同。",
+        "false_negative": "项目自己的路由包装函数和循环拼接看不到。",
+        "dynamic_language": "urlpatterns += something() 的右侧不展开。",
+        "does_not_decide": "不证明反向解析失败或客户端缓存了旧 URL。",
+        "manual_review": "需要看 include() 链、app_name 和发布说明。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "NetBox 真实 PR、人工标注和已知案例。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "位置参数字符串还不是 stage04 字段",
+          "include() 明确不跟随",
+          "没有检测器"
         ]
       }
     },
@@ -1215,7 +1257,9 @@
         "risk_nature": "pr_intrinsic",
         "dependency_level": "framework",
         "applicability": [
-          "Python"
+          "Python",
+          "Django REST framework ViewSet",
+          "同一类语句"
         ],
         "target_layer": [
           "ast_syntax",
@@ -1230,65 +1274,94 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "ViewSet HTTP 动作或方法变动 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "ViewSet 类体上的标准动作或 @action 发生增减，或 detail/methods 文本变化。",
+        "why_worth_detecting": "router 登记行可以不变，而类体动作集合已经变了。",
+        "expected_consequence": "可能改变暴露的 HTTP 动作。不证明 router 已经登记这个类。",
+        "coverage_gap": "api.django_url_pattern_changed 看 path/register 调用，不看类体动作。",
+        "value": "只接受四个 DRF 基类直接名称，不沿跨文件继承查找。"
       },
       "definition": {
-        "target": "ViewSet HTTP 动作或方法变动",
-        "trigger": "检测到与ViewSet HTTP 动作或方法变动一致的结构或变更条件时生成 Finding。",
+        "target": "基类文本含 ViewSet、GenericViewSet、ModelViewSet 或 ReadOnlyModelViewSet 的类体。",
+        "trigger": "标准动作或 @action 的有无变化，或同一 @action 的 detail/methods 文本变化。其他基类 Unanalyzed。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "viewset_base",
+            "source": "类节点 details.bases 文本",
             "value_type": "string",
             "operator": "contains",
-            "threshold": "ViewSet HTTP 动作或方法变动",
+            "required": true,
+            "threshold": [
+              "ViewSet",
+              "GenericViewSet",
+              "ModelViewSet",
+              "ReadOnlyModelViewSet"
+            ]
+          },
+          {
+            "name": "action_name",
+            "source": "标准动作函数名或 @action 所装饰的函数名",
+            "value_type": "string",
+            "operator": "present",
             "required": true
+          },
+          {
+            "name": "action_delta",
+            "source": "函数有无，或 detail/methods 文本",
+            "value_type": "enum",
+            "operator": "changed",
+            "required": true,
+            "threshold": [
+              "added",
+              "removed",
+              "methods_or_detail_changed"
+            ]
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "动作仍在且 detail/methods 文本相同，只改函数体；方法既不是标准动作也没有 @action。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "同一文件的 base/head Python AST",
+          "三点 Diff"
         ],
-        "finding": "api.drf_viewset_action_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "api.drf_viewset_action_changed 设计 Finding。011 不生成运行时 Finding。",
         "evidence_location": [
-          "file path",
-          "node or diff lines"
+          "class bases",
+          "action name",
+          "decorator expression",
+          "changed lines"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "类语句一行，以及该动作的装饰器和 def 行。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django REST framework: ViewSet actions list, create, retrieve, update, partial_update, destroy",
+          "Django REST framework: ModelViewSet and ReadOnlyModelViewSet",
+          "Django REST framework: @action detail and methods"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "自定义 router 或 get_extra_actions 可能排除类体里仍存在的动作。",
+        "false_negative": "动作继承自其他文件的基类，子类没有重写。",
+        "dynamic_language": "setattr 添加的动作没有函数节点。",
+        "does_not_decide": "不生成具体 URL，也不判断尾斜线。",
+        "manual_review": "需要看 router 登记和自定义路由类。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "NetBox 真实 PR、人工标注和已知案例。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "跨文件基类明确不做",
+          "http_method_names 单独变化记 Unanalyzed",
+          "没有检测器"
         ]
       }
     },
@@ -1410,7 +1483,9 @@
         "risk_nature": "external_impact",
         "dependency_level": "framework",
         "applicability": [
-          "Python"
+          "Python",
+          "Django REST framework permission_classes",
+          "同一类或同一函数"
         ],
         "target_layer": [
           "ast_syntax",
@@ -1425,65 +1500,90 @@
         "gatekeeper_condition": "受保护视图被改为 AllowAny 或空权限策略时"
       },
       "rationale": {
-        "observed_problem": "AllowAny 或空权限策略 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "permission_classes 被写成 AllowAny，或写成空列表、空元组。",
+        "why_worth_detecting": "DRF 把这两种写法说明为不加限制，并且本地声明会忽略设置里的默认列表。",
+        "expected_consequence": "声明比 base 更宽松。不证明请求已经越权。",
+        "coverage_gap": "auth.drf_permission_decorator_removed 只看装饰器消失。自定义类的强弱没有全序，不放进本规则。",
+        "value": "把显式降级收成两种可读形态，对象级权限仍排除。"
       },
       "definition": {
-        "target": "AllowAny 或空权限策略",
-        "trigger": "检测到与AllowAny 或空权限策略一致的结构或变更条件时生成 Finding。",
+        "target": "同一类体的 permission_classes 赋值，或同一函数的 @permission_classes 参数。",
+        "trigger": "head 是 AllowAny 或空列表/空元组，且 base 不是同一种形态。列表元素读不出时 Unanalyzed。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "policy_binding",
+            "source": "赋值目标名或装饰器名",
             "value_type": "string",
+            "operator": "eq",
+            "required": true,
+            "threshold": "permission_classes"
+          },
+          {
+            "name": "downgrade_form",
+            "source": "head 列表元素的直接名称，或空列表/空元组",
+            "value_type": "enum",
             "operator": "contains",
-            "threshold": "AllowAny 或空权限策略",
-            "required": true
+            "required": true,
+            "threshold": [
+              "AllowAny",
+              "empty"
+            ]
+          },
+          {
+            "name": "binding_changed",
+            "source": "节点与新增行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "required": true,
+            "threshold": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "head 仍是其他非 AllowAny 的直接名称；只删除装饰器而没有留下 AllowAny 或空列表。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "同一文件的 base/head Python AST",
+          "三点 Diff",
+          "赋值或装饰器的未截断切片"
         ],
-        "finding": "auth.drf_permission_policy_downgrade Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "auth.drf_permission_policy_downgrade 设计 Finding。011 不生成运行时 Finding。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "qualified name",
+          "head form",
+          "base form or absent"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "只展示该赋值或装饰器。",
         "impact_type": "external_impact"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django REST framework: Setting the permission policy",
+          "Django REST framework: AllowAny and empty permission lists",
+          "Django REST framework: DEFAULT_PERMISSION_CLASSES, not read by this rule"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "base 没有本地声明时，全局默认可能本来就是 AllowAny。证据需标明 absent。",
+        "false_negative": "降级写在 get_permissions 或其他文件的混入里。",
+        "dynamic_language": "权限类由工厂或别名给出。",
+        "does_not_decide": "不给自定义权限类排序，也不发请求。",
+        "manual_review": "需要看全局默认、继承来的列表，以及视图是否挂在 URL 上。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "NetBox 真实 PR、人工标注和已知案例。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "列表元素还不是结构化名字",
+          "不建立权限类强弱表",
+          "没有检测器"
         ]
       }
     },
@@ -1674,7 +1774,9 @@
         "risk_nature": "external_impact",
         "dependency_level": "database",
         "applicability": [
-          "Python"
+          "Python",
+          "Django migration operations",
+          "migrations path segment"
         ],
         "target_layer": [
           "ast_syntax",
@@ -1689,65 +1791,89 @@
         "gatekeeper_condition": "非初始迁移中出现 RemoveField、DeleteModel 或裸 RunSQL 时"
       },
       "rationale": {
-        "observed_problem": "RemoveField/DeleteModel/RunSQL 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "迁移文件新增 DeleteModel 或 RemoveField。",
+        "why_worth_detecting": "Django 写明二者删除表或字段，RemoveField 的数据丢失不可逆。",
+        "expected_consequence": "可能移除已有表或列。不证明某个环境已经执行了迁移。",
+        "coverage_gap": "data.transaction_structure_changed 不区分操作类。非空收紧和原生 SQL 是另外两条规则。",
+        "value": "只用两个操作类和路径段。RunSQL/RunPython 记 Unanalyzed，不建迁移图。"
       },
       "definition": {
-        "target": "RemoveField/DeleteModel/RunSQL",
-        "trigger": "检测到与RemoveField/DeleteModel/RunSQL一致的结构或变更条件时生成 Finding。",
+        "target": "路径段含 migrations 的文件中，最后一段属性名为 DeleteModel 或 RemoveField 的调用。",
+        "trigger": "该调用与新增行相交。其他操作类或路径不符时不记 Hit。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "operation_name",
+            "source": "call.details.callee 的最后一段或 direct_callee_name",
             "value_type": "string",
             "operator": "contains",
-            "threshold": "RemoveField/DeleteModel/RunSQL",
-            "required": true
+            "required": true,
+            "threshold": [
+              "DeleteModel",
+              "RemoveField"
+            ]
+          },
+          {
+            "name": "call_changed",
+            "source": "调用与新增行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "required": true,
+            "threshold": true
+          },
+          {
+            "name": "migration_path",
+            "source": "文件路径目录段含 migrations",
+            "value_type": "boolean",
+            "operator": "eq",
+            "required": true,
+            "threshold": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "AddField、CreateModel、RenameField；测试文件里的同名调用；没有新增行的历史迁移。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "同一文件的 head Python AST",
+          "三点 Diff",
+          "文件路径"
         ],
-        "finding": "data.django_destructive_migration Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "data.django_destructive_migration 设计 Finding。011 不生成运行时 Finding。",
         "evidence_location": [
-          "file path",
-          "node or diff lines"
+          "migration path",
+          "operation name",
+          "added lines"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "该操作调用，不读取其他迁移文件。",
         "impact_type": "external_impact"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django migration operations: DeleteModel",
+          "Django migration operations: RemoveField",
+          "Django migration operations: RunSQL and RunPython are not treated as hits"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "被删的模型可能尚未上线。类名仍然是删除操作。",
+        "false_negative": "DROP 写在 RunSQL 或 RunPython 里。",
+        "dynamic_language": "操作列表由循环生成时，静态调用名可能不完整。",
+        "does_not_decide": "不证明生产库已经丢数据，也不判断反向迁移能否成功。",
+        "manual_review": "需要看迁移依赖、数据拷贝和发布说明。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "统计稳定性及其对人工复核排序的影响。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "SQL 字符串不分类",
+          "迁移依赖图不建",
+          "没有检测器"
         ]
       }
     },
@@ -1762,7 +1888,9 @@
         "risk_nature": "external_impact",
         "dependency_level": "database",
         "applicability": [
-          "Python"
+          "Python",
+          "Django model fields",
+          "AlterField and AddField"
         ],
         "target_layer": [
           "ast_syntax",
@@ -1777,65 +1905,89 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "新增 null=False 且无默认值 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "已有字段的 null=True 消失或变成 False，或 AddField 新增不可空列。",
+        "why_worth_detecting": "Django 把 null 定义为数据库存储，默认 False。已有行可能没有值。",
+        "expected_consequence": "约束比 base 更紧。不证明迁移已经在某个数据库失败。",
+        "coverage_gap": "破坏性迁移规则只看 DeleteModel 和 RemoveField。blank 只影响表单，不并入本规则。",
+        "value": "要求读出 null= 右侧文本。当前字面量字段不存布尔值，所以仍是 draft。"
       },
       "definition": {
-        "target": "新增 null=False 且无默认值",
-        "trigger": "检测到与新增 null=False 且无默认值一致的结构或变更条件时生成 Finding。",
+        "target": "同一文件的模型字段调用，或迁移中的 AlterField/AddField。",
+        "trigger": "null 从 True 变为 False 或缺失；AddField 的字段表达式不是 null=True。CreateModel 的默认不可空字段不触发。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
-            "value_type": "string",
+            "name": "null_keyword",
+            "source": "调用源码中 null= 的右侧",
+            "value_type": "enum",
             "operator": "contains",
-            "threshold": "新增 null=False 且无默认值",
-            "required": true
+            "required": true,
+            "threshold": [
+              "true",
+              "false",
+              "absent"
+            ]
+          },
+          {
+            "name": "tightened",
+            "source": "base/head 的 null 比较，或 AddField 且不是 null=True",
+            "value_type": "boolean",
+            "operator": "eq",
+            "required": true,
+            "threshold": true
+          },
+          {
+            "name": "call_changed",
+            "source": "调用与 diff 行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "required": true,
+            "threshold": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "只改 blank；null=True 保持或被加上；新建模型的默认字段；RemoveField。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "同一文件的 base/head Python AST",
+          "未截断调用切片",
+          "三点 Diff"
         ],
-        "finding": "data.django_non_null_constraint_tightened Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "data.django_non_null_constraint_tightened 设计 Finding。011 不生成运行时 Finding。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "field name",
+          "null text before and after"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "该字段调用或迁移操作。",
         "impact_type": "external_impact"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django model field reference: null defaults to False and is distinct from blank",
+          "Django migration operations: AlterField and AddField"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "同一次迁移可能用 preserve_default 填充已有行。结构上仍是收紧。",
+        "false_negative": "约束写在 CheckConstraint、触发器或 RunSQL。",
+        "dynamic_language": "循环和 contribute_to_class 生成的字段看不到。",
+        "does_not_decide": "不查询已有 NULL，也不判断某个数据库后端会不会失败。",
+        "manual_review": "需要看默认值、preserve_default 和后端差异。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "统计稳定性及其对人工复核排序的影响。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "literal_facts 不保存布尔值",
+          "父类字段不跨文件",
+          "没有检测器"
         ]
       }
     },
@@ -1972,7 +2124,9 @@
         "risk_nature": "external_impact",
         "dependency_level": "database",
         "applicability": [
-          "Python"
+          "Python",
+          "Django transaction.atomic",
+          "同一函数的包含关系当前缺失"
         ],
         "target_layer": [
           "ast_syntax",
@@ -1987,65 +2141,66 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "atomic/commit/rollback 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "写入或加锁语句相对于 atomic 块的位置可能变化。",
+        "why_worth_detecting": "默认自动提交下，块外查询会单独提交。只看到 atomic 这个名字不能说明哪些语句还在块内。",
+        "expected_consequence": "回滚范围可能变化。当前没有可执行的 Hit，因此不报告这条后果已经发生。",
+        "coverage_gap": "data.transaction_structure_changed 已经覆盖事务调用的粗线索。再报告 atomic 出现会重复，且仍无边界。",
+        "value": "写明缺的是语句包含关系，避免用跨文件调用图或临时检测器填这个洞。"
       },
       "definition": {
-        "target": "atomic/commit/rollback",
-        "trigger": "检测到与atomic/commit/rollback一致的结构或变更条件时生成 Finding。",
+        "target": "设计上是同一函数内的写入或 select_for_update，以及包围它的 atomic。当前节点没有这层配对。",
+        "trigger": "包含关系不存在时没有 Hit 条件。不允许用调用名出现与否代替。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
-            "value_type": "string",
-            "operator": "contains",
-            "threshold": "atomic/commit/rollback",
+            "name": "enclosing_atomic",
+            "source": "语句是否位于同一函数的 atomic 块内；当前 stage04 没有该字段",
+            "value_type": "boolean",
+            "operator": "changed",
             "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "在包含关系可读之前不触发。缺少字段不是边界未变化。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "同一文件的 call、decorator 和 control_flow 节点"
         ],
-        "finding": "data.django_transaction_boundary_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "011 不设计替代 Finding，也不生成运行时 Finding。",
         "evidence_location": [
-          "file path",
-          "node or diff lines"
+          "statement line",
+          "enclosing atomic line"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "需要语句和包围它的 with 或装饰器。只切出 atomic() 一行不够。",
         "impact_type": "external_impact"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django database transactions: autocommit and atomic as decorator or context manager",
+          "Django QuerySet.select_for_update",
+          "Existing runtime rule data.transaction_structure_changed remains the coarse signal"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "若只报告 atomic 出现，会把无关导入和合法拆分都算进来。所以当前不报告。",
+        "false_negative": "helper、其他文件的混入和数据库触发器都不内联。",
+        "dynamic_language": "atomic 的别名或 getattr 即使将来有包含关系也仍要 Unanalyzed。",
+        "does_not_decide": "不判断隔离级别、死锁或丢失更新已经发生。",
+        "manual_review": "需要函数全文、ATOMIC_REQUESTS 和查询发出的时机。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "统计稳定性及其对人工复核排序的影响。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "包含关系成为显式字段之前不写检测器测试。011 只用构造场景说明当前不能判定。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "语句与 atomic 的包含关系不存在",
+          "不内联 helper，不做跨文件调用图",
+          "没有检测器"
         ]
       }
     },
@@ -2060,7 +2215,8 @@
         "risk_nature": "pr_intrinsic",
         "dependency_level": "framework",
         "applicability": [
-          "Python"
+          "Python",
+          "Django deployment checklist setting names"
         ],
         "target_layer": [
           "ast_syntax",
@@ -2075,65 +2231,84 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "settings.py 安全与环境常量 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "部署检查清单中的七个设置名在模块级赋值里发生变化。",
+        "why_worth_detecting": "这些名字被 Django 标成部署时要核对的设置。变化方向不表示新值已经安全。",
+        "expected_consequence": "密钥、调试开关、主机或 cookie 标志的声明变了。不判断生产环境实际值。",
+        "coverage_gap": "config.configuration_structure_changed 不指出设置名。code.hardcoded_secret 不覆盖 DEBUG 这类没有秘密字面量的变化。",
+        "value": "用官方清单的闭集，而不是项目自定义名单。闭集外记 Unanalyzed。"
       },
       "definition": {
-        "target": "settings.py 安全与环境常量",
-        "trigger": "检测到与settings.py 安全与环境常量一致的结构或变更条件时生成 Finding。",
+        "target": "模块级直接名称赋值，名称属于 SECRET_KEY、SECRET_KEY_FALLBACKS、DEBUG、ALLOWED_HOSTS、DATABASES、CSRF_COOKIE_SECURE、SESSION_COOKIE_SECURE。",
+        "trigger": "名字在闭集内，且赋值指纹或有无发生变化，并与新增或删除行相交。详见规则卡片。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
+            "name": "setting_name",
+            "source": "模块级赋值目标的直接名称",
             "value_type": "string",
             "operator": "contains",
-            "threshold": "settings.py 安全与环境常量",
-            "required": true
+            "required": true,
+            "threshold": [
+              "SECRET_KEY",
+              "SECRET_KEY_FALLBACKS",
+              "DEBUG",
+              "ALLOWED_HOSTS",
+              "DATABASES",
+              "CSRF_COOKIE_SECURE",
+              "SESSION_COOKIE_SECURE"
+            ]
+          },
+          {
+            "name": "assignment_changed",
+            "source": "赋值指纹或有无变化，且与 diff 行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "required": true,
+            "threshold": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "闭集外的名字；函数内同名局部变量；只改注释。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "同一文件的 base/head Python AST",
+          "三点 Diff"
         ],
-        "finding": "config.django_sensitive_settings_changed Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "config.django_sensitive_settings_changed 设计 Finding。不把秘密全文列为必填证据。011 不生成运行时 Finding。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "setting name",
+          "value fingerprint changed"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "赋值语句本身。长密钥不要求全文展示。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "framework_docs_and_project_constraints",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Django deployment checklist: SECRET_KEY, DEBUG, ALLOWED_HOSTS, DATABASES, CSRF_COOKIE_SECURE, SESSION_COOKIE_SECURE",
+          "Django settings reference for those names"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "开发设置文件里的 DEBUG 切换不一定影响生产。规则不区分文件角色。",
+        "false_negative": "设置在未改动的私有模块，或只存在于仓库外的环境变量。",
+        "dynamic_language": "下标赋值、解包和 globals() 不覆盖。",
+        "does_not_decide": "不判断新值是否适合生产，也不判断密钥已经泄露。",
+        "manual_review": "需要看该文件是开发默认还是生产模块。"
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "NetBox 真实 PR、人工标注和已知案例。",
-        "dataset": "NetBox 冻结数据集；后续明确 PR 范围。",
-        "oracle": "人工标注与可靠历史案例。",
+        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
           "Precision",
           "Recall"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "布尔方向没有结构化字段",
+          "项目自定义设置名单不存在，011 不补",
+          "没有检测器"
         ]
       }
     },

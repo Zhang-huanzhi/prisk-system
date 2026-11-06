@@ -8,7 +8,7 @@
 
 新卡片按 [规则说明卡片模板](rule-card-template.md) 编写。模板用于设计与验证记录。卡片上的生命周期是研究状态；`implemented` 只表示检测器和构造测试已经接入，不表示实证验证。
 
-工程验证和实证责任见 [责任矩阵](rule-responsibility-matrix.md)。候选规则和生命周期的状态看板是 [规则知识库](README.md)。登记册 JSON 若与卡片不一致，以卡片为设计依据。JSON 登记册和 [规则元数据 schema](../schemas/rule-metadata.schema.json) 都不是运行时配置。
+工程验证和实证责任见 [责任矩阵](rule-responsibility-matrix.md)。候选规则和生命周期的状态看板是 [规则知识库](README.md)。011 的 [结构可行性筛选](structural-feasibility.md) 覆盖看板上的 20 条候选，只区分局部 Diff/AST、有界框架上下文和需要跨文件或未定项目政策的延后项。它不是运行结果。登记册 JSON 若与卡片不一致，以卡片为设计依据。JSON 登记册和 [规则元数据 schema](../schemas/rule-metadata.schema.json) 都不是运行时配置。运行时目录仍是 13 条。
 
 ## 阵营目录
 
