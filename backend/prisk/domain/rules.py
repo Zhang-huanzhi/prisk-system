@@ -11,6 +11,7 @@ from typing import Any
 
 from .changes import load_records, write_jsonl
 from .code_smells import CODE_SMELL_RULES, collect_code_smell_findings
+from .test_collaboration import COLLABORATION_RULE_ID, collect_test_collaboration
 
 
 RULE_SCHEMA_VERSION = "stage05.v2"
@@ -58,6 +59,14 @@ RULE_CATALOG = [
         "limitations": "不判断运行时异常传播或实际错误响应",
     },
     *CODE_SMELL_RULES,
+    {
+        "rule_id": COLLABORATION_RULE_ID,
+        "severity": "medium",
+        "trigger": "生产代码有行数证据的新增、修改或删除，且没有测试文件新增、修改、删除或重命名",
+        "evidence_type": "metric_value",
+        "suggested_action": "复核这些生产代码路径是否仍有相应测试计划。本规则不判断已有测试是否足够。",
+        "limitations": "只比较默认路径分类下的文件变更。纯重命名不是生产内容变化。统计或分类不完整时进入未分析，不表示通过，也不说明测试缺失、回归或缺陷。",
+    },
 ]
 
 _INTERFACE_PATH = re.compile(r"/(?:api|graphql)/|(?:serializers?|viewsets?|views?|urls?)\.py$", re.I)
@@ -168,13 +177,9 @@ def _unanalyzed_files(record: dict[str, Any]) -> list[dict[str, str]]:
     return entries
 
 
-def _testing_collaboration(record: dict[str, Any]) -> bool:
-    summary = record.get("summary", {})
-    if "business_changed" in summary or "test_changed" in summary:
-        return bool(summary.get("business_changed") and not summary.get("test_changed"))
-    business_changed = any(file_item.get("role") == "business" for file_item in record.get("files", []))
-    test_changed = any(file_item.get("role") == "test" for file_item in record.get("files", []))
-    return bool(business_changed and not test_changed)
+def _testing_collaboration(finding: dict[str, Any] | None) -> bool:
+    """The historical score flag is true only when this rule emits a Finding."""
+    return finding is not None
 
 
 def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -215,6 +220,9 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             findings.append(_finding(rule, path, changes))
     smell_findings, smell_gaps = collect_code_smell_findings(stage04_record, enabled)
     findings.extend(smell_findings)
+    collaboration_finding, collaboration_gaps = collect_test_collaboration(stage04_record, enabled)
+    if collaboration_finding is not None:
+        findings.append(collaboration_finding)
 
     degraded = any(
         "failed" in file_item.get("parse_status", {}).values()
@@ -232,9 +240,9 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
         "summary": {
             "finding_count": len(findings),
             "domains": domains,
-            "test_collaboration": _testing_collaboration(stage04_record),
+            "test_collaboration": _testing_collaboration(collaboration_finding),
             "parse_degraded": degraded,
-            "unanalyzed": [*_unanalyzed_files(stage04_record), *smell_gaps],
+            "unanalyzed": [*_unanalyzed_files(stage04_record), *smell_gaps, *collaboration_gaps],
         },
         "errors": [],
     }

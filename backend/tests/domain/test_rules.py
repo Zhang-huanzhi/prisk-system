@@ -30,7 +30,7 @@ def stage04(files: list[dict], **summary: bool) -> dict:
 
 class RuleTests(unittest.TestCase):
     def test_catalog_has_structural_and_code_smell_rules(self) -> None:
-        self.assertEqual(len(RULE_CATALOG), 12)
+        self.assertEqual(len(RULE_CATALOG), 13)
         self.assertEqual(
             {item["rule_id"] for item in RULE_CATALOG},
             {
@@ -46,6 +46,7 @@ class RuleTests(unittest.TestCase):
                 "code.deep_control_flow",
                 "code.hardcoded_secret",
                 "code.global_mutable_state",
+                "workflow.test_collaboration_gap",
             },
         )
         self.assertTrue(all("scene" not in item for item in RULE_CATALOG))
@@ -79,16 +80,19 @@ class RuleTests(unittest.TestCase):
         self.assertIn("code.exception_structure_changed", ids)
         self.assertEqual(result["summary"]["domains"], ["auth", "code", "config", "data"])
 
-    def test_testing_collaboration_is_auxiliary_only(self) -> None:
+    def test_collaboration_claim_without_file_stats_is_unanalyzed(self) -> None:
         result = evaluate_rules(stage04([]))
-        self.assertTrue(result["summary"]["test_collaboration"])
+        self.assertFalse(result["summary"]["test_collaboration"])
         self.assertEqual(result["findings"], [])
+        self.assertEqual(result["summary"]["unanalyzed"], [{"path": "", "reason": "diff_stats_unavailable"}])
 
-    def test_testing_collaboration_falls_back_to_stage04_file_roles(self) -> None:
+    def test_ast_only_stage04_does_not_award_collaboration(self) -> None:
         record = stage04([{"path": "netbox/core/models.py", "role": "business"}])
         record["summary"] = {}
         result = evaluate_rules(record)
-        self.assertTrue(result["summary"]["test_collaboration"])
+        self.assertFalse(result["summary"]["test_collaboration"])
+        self.assertEqual(result["summary"]["unanalyzed"], [])
+        self.assertEqual(result["findings"], [])
 
     def test_excluded_and_error_records_propagate(self) -> None:
         excluded = evaluate_rules({"status": "excluded", "pr_number": 1})

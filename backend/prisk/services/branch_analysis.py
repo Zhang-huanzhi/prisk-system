@@ -9,7 +9,7 @@ from ..domain.changes import build_change_object, classify_path
 from .project_service import ProjectError
 from ..domain.rules import evaluate_rules, rule_domain
 from ..domain.structure import extract_changed_structures
-from .demo_service import normalize_config
+from .demo_service import collaboration_points, normalize_config, summed_rule_points
 
 
 def _resolve_ref(repo: Path, ref: str) -> str:
@@ -29,13 +29,12 @@ def _resolve_ref(repo: Path, ref: str) -> str:
 def _score(rule_record: dict[str, Any], config: dict[str, Any]) -> tuple[int, str, dict[str, Any]]:
     enabled = set(config["enabled_rules"])
     matched = {item.get("rule_id") for item in rule_record.get("findings", []) if item.get("rule_id") in enabled}
-    maximum = sum(config["rule_weights"][rule_id] for rule_id in enabled)
-    earned = sum(config["rule_weights"][rule_id] for rule_id in matched)
+    maximum = summed_rule_points(enabled, config["rule_weights"])
+    earned = summed_rule_points(matched, config["rule_weights"])
     collaboration = bool(rule_record.get("summary", {}).get("test_collaboration"))
-    if config["test_collaboration_enabled"]:
-        maximum += config["test_collaboration_weight"]
-        if collaboration:
-            earned += config["test_collaboration_weight"]
+    collaboration_maximum, collaboration_earned = collaboration_points(config, collaboration)
+    maximum += collaboration_maximum
+    earned += collaboration_earned
     score = round(100 * earned / maximum) if maximum else 0
     level = "high" if score >= config["thresholds"]["high"] else "medium" if score >= config["thresholds"]["medium"] else "low"
     return score, level, {
@@ -121,7 +120,8 @@ def analyze_branches(
             "finding_count": len(findings),
             "domains": sorted({rule_domain(item["rule_id"]) for item in findings if item.get("rule_id")}),
             "scenes": sorted({item.get("scene") for item in findings if item.get("scene")}),
-            "test_collaboration_gap": not bool(rules.get("summary", {}).get("test_collaboration")) and change.get("summary", {}).get("business_changed", False),
+            "test_collaboration_gap": bool(rules.get("summary", {}).get("test_collaboration")),
+            "unanalyzed": rules.get("summary", {}).get("unanalyzed", []),
             "parse_degraded": structure.get("summary", {}).get("files_degraded", 0) > 0,
             "structures": structure.get("summary", {}),
         },

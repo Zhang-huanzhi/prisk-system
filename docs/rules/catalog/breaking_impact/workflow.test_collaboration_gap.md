@@ -3,11 +3,11 @@
 | 字段 | 内容 |
 | --- | --- |
 | 规则 ID | `workflow.test_collaboration_gap` |
-| 版本 / 阵营 / 生命周期 | `v1` / `breaking_impact` / `draft` |
+| 版本 / 阵营 / 生命周期 | `v1` / `breaking_impact` / `implemented` |
 | 负责人 | `Prisk-System` |
 | 风险性质 / 依赖层级 | `pr_intrinsic` / `process` |
-| 适用范围 | 跨语言 PR；项目需提供生产代码与测试路径的分类配置 |
-| 分析目标层 / 证据形态 | `change_metadata`, `diff_delta` / `metric_value`, `code_slice` |
+| 适用范围 | 使用仓库内默认路径分类的变更。生产代码后缀为 `.py`、`.pyi`、`.js`、`.jsx`、`.ts`、`.tsx`；其他路径在无法归类时未分析 |
+| 分析目标层 / 证据形态 | `change_metadata`, `diff_delta` / `metric_value` |
 | 严重度 / 一票抬升 | `Medium` / `false`，条件 `null`；设计值待验证 |
 
 ## 制定理由
@@ -19,11 +19,24 @@
 - 检测对象：项目配置分类后的 PR 文件变化，包含新增、修改、重命名和删除；重命名须同时检查前后路径。
 - 触发：差异完整且路径分类规则可用，至少一个生产代码文件发生新增、修改或删除，且该 PR 没有任何测试文件发生新增、修改、删除或重命名。纯生产代码路径重命名默认不视作生产内容变化；需根据 Diff 判断。
 - 不触发：没有生产代码变化，或至少一个测试文件发生变化。缺少完整 Diff、分类配置或无法判断时标记未分析，不当作未命中。
-- 特征（拟定，均非现有运行能力）：`production_files_changed`（按项目分类的生产代码内容变动文件数，integer，`gte 1`）；`test_files_changed`（按项目分类的测试变动文件数，integer，`eq 0`）；`diff_complete`（Diff 是否完整，boolean，`eq true`）。
+- 特征：`production_files_changed`（默认分类下有行数证据的生产代码内容变动文件数，integer，`gte 1`）；`test_files_changed`（测试路径上新增、修改、删除或重命名的文件数，integer，`eq 0`）；`diff_complete`（每条参与判断的文件都有状态，且生产代码内容判断所需的新增/删除行数可用，boolean，`eq true`）。分类或统计不完整时不把 `diff_complete` 当成 true。
 - 纯删除边界：额外记录 `production_additions` 和 `production_deletions`。生产代码新增行数为 0 且删除行数大于 0 时标记 `code_removal`，仍按上述条件提示，但单独展示供人工复核；是否调整严重度或另设规则待实证，不自动降低严重度。仅依据行数不能确认是死代码删除或功能下线；二进制或统计不完整时标记未知。
 - 输入与输出：三点 Diff、分类规则、文件状态；Finding 给出生产路径、测试变化计数为 0、分类配置和统计范围，供审查者人工检查测试计划。测试路径列表、外部测试来源及无法分类项作为上下文展示。
 
-示例：修改 `src/order.py` 且没有任何测试文件变化，分类配置和 Diff 完整时触发；同一个 PR 同时修改 `src/order.py` 和 `tests/test_order.py` 时不触发。仅修改文档或 Diff 不完整时不触发，但后者需标记未分析。
+示例：修改 `src/order.py` 且没有任何测试文件变化，分类和行数都完整时触发；同一个 PR 同时修改 `src/order.py` 和 `tests/test_order.py` 时不触发。仅修改文档时不触发。Diff 行数缺失、生产代码为二进制，或路径无法分类时不触发，并写入 `summary.unanalyzed`。
+
+## 当前实现
+
+检测器在 `backend/prisk/domain/test_collaboration.py`，由 `evaluate_rules` 调用。它不读取 JSON 登记册。默认路径策略 `default_source_and_test_directories` 固定在源码中：
+
+- 测试：路径段 `test` 或 `tests`，或 Python 文件名 `test_*.py` / `*_test.py`（含 `.pyi`）。这与 stage03 的 `classify_path` 测试约定一致，因此覆盖 `backend/tests`。
+- 非生产：`doc` / `docs`、`.md` / `.rst`、`migration` / `migrations`、`generated`、`static`，以及 `settings.py`、`configuration*.py` 和 `config` / `settings` / `configuration` 路径段。
+- 生产：其余 `.py`、`.pyi`、`.js`、`.jsx`、`.ts`、`.tsx`。
+- 其他路径为未知。
+
+纯重命名或复制在新增行数和删除行数都为 0 时不是生产内容变化。测试路径上的重命名仍然算测试文件变化。生产代码新增行数为 0 且删除行数大于 0 时，Finding 的 `change_boundary` 为 `code_removal`，严重度不因此降低。
+
+没有文件状态、新增/删除行数或 `binary` 字段的 stage04 记录不进入这条规则的文件变更通道。此时不产生 Finding，也不把历史协作分记上；这不是已复核通过。已保存的 demo stage05 不重算。摘要计数和文件列表不一致时，原因是 `diff_stats_unavailable`。路径无法分类时，原因是 `path_classification_unavailable`。规则未启用时，不因为未知路径写入未分析。
 
 ## 理论与项目依据
 

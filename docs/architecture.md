@@ -14,7 +14,7 @@
 
 分析只读取已提交快照，不执行 checkout、fetch、merge、pull，不纳入未提交工作区。
 
-v1.1 的代码异味规则读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。004 接入 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution`。005 在同一管道接入 `code.unmanaged_open` 和 `code.deep_control_flow`。006 在同一管道接入 `code.hardcoded_secret` 和 `code.global_mutable_state`。它们不替换既有五条结构规则，也不表示秘密、漏洞或可变状态串扰已经发生。JSON 登记册仍不是运行时配置。
+v1.1 的代码异味规则读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。004 接入 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution`。005 在同一管道接入 `code.unmanaged_open` 和 `code.deep_control_flow`。006 在同一管道接入 `code.hardcoded_secret` 和 `code.global_mutable_state`。它们不替换既有五条结构规则，也不表示秘密、漏洞或可变状态串扰已经发生。007 的 `workflow.test_collaboration_gap` 不读 AST，只读三点 Diff 留下的文件状态和新增/删除行数，并使用源码中的默认路径分类。证据不足时写入既有的 `summary.unanalyzed`。它的默认权重仍是原来的测试协同权重 1，不另加一分，默认可得权重仍是 10。JSON 登记册仍不是运行时配置。
 
 ## Python 分层
 
