@@ -24,7 +24,7 @@
 | `docs/assets/` | 研究资产；当前状态写在该目录 README |
 | `docs/adr/` | 架构决策。当前没有已发布条目 |
 
-`docs/blueprint.md` 定义目标系统。当前实现以 `docs/architecture.md` 和已接受任务的记录为准。蓝图中的机器学习、权重调优、动态配置、NotFound 全量跟踪和 NetBox 实证验证不是已经落地的能力。
+`docs/blueprint.md` 定义目标系统。当前实现以 `docs/architecture.md` 和已接受任务的记录为准。蓝图中的机器学习、权重调优、动态配置和 NetBox 实证验证不是已经落地的能力。009 只为当前 13 条运行时规则在新鲜分析里记录终态；不能成立的上下文不记 NotFound，已保存历史也不补写。
 
 ## 版本目录
 

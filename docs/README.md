@@ -4,7 +4,7 @@
 
 ## 必读
 
-开发者和 AI 在改动本系统前阅读 [核心蓝图](blueprint.md)。该文件是目标系统规格的原文。它不把机器学习、权重调优、动态配置、NotFound 全量跟踪或 NetBox 实证验证登记为当前实现。当前实现见 [架构说明](architecture.md)，已接受任务见 [活动任务](tasks/README.md)。
+开发者和 AI 在改动本系统前阅读 [核心蓝图](blueprint.md)。该文件是目标系统规格的原文。它不把机器学习、权重调优、动态配置或 NetBox 实证验证登记为当前实现。009 起，新鲜分析会为当前 13 条运行时规则记录 Hit / NotFound / Unanalyzed；上下文不成立时不记 NotFound，已保存历史快照也不补写终态。当前实现见 [架构说明](architecture.md)，活动任务见 [活动任务](tasks/README.md)。
 
 ## 文档分层
 

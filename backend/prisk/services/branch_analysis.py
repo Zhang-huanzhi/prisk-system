@@ -135,10 +135,13 @@ def analyze_branches(
             for item in change.get("files", [])
         ],
         "findings": findings,
+        "rule_outcomes": rules.get("rule_outcomes", []),
+        "rule_outcome_availability": "recorded",
         "limitations": [
             "分支分析只读取已提交的 base/head 快照，不纳入未提交工作区。",
             "评分用于排列人工复核优先级，不是缺陷概率或安全结论。",
             "规则命中仅表示对应结构值得检查，需结合业务上下文人工确认。",
+            "未发现只表示该规则已在适用上下文中完整执行；无法分析不是通过，也不表示代码安全。",
         ],
         "errors": [],
     }

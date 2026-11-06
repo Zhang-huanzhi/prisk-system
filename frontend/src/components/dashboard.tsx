@@ -26,6 +26,11 @@ type Finding = {
   rule_id: string; severity: string; message: string;
   suggested_action: string; evidence: Evidence[];
 };
+type OutcomeObject = { path: string; node_id?: string };
+type RuleOutcome = {
+  rule_id: string; state: "Hit" | "NotFound" | "Unanalyzed";
+  reasons?: { reason: string; objects: OutcomeObject[] }[];
+};
 type DiffLine = { kind: "context" | "add" | "delete"; old_line: number | null; new_line: number | null; text: string };
 type Hunk = { old_start: number; old_count: number; new_start: number; new_count: number; lines: DiffLine[] };
 type DiffFile = {
@@ -47,9 +52,11 @@ type Report = {
     finding_count: number; domains?: string[]; files_changed: number; business_files: number;
     test_files: number; additions: number; deletions: number; business_changed: boolean;
     test_changed: boolean; test_cochanged: boolean; test_collaboration_gap: boolean; parse_degraded: boolean;
-    unanalyzed?: { path: string; reason: string }[];
+    unanalyzed?: { path: string; reason: string; node_ids?: string[] }[];
   };
   files: DiffFile[]; findings: Finding[]; limitations: string[];
+  rule_outcomes?: RuleOutcome[] | null;
+  rule_outcome_availability?: "recorded" | "unavailable";
 };
 type PRItem = {
   pr_number: number; title: string; author?: string; url?: string; status: string;
@@ -88,6 +95,52 @@ const ruleLabels: Record<string, string> = {
   "code.global_mutable_state": "全局可变状态",
   "workflow.test_collaboration_gap": "生产代码变更未见测试路径变更",
 };
+const outcomeLabels: Record<RuleOutcome["state"], string> = {
+  Hit: "命中", NotFound: "未发现", Unanalyzed: "无法分析",
+};
+const reasonLabels: Record<string, string> = {
+  path_classification_unavailable: "路径无法分类",
+  diff_stats_unavailable: "差异统计不完整",
+  unsupported_stage04_details: "结构细节不足",
+  syntax_error: "语法解析失败",
+  head_parse_failed: "头版本解析失败",
+  git_show_error: "源码无法读取",
+  missing_framework_context: "缺少该规则的框架或路径上下文",
+  context_not_established: "没有可完成判断的对象",
+  missing_file_change_channel: "没有文件变更通道",
+  prior_stage_unavailable: "前置阶段不可用",
+};
+function reasonText(reason: string) { return reasonLabels[reason] ?? reason; }
+function outcomesRecorded(report: Report) { return report.rule_outcome_availability === "recorded" && Array.isArray(report.rule_outcomes); }
+function outcomeFor(report: Report, ruleId: string) {
+  return report.rule_outcomes?.find((item) => item.rule_id === ruleId);
+}
+function outcomeNote(outcome: RuleOutcome) {
+  if (outcome.state !== "Unanalyzed") return "";
+  return (outcome.reasons ?? []).map((item) => {
+    const objects = item.objects.map((object) => object.node_id ? `${object.path || "本次变更"}:${object.node_id}` : (object.path || "本次变更")).filter(Boolean);
+    const shown = objects.slice(0, 3).join("、");
+    const extra = objects.length > 3 ? ` 等 ${objects.length} 个对象` : "";
+    return `${reasonText(item.reason)}${shown ? `（${shown}${extra}）` : ""}`;
+  }).join("；");
+}
+function findingAbsenceCopy(report: Report) {
+  if (!outcomesRecorded(report)) return "这次结果没有规则终态记录。没有 Finding 不能当成未发现或已通过，也不表示代码安全。";
+  const outcomes = report.rule_outcomes ?? [];
+  const unanalyzed = outcomes.filter((item) => item.state === "Unanalyzed").length;
+  const notFound = outcomes.filter((item) => item.state === "NotFound").length;
+  if (unanalyzed > 0) return `没有规则命中。${notFound} 条规则在适用上下文中未发现特征，${unanalyzed} 条无法分析。无法分析不是通过，也不表示代码安全。`;
+  return "已启用且上下文适用的规则均未发现风险特征。这不是安全结论。";
+}
+function collaborationCopy(report: Report) {
+  const outcome = outcomeFor(report, "workflow.test_collaboration_gap");
+  if (!outcomesRecorded(report) || !outcome) {
+    return { tone: "neutral", text: "历史快照没有测试协同规则的终态。文件计数不能当成已有测试覆盖，也不表示代码安全。" };
+  }
+  if (outcome.state === "Hit") return { tone: "attention", text: "生产代码变更未见测试路径变更。这是复核提示，不是测试缺失或安全结论。" };
+  if (outcome.state === "NotFound") return { tone: "neutral", text: "测试协同规则已在适用的文件变更里完整执行，未发现该复核特征。这不是安全结论。" };
+  return { tone: "attention", text: "测试协同规则无法分析。没有可成立的测试上下文结论，不能当成已通过或代码安全。" };
+}
 const initialConfig: Config = {
   enabled_rules: Object.keys(ruleLabels),
   rule_weights: {
@@ -320,7 +373,6 @@ export function Dashboard() {
   }), [dataset, riskFilter, domainFilter, search]);
 
   const selectedFile = report?.files.find((file) => file.path === selectedPath) ?? null;
-  const matchedRuleIds = new Set(report?.findings.map((finding) => finding.rule_id) ?? []);
   const openTab = (tab: TabId) => {
     setActiveTab(tab);
     if (activePr !== null) writeLocation(activePr, tab);
@@ -438,7 +490,7 @@ export function Dashboard() {
           {!report ? <div className="loading-panel"><LoaderCircle className="spin" size={24} />{busy ? "正在载入 PR 分析对象…" : "等待选择 PR"}</div> : <>
             {activeTab === "overview" && <Overview report={report} baselineScore={baselineScore} onShowRules={() => openTab("rules")} onShowCode={() => openTab("code")} onLocate={locateEvidence} />}
             {activeTab === "code" && <CodeReview report={report} file={selectedFile} selectedPath={selectedPath} setSelectedPath={(path) => { setSelectedPath(path); setFocusLines([]); }} focusLines={focusLines} />}
-            {activeTab === "rules" && <RulesView report={report} catalog={dataset?.rules ?? []} expandedRule={expandedRule} setExpandedRule={setExpandedRule} onLocate={locateEvidence} matchedRuleIds={matchedRuleIds} />}
+            {activeTab === "rules" && <RulesView report={report} catalog={dataset?.rules ?? []} expandedRule={expandedRule} setExpandedRule={setExpandedRule} onLocate={locateEvidence} />}
             {activeTab === "scoring" && <ScoringView report={report} catalog={dataset?.rules ?? []} config={config} setConfig={setConfig} onWeight={updateRuleWeight} onToggle={toggleRule} onApply={() => void runAnalysis()} onReset={resetConfig} busy={busy} baselineScore={baselineScore} />}
           </>}
           <footer className="review-footer"><span><span className="status-dot" />本地分析结果</span><span>{analysisMode === "project" ? "stage03.v1 · stage04.v1 · stage05.v1 · stage08.branch-report.v1" : "stage03.v1 · stage04.v1 · stage05.v1 · stage07.report.v1"}</span><span>评分表示复核优先级，不是缺陷概率</span></footer>
@@ -493,6 +545,7 @@ function Overview({ report, baselineScore, onShowRules, onShowCode, onLocate }: 
   report: Report; baselineScore: number | null; onShowRules: () => void; onShowCode: () => void; onLocate: (evidence: Evidence) => void;
 }) {
   const topFindings = report.findings.slice(0, 3);
+  const collaboration = collaborationCopy(report);
   return <div className="tab-page overview-page">
     <div className="overview-summary">
       <div className="score-summary"><span>当前复核优先级</span><strong>{report.score}<small>/100</small></strong><span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span><small>基线 {baselineScore ?? report.score} · 阈值 {report.score_basis.configuration.thresholds.medium}/{report.score_basis.configuration.thresholds.high}</small></div>
@@ -501,12 +554,12 @@ function Overview({ report, baselineScore, onShowRules, onShowCode, onLocate }: 
         <div className="summary-stat"><span>规则命中</span><strong>{report.findings.length}</strong></div><div className="summary-stat"><span>命中关注域</span><strong className="scene-stat">{(report.summary.domains ?? []).map((domain) => domainLabels[domain] ?? domain).join("、") || "无"}</strong></div>
       </div>
     </div>
-    <div className={`collab-banner ${report.summary.test_cochanged ? "success" : "attention"}`}><span className="collab-icon">{report.summary.test_cochanged ? <Check size={16} /> : <AlertCircle size={16} />}</span><span>{report.summary.test_cochanged ? "业务代码与测试文件有协同变更" : report.summary.business_changed ? "有业务代码变更，但没有测试文件协同" : "本次变更未涉及业务代码"}</span><small>辅助复核信号，不单独构成风险判断</small></div>
+    <div className={`collab-banner ${collaboration.tone}`}><span className="collab-icon">{collaboration.tone === "attention" ? <AlertCircle size={16} /> : <CircleHelp size={16} />}</span><span>{collaboration.text}</span><small>辅助复核信号，不单独构成风险判断</small></div>
     <div className="overview-columns">
       <section className="overview-section"><div className="section-heading"><div><h2>重点风险线索</h2><p>当前分析命中的结构规则</p></div><button className="text-action" onClick={onShowRules}>查看全部 <ChevronRight size={14} /></button></div>
         {topFindings.length ? <div className="overview-finding-list">{topFindings.map((finding, index) => <button className="overview-finding" key={`${finding.rule_id}-${index}`} onClick={() => finding.evidence[0] && onLocate(finding.evidence[0])}>
           <span className={`finding-symbol domain-${ruleDomain(finding.rule_id)}`}>{domainIcon(ruleDomain(finding.rule_id))}</span><span className="overview-finding-main"><strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong><small>{finding.evidence.length} 条证据 · {finding.evidence[0]?.path}</small></span><ArrowUpRight size={15} />
-        </button>)}</div> : <div className="empty-state compact"><Check size={17} />当前已启用规则均未命中，仍可检查全部代码变更。</div>}
+        </button>)}</div> : <div className="empty-state compact"><CircleHelp size={17} />{findingAbsenceCopy(report)}</div>}
       </section>
       <section className="overview-section change-overview"><div className="section-heading"><div><h2>变更范围</h2><p>{report.diff_mode === "three_dot" ? "来自 base...head 三点 Diff" : "来自冻结 PR 三点 Diff"}</p></div><button className="text-action" onClick={onShowCode}>审查代码 <ChevronRight size={14} /></button></div>
         <div className="file-role-summary"><span><FileCode2 size={16} />业务文件<strong>{report.summary.business_files}</strong></span><span><FileCode2 size={16} />测试文件<strong>{report.summary.test_files}</strong></span><span><FileText size={16} />其他文件<strong>{Math.max(0, report.summary.files_changed - report.summary.business_files - report.summary.test_files)}</strong></span></div>
@@ -551,13 +604,28 @@ function DiffRow({ line, filePath, highlighted }: { line: DiffLine; filePath: st
   </div>;
 }
 
-function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate, matchedRuleIds }: {
+function catalogState(report: Report, ruleId: string) {
+  if (!outcomesRecorded(report)) return { className: "unavailable", label: "终态未记录", note: "历史快照没有这条规则的终态，不能把它当成未发现。" };
+  const outcome = outcomeFor(report, ruleId);
+  if (!outcome) return { className: "disabled", label: "未启用", note: "" };
+  return {
+    className: outcome.state === "Hit" ? "hit" : outcome.state === "NotFound" ? "not-found" : "unanalyzed",
+    label: outcomeLabels[outcome.state],
+    note: outcomeNote(outcome),
+  };
+}
+function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate }: {
   report: Report; catalog: Rule[]; expandedRule: string | null; setExpandedRule: (key: string | null) => void;
-  onLocate: (evidence: Evidence) => void; matchedRuleIds: Set<string>;
+  onLocate: (evidence: Evidence) => void;
 }) {
+  const recorded = outcomesRecorded(report);
+  const outcomes = recorded ? report.rule_outcomes ?? [] : [];
+  const outcomeSummary = recorded
+    ? `命中 ${outcomes.filter((item) => item.state === "Hit").length} · 未发现 ${outcomes.filter((item) => item.state === "NotFound").length} · 无法分析 ${outcomes.filter((item) => item.state === "Unanalyzed").length}`
+    : "终态未记录";
   return <div className="tab-page rules-page">
-    <section className="rules-matched-section"><div className="section-heading"><div><h2>本次分析命中</h2><p>{report.findings.length} 条规则线索 · 展开证据可定位至代码行</p></div><span className="section-number">{report.findings.length}</span></div>
-      {report.summary.unanalyzed?.length ? <div className="parse-warning"><AlertCircle size={15} />{report.summary.unanalyzed.length} 项变更未能完成分析，未按通过处理。{report.summary.unanalyzed.map((item) => `${item.path || "本次变更"}：${item.reason === "path_classification_unavailable" ? "路径无法分类" : "差异统计不完整"}`).join("；")}</div> : null}
+    <section className="rules-matched-section"><div className="section-heading"><div><h2>本次分析命中</h2><p>{report.findings.length} 条规则线索 · {outcomeSummary} · 展开证据可定位至代码行</p></div><span className="section-number">{report.findings.length}</span></div>
+      {report.summary.unanalyzed?.length ? <div className="parse-warning"><AlertCircle size={15} />{report.summary.unanalyzed.length} 项变更未能完成分析，未按通过处理。{report.summary.unanalyzed.map((item) => `${item.path || "本次变更"}：${reasonText(item.reason)}`).join("；")}</div> : null}
       {report.findings.length ? <div className="matched-findings">{report.findings.map((finding, index) => <article className="matched-finding" key={`${finding.rule_id}-${index}`}>
         <button className="matched-finding-head" onClick={() => setExpandedRule(expandedRule === `${finding.rule_id}-${index}` ? null : `${finding.rule_id}-${index}`)} aria-expanded={expandedRule === `${finding.rule_id}-${index}`}>
           <span className={`finding-symbol domain-${ruleDomain(finding.rule_id)}`}>{domainIcon(ruleDomain(finding.rule_id))}</span><span className="matched-finding-title"><small>{finding.rule_id}</small><strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong><span>{finding.message}</span></span>
@@ -567,13 +635,16 @@ function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate, m
           <div><strong>{item.path}</strong><span>{item.node_kind} · {item.structural_change_type}</span><small>{item.qualified_name ?? item.node_id}</small>{evidenceDetail(item) ? <small>{evidenceDetail(item)}</small> : null}<code>{item.lines.map((line) => `L${line}`).join(", ") || "无 Diff 行号"}</code></div>
           <button className="text-action" onClick={() => onLocate(item)} disabled={!item.lines.length}>定位到代码 <ArrowUpRight size={14} /></button>
         </div>)}</div>}
-      </article>)}</div> : <div className="empty-state"><Check size={18} />本次分析未触发已启用规则。未命中不等于不存在风险，可在下方查看规则定义并复核代码。</div>}
+      </article>)}</div> : <div className="empty-state"><CircleHelp size={18} />{findingAbsenceCopy(report)}</div>}
     </section>
-    <section className="rule-catalog-section"><div className="section-heading"><div><h2>规则目录</h2><p>当前实现的规则、触发条件与适用边界</p></div><span className="catalog-count">{catalog.length} 条规则</span></div>
-      <div className="rule-catalog">{catalog.map((rule) => <article className="catalog-rule" key={rule.rule_id}>
-        <div className="catalog-rule-title"><span className={`finding-symbol domain-${ruleDomain(rule.rule_id)}`}>{domainIcon(ruleDomain(rule.rule_id))}</span><div><small>{rule.rule_id}</small><h3>{ruleLabels[rule.rule_id] ?? rule.rule_id}</h3></div><span className={`catalog-state ${matchedRuleIds.has(rule.rule_id) ? "hit" : "miss"}`}>{matchedRuleIds.has(rule.rule_id) ? "本次命中" : "本次未命中"}</span></div>
+    <section className="rule-catalog-section"><div className="section-heading"><div><h2>规则目录</h2><p>当前实现的规则、触发条件与适用边界。终态按本次分析记录，未发现不是安全结论。</p></div><span className="catalog-count">{catalog.length} 条规则</span></div>
+      <div className="rule-catalog">{catalog.map((rule) => {
+        const state = catalogState(report, rule.rule_id);
+        return <article className="catalog-rule" key={rule.rule_id}>
+        <div className="catalog-rule-title"><span className={`finding-symbol domain-${ruleDomain(rule.rule_id)}`}>{domainIcon(ruleDomain(rule.rule_id))}</span><div><small>{rule.rule_id}</small><h3>{ruleLabels[rule.rule_id] ?? rule.rule_id}</h3></div><span className={`catalog-state ${state.className}`}>{state.label}</span></div>
+        {state.note ? <p className="catalog-outcome-note">{state.note}</p> : null}
         <div className="catalog-fields"><CatalogField label="关注域 / 严重程度" value={`${domainLabels[ruleDomain(rule.rule_id)] ?? ruleDomain(rule.rule_id)} · ${severityLabel(rule.severity)}`} /><CatalogField label="触发条件" value={rule.trigger} /><CatalogField label="证据类型" value={rule.evidence_type} /><CatalogField label="适用范围" value={rule.applicable_scope} /><CatalogField label="复核建议" value={rule.suggested_action} /><CatalogField label="当前限制" value={rule.limitations} /></div>
-      </article>)}</div>
+      </article>; })}</div>
     </section>
   </div>;
 }
@@ -627,6 +698,11 @@ function renderMarkdown(report: Report) {
     `# ${report.pr_number ? `PR #${report.pr_number}` : `${report.base_ref} → ${report.head_ref}`} 代码变更复核`, "", `- 标题：${report.title}`, `- 作者：${report.author ?? "未知"}`,
     `- 复核优先级：${report.score}/100（${riskLabel(report.risk_level)}，不是缺陷概率）`,
     `- 变更规模：${report.summary.files_changed} 个文件，+${report.summary.additions} / -${report.summary.deletions}`,
+    "", "## 规则终态", outcomesRecorded(report)
+      ? (report.rule_outcomes ?? []).flatMap((outcome) => [
+        `- ${outcome.rule_id}：${outcomeLabels[outcome.state]}${outcomeNote(outcome) ? `。${outcomeNote(outcome)}` : ""}`,
+      ]).concat(["", "未发现不是安全结论。无法分析不是通过。"])
+      : ["- 这次结果没有规则终态记录。没有 Finding 不能解释为未发现或已通过。"],
     "", "## 规则线索", ...report.findings.flatMap((finding) => [
       "", `### ${finding.rule_id}`, `- ${finding.message}`, `- 复核建议：${finding.suggested_action}`,
       ...finding.evidence.map((item) => `- ${item.path}:${item.lines.join(",")} · ${item.node_kind} · ${item.structural_change_type} · ${item.qualified_name ?? item.node_id}${evidenceDetail(item) ? ` · ${evidenceDetail(item)}` : ""}`),

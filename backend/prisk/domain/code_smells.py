@@ -985,9 +985,14 @@ def _secret_findings(
     enabled: set[str],
     *,
     legacy_snapshot: bool,
-) -> tuple[list[dict[str, Any]], bool]:
+) -> tuple[list[dict[str, Any]], bool, bool]:
+    """Return findings, evaluable, and whether this node was in the rule's context.
+
+    The third value only feeds rule outcomes. It does not change which findings
+    are emitted.
+    """
     if "code.hardcoded_secret" not in enabled:
-        return [], True
+        return [], True, False
     kind = node.get("kind")
     if kind == "literal_binding":
         details = node.get("details") or {}
@@ -995,28 +1000,28 @@ def _secret_findings(
         form = details.get("binding_form")
         name = details.get("binding_name")
         if isinstance(name, str) and form in BINDING_FORMS and recorded is not None:
-            return _secret_from_parts(path, file_item, node, [(name, str(form), recorded)]), True
+            return _secret_from_parts(path, file_item, node, [(name, str(form), recorded)]), True, True
         recovered = _recover_literal_bindings(node.get("source_segment"), bool(node.get("source_segment_truncated")))
         if recovered is None:
-            return [], False
-        return _secret_from_parts(path, file_item, node, recovered), True
+            return [], False, True
+        return _secret_from_parts(path, file_item, node, recovered), True, True
     if not legacy_snapshot:
-        return [], True
+        return [], True, False
     if kind == "field":
         field_name = node.get("name")
         details = node.get("details") or {}
         if isinstance(field_name, str) and not _credential_name(field_name):
-            return [], True
+            return [], True, True
         if isinstance(field_name, str) and "value_fingerprint" in details and details.get("value_fingerprint") is None:
-            return [], True
+            return [], True, True
         parsed = _legacy_field_assignment(node)
         if parsed is None:
-            return [], False
+            return [], False, True
         statement, source = parsed
         bindings = _assignment_bindings(statement, source)
         if isinstance(field_name, str):
             bindings = [item for item in bindings if item[0] == field_name and item[1] == "name_assignment"]
-        return _secret_from_parts(path, file_item, node, bindings), True
+        return _secret_from_parts(path, file_item, node, bindings), True, True
     if kind == "call":
         details = node.get("details") or {}
         recovered = None
@@ -1025,26 +1030,26 @@ def _secret_findings(
         if "keyword_names" in details and isinstance(details.get("keyword_names"), list):
             names = [item for item in details["keyword_names"] if isinstance(item, str) and _credential_name(item)]
             if not names:
-                return [], True
+                return [], True, True
             if recovered is None:
-                return [], False
+                return [], False, True
             bindings = []
             for name in names:
                 facts = recovered.get(name)
                 if facts is None:
-                    return [], False
+                    return [], False, True
                 bindings.append((name, "keyword_argument", facts))
-            return _secret_from_parts(path, file_item, node, bindings), True
+            return _secret_from_parts(path, file_item, node, bindings), True, True
         if recovered is None:
-            return [], False
+            return [], False, True
         bindings = [(name, "keyword_argument", facts) for name, facts in recovered.items()]
-        return _secret_from_parts(path, file_item, node, bindings), True
+        return _secret_from_parts(path, file_item, node, bindings), True, True
     if kind in {"function", "async_function"}:
         if (node.get("details") or {}).get("literal_bindings_recorded") is True:
-            return [], True
+            return [], True, True
         findings, evaluable = _legacy_function_findings(path, file_item, node, secrets=True, mutables=False)
-        return findings, evaluable
-    return [], True
+        return findings, evaluable, True
+    return [], True, False
 
 
 def _mutable_findings(
@@ -1055,9 +1060,10 @@ def _mutable_findings(
     *,
     field_findings: dict[str, list[dict[str, Any]]],
     field_gaps: set[str],
-) -> tuple[list[dict[str, Any]], bool]:
+) -> tuple[list[dict[str, Any]], bool, bool]:
+    """Return findings, evaluable, and whether this node was in the rule's context."""
     if "code.global_mutable_state" not in enabled:
-        return [], True
+        return [], True, False
     kind = node.get("kind")
     if kind == "mutable_state":
         details = node.get("details") or {}
@@ -1067,34 +1073,35 @@ def _mutable_findings(
         if recorded and form == "mutable_binding" and details.get("value_kind") not in MUTABLE_VALUE_KINDS:
             recorded = False
         if recorded:
-            return [_mutable_finding(path, file_item, node, str(form), list(targets), details.get("value_kind"))], True
+            return [_mutable_finding(path, file_item, node, str(form), list(targets), details.get("value_kind"))], True, True
         if node.get("source_segment_truncated") or not isinstance(node.get("source_segment"), str):
-            return [], False
+            return [], False, True
         statement = _one_statement(node["source_segment"])
         prepared = _prepared_segment(node["source_segment"])
         if isinstance(statement, ast.Global) and statement.names:
-            return [_mutable_finding(path, file_item, node, "global_statement", list(statement.names))], True
+            return [_mutable_finding(path, file_item, node, "global_statement", list(statement.names))], True, True
         if isinstance(statement, (ast.Assign, ast.AnnAssign)) and statement.value is not None:
             value_kind = _container_kind(statement.value)
             labels = _assignment_labels(statement, prepared)
             if value_kind and labels:
-                return [_mutable_finding(path, file_item, node, "mutable_binding", labels, value_kind)], True
+                return [_mutable_finding(path, file_item, node, "mutable_binding", labels, value_kind)], True, True
             if value_kind is None:
-                return [], True
-        return [], False
+                return [], True, True
+        return [], False, True
     if kind == "field":
         node_id = str(node.get("node_id") or "")
         if "value_form" in (node.get("details") or {}):
-            return [], True
+            return [], True, False
         if node_id in field_gaps:
-            return [], False
-        return field_findings.get(node_id, []), True
+            return [], False, True
+        return field_findings.get(node_id, []), True, True
     if kind in {"function", "async_function"}:
         details = node.get("details") or {}
         if isinstance(details.get("contains_global_statement"), bool):
-            return [], True
-        return _legacy_function_findings(path, file_item, node, secrets=False, mutables=True)
-    return [], True
+            return [], True, True
+        findings, evaluable = _legacy_function_findings(path, file_item, node, secrets=False, mutables=True)
+        return findings, evaluable, True
+    return [], True, False
 
 
 def _legacy_mutable_field_index(path: str, file_item: dict[str, Any]) -> tuple[dict[str, list[dict[str, Any]]], set[str]]:
@@ -1154,12 +1161,38 @@ def _dedupe_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def collect_code_smell_findings(
     stage04_record: dict[str, Any],
     enabled: set[str],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Match evaluable head nodes. Return findings and files that could not be evaluated."""
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, dict[str, Any]]]:
+    """Match evaluable head nodes.
+
+    Findings and ``summary.unanalyzed`` stay on the existing path. The trace
+    records, per enabled smell rule, how many in-context nodes finished and
+    which nodes could not. A suppressed finding is a gap, not a completed miss.
+    """
     if not enabled.intersection(_RULES_BY_ID):
-        return [], []
+        return [], [], {}
     findings: list[dict[str, Any]] = []
     gaps: dict[str, list[str]] = {}
+    trace: dict[str, dict[str, Any]] = {
+        rule_id: {"examined": 0, "gaps": []}
+        for rule_id in _RULES_BY_ID
+        if rule_id in enabled
+    }
+
+    def mark_gap(rule_id: str, path: str, node_id: str) -> None:
+        trace[rule_id]["gaps"].append({"path": path, "node_id": node_id})
+
+    def mark_examined(rule_id: str) -> None:
+        trace[rule_id]["examined"] += 1
+
+    def note(rule_id: str, ok: bool, considered: bool, produced: list[dict[str, Any]], all_ok: bool, path: str, node_id: str) -> None:
+        if rule_id not in trace or not considered:
+            return
+        suppressed = (not all_ok) and any(item["rule_id"] == rule_id for item in produced)
+        if not ok or suppressed:
+            mark_gap(rule_id, path, node_id)
+            return
+        mark_examined(rule_id)
+
     for file_item in stage04_record.get("files", []):
         path = str(file_item.get("path") or file_item.get("new_path") or file_item.get("old_path") or "")
         head_nodes = _head_nodes(file_item)
@@ -1171,14 +1204,14 @@ def collect_code_smell_findings(
             handler_findings, handler_ok = _handler_findings(path, file_item, node, enabled)
             call_findings, call_ok = _call_findings(path, file_item, node, enabled)
             control_findings, control_ok = _control_findings(path, file_item, node, enabled)
-            secret_findings, secret_ok = _secret_findings(
+            secret_findings, secret_ok, secret_considered = _secret_findings(
                 path,
                 file_item,
                 node,
                 enabled,
                 legacy_snapshot=legacy_secret_snapshot,
             )
-            mutable_node_findings, mutable_ok = _mutable_findings(
+            mutable_node_findings, mutable_ok, mutable_considered = _mutable_findings(
                 path,
                 file_item,
                 node,
@@ -1186,14 +1219,36 @@ def collect_code_smell_findings(
                 field_findings=field_findings,
                 field_gaps=field_gaps,
             )
-            if handler_ok and call_ok and control_ok and secret_ok and mutable_ok:
+            all_ok = handler_ok and call_ok and control_ok and secret_ok and mutable_ok
+            node_id = str(node.get("node_id") or "")
+            if node.get("kind") == "except_handler":
+                for rule_id in ("code.swallowed_exception", "code.bare_exception"):
+                    note(rule_id, handler_ok, True, handler_findings, all_ok, path, node_id)
+            if node.get("kind") == "call" and ({"code.dynamic_execution", "code.unmanaged_open"} & enabled):
+                callee_name, callee_known = _resolve_direct_callee(node)
+                if not callee_known:
+                    for rule_id in ("code.dynamic_execution", "code.unmanaged_open"):
+                        if rule_id in trace:
+                            mark_gap(rule_id, path, node_id)
+                else:
+                    note("code.dynamic_execution", True, "code.dynamic_execution" in trace, call_findings, all_ok, path, node_id)
+                    if "code.unmanaged_open" in trace:
+                        if callee_name == OPEN_CALLEE:
+                            _used_as_with, with_known = _resolve_with_context(node)
+                            note("code.unmanaged_open", with_known, True, call_findings, all_ok, path, node_id)
+                        else:
+                            note("code.unmanaged_open", True, True, call_findings, all_ok, path, node_id)
+            if node.get("kind") == "control_flow":
+                note("code.deep_control_flow", control_ok, True, control_findings, all_ok, path, node_id)
+            note("code.hardcoded_secret", secret_ok, secret_considered, secret_findings, all_ok, path, node_id)
+            note("code.global_mutable_state", mutable_ok, mutable_considered, mutable_node_findings, all_ok, path, node_id)
+            if all_ok:
                 findings.extend(handler_findings)
                 findings.extend(call_findings)
                 findings.extend(control_findings)
                 findings.extend(secret_findings)
                 findings.extend(mutable_node_findings)
                 continue
-            node_id = str(node.get("node_id") or "")
             gaps.setdefault(path, []).append(node_id)
     findings = _dedupe_findings(findings)
     findings.sort(
@@ -1208,4 +1263,4 @@ def collect_code_smell_findings(
         {"path": path, "reason": "unsupported_stage04_details", "node_ids": sorted(set(node_ids))}
         for path, node_ids in sorted(gaps.items())
     ]
-    return findings, unanalyzed
+    return findings, unanalyzed, trace

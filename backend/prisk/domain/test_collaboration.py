@@ -342,3 +342,33 @@ def collect_test_collaboration(
         return None, []
     production.sort(key=lambda item: item["path"])
     return _finding(production, examined), []
+
+
+def collaboration_terminal(
+    record: dict[str, Any],
+    finding: dict[str, Any] | None,
+    gaps: list[dict[str, str]],
+) -> tuple[str, list[dict[str, Any]]]:
+    """Return Hit, NotFound, or Unanalyzed for one completed collaboration call.
+
+    An empty gap list is NotFound only after the file-change channel itself was
+    present. AST-only records stay Unanalyzed and do not invent a pass.
+    """
+    if finding is not None:
+        return "Hit", []
+    if gaps:
+        grouped: dict[str, list[dict[str, str]]] = {}
+        for gap in gaps:
+            grouped.setdefault(str(gap.get("reason") or "diff_stats_unavailable"), []).append(
+                {"path": str(gap.get("path") or "")}
+            )
+        reasons = [
+            {"reason": reason, "objects": objects}
+            for reason, objects in sorted(grouped.items())
+        ]
+        return "Unanalyzed", reasons
+    files = [item for item in record.get("files") or [] if isinstance(item, dict)]
+    if not any(_has_change_channel(item) for item in files):
+        objects = [{"path": _display_path(item)} for item in files if _display_path(item)]
+        return "Unanalyzed", [{"reason": "missing_file_change_channel", "objects": objects}]
+    return "NotFound", []
