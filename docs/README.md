@@ -11,11 +11,10 @@
 | 路径 | 职责 | 生命周期 |
 | --- | --- | --- |
 | `blueprint.md` | 目标系统规格原文 | 目标；不是当前实现 |
-| `roadmap.md` | 开发推进规划。This is a planning document and is not evidence of completion or implemented functionality. | 规划；不是完成证据，也不是已实现功能 |
+| `standards/development-roadmap.md` | 开发推进规划。This is a planning document and is not evidence of completion or implemented functionality. | 规划；不是完成证据，也不是已实现功能 |
 | `standards/` | 文档结构、任务与分支、开发流程 | 持续更新 |
 | `tasks/` | 未完成，或已接受但尚未随版本归档的任务 | 活动 |
 | `versions/v1.0.0/` | v1.0.0 阶段档案、冻结范围和任务索引 | Frozen |
-| `iterations/README.md` | 旧迭代目录迁出后的路径对照 | 对照 |
 | `rules/` | 研究规则卡片、索引和卡片框架 | 研究产物；不是代码登记册 |
 | `schemas/` | 研究元数据 schema | 文档契约 |
 | `assets/` | 研究资产；状态见该目录说明 | 当前无已跟踪资产 |
@@ -23,12 +22,12 @@
 | `operations.md` | 本地运行与检查 | 持续更新 |
 | `adr/` | 长期架构决策 | 按需新增 |
 
-生命周期规则：源码和测试进入 Git；versions 保存冻结阶段事实及必要的可复核产物；tasks 保存尚未随版本归档的任务；iterations 只保留迁出对照，不再接收新任务。本机依赖、上游仓库克隆、API 响应缓存和临时文件不进入 Git。冻结目录不收录个人材料，样本中的贡献者身份字段应脱敏。
+生命周期规则：源码和测试进入 Git；versions 保存冻结阶段事实及必要的可复核产物；tasks 保存尚未随版本归档的任务。本机依赖、上游仓库克隆、API 响应缓存和临时文件不进入 Git。冻结目录不收录个人材料，样本中的贡献者身份字段应脱敏。
 
 ## 入口
 
 - [核心蓝图](blueprint.md)
-- [推进大纲](roadmap.md)。This is a planning document and is not evidence of completion or implemented functionality.
+- [推进大纲](standards/development-roadmap.md)。This is a planning document and is not evidence of completion or implemented functionality.
 - [架构说明](architecture.md)
 - [运维手册](operations.md)
 - [文档结构](standards/document-structure.md)
@@ -38,7 +37,6 @@
 - [活动任务](tasks/README.md)
 - [版本索引](versions/README.md)
 - [v1.0.0 基线](versions/v1.0.0/README.md)
-- [迭代目录对照](iterations/README.md)
 - [研究规则索引](rules/index.md)
 - [Schema](schemas/README.md)
 - [研究资产](assets/README.md)

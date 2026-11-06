@@ -37,5 +37,5 @@ npm --prefix frontend run build
 
 ## 版本发布边界
 
-- 当前工作区按待发布的 v1.0.0 基线维护；发布后新增工作进入 `docs/tasks/`，不回写 `docs/versions/v1.0.0/`。`docs/iterations/` 只保留迁移对照。
+- 当前工作区按待发布的 v1.0.0 基线维护；发布后新增工作进入 `docs/tasks/`，不回写 `docs/versions/v1.0.0/`。
 - 发布前必须完成后端测试、前端 lint/typecheck/build、`git diff --check` 和敏感信息检查；提交、推送和创建 tag 由用户执行。

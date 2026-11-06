@@ -4,7 +4,7 @@
 
 v1.1.0 仍未归档，所以 001–010 留在本目录。不建立 `docs/versions/v1.1/` 或 `docs/versions/v1.1.0/`。v1.0.0 阶段 08 不是任务 008，也没有冻结的阶段 09 占用任务 009。010 开始前没有任务 010。
 
-001–007 的前言都有 `branch`。下表引用原值，不把它们改写成现行分支形式。008 为 Accepted，其前言 `branch` 仍是 `docs/008-docs-structure-blueprint`。009 为 Accepted，其前言 `branch` 仍是 `feat/009-explicit-rule-outcomes`。010 为 In Progress，其前言 `branch` 是 `docs/010-development-roadmap`。用户尚未接受 010。接受不把 008 或 009 移入 `docs/versions/`。010 的范围是把开发推进大纲登记为规划文档，并在文档入口链到该文件。大纲中的后续版本不是已实现功能。
+001–007 的前言都有 `branch`。下表引用原值，不把它们改写成现行分支形式。008 为 Accepted，其前言 `branch` 仍是 `docs/008-docs-structure-blueprint`。009 为 Accepted，其前言 `branch` 仍是 `feat/009-explicit-rule-outcomes`。010 为 In Progress，其前言 `branch` 是 `docs/010-development-roadmap`。用户尚未接受 010。接受不把 008 或 009 移入 `docs/versions/`。规划文档是 [开发推进大纲](../standards/development-roadmap.md)。This is a planning document and is not evidence of completion or implemented functionality.
 
 | 任务 | 状态 | 前言中的 `branch` | 记录 |
 | --- | --- | --- | --- |

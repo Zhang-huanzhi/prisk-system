@@ -41,8 +41,7 @@ git diff --check
 - `backend/prisk/`、`backend/tests/`、`frontend/src/`：受版本控制的源码；
 - `docs/versions/v1.x.x/`：验收后的冻结版本记录；若发现历史事实错误，先记录审查依据，再由维护者修正文档并保留变更记录；
 - `docs/tasks/`：未完成，或已接受但尚未随版本归档的任务；
-- `docs/standards/`：文档结构、任务与分支、开发流程规范；
-- `docs/iterations/`：旧迭代目录的迁出对照，不再新建任务；
+- `docs/standards/`：文档结构、任务与分支、开发流程和推进大纲；
 - `docs/blueprint.md`：目标系统规格原文；
 - `docs/adr/`：长期有效的架构决策；
 - `.venv/`、缓存、`node_modules/`、`.next/` 和测试临时目录：本地生成内容，不纳入 Git。
