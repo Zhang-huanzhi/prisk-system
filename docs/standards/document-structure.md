@@ -1,0 +1,37 @@
+# 文档结构
+
+| 适用版本 | v1.x |
+| --- | --- |
+| 状态 | Active |
+| 任务 | [008](../tasks/008-docs-structure-blueprint.md) |
+| 分支 | `docs/008-docs-structure-blueprint` |
+
+## 目录
+
+| 路径 | 职责 |
+| --- | --- |
+| `docs/README.md` | 文档总入口。开发者和 AI 从这里进入 [核心蓝图](../blueprint.md) |
+| `docs/blueprint.md` | 目标系统规格原文 |
+| `docs/architecture.md` | 当前实现 |
+| `docs/operations.md` | 当前本地运维 |
+| `docs/standards/` | 文档、任务、分支和开发流程规范 |
+| `docs/tasks/` | 未完成，或已接受但尚未随版本归档的任务 |
+| `docs/versions/v1.0.0/` | 已冻结的 v1.0.0 阶段档案 |
+| `docs/versions/README.md` | 各版本的范围、冻结状态和任务索引 |
+| `docs/iterations/README.md` | 旧迭代路径到当前路径的对照 |
+| `docs/rules/` | 研究规则卡片和索引 |
+| `docs/schemas/` | 研究元数据 schema |
+| `docs/assets/` | 研究资产；当前状态写在该目录 README |
+| `docs/adr/` | 架构决策。当前没有已发布条目 |
+
+`docs/blueprint.md` 定义目标系统。当前实现以 `docs/architecture.md` 和已接受任务的记录为准。蓝图中的机器学习、权重调优、动态配置、NotFound 全量跟踪和 NetBox 实证验证不是已经落地的能力。
+
+## 版本目录
+
+只为已经冻结归档的版本建立 `docs/versions/<version>/`。仓库里现有的版本目录只有 `v1.0.0`。v1.1.0 的入口状态仍是进行中，因此不建立 `docs/versions/v1.1/` 或 `docs/versions/v1.1.0/`。
+
+已接受的 001–007 还没有随版本发布归档，所以留在 `docs/tasks/`。v1.0.0 的阶段 01–08 是阶段档案，不是 T00X 任务。阶段 08 不占用任务编号 008。
+
+## 冻结文本
+
+`docs/versions/v1.0.0/` 里的历史结论保持原句。其中指向 `docs/iterations/` 的句子是冻结当时的路径。当前入口以本规范和 [迭代目录对照](../iterations/README.md) 为准。008 只在 v1.0.0 的 README 末尾增加了任务索引，没有改写前面的结论。
