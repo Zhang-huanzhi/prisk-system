@@ -2,7 +2,7 @@
 task_id: "008"
 target_version: "v1.1.0"
 title: "文档信息架构与核心蓝图"
-status: "In Progress"
+status: "Accepted"
 branch: "docs/008-docs-structure-blueprint"
 date: "2026-11-06"
 ---
@@ -12,6 +12,8 @@ date: "2026-11-06"
 ## 目标
 
 整理文档信息架构，并把用户确认的核心蓝图原文放入 `docs/blueprint.md`。`target_version` 只表示这条文档工作记在尚未归档的 v1.1.0 任务线上。它不表示 v1.1.0 已经实现蓝图。
+
+用户已接受本任务。交付分支仍是 `docs/008-docs-structure-blueprint`，交付记录是 [PR #8](https://github.com/Zhang-huanzhi/prisk-system/pull/8)。本提交只把状态改为 Accepted，不改蓝图原文，不改 001–007，不改源码或测试，也不把任务移入 `docs/versions/`。写下这条提交时，该 PR 尚未合并，本提交也不合并、不打 tag。
 
 ## 编号核对
 
@@ -28,7 +30,7 @@ date: "2026-11-06"
 ## 不做事项
 
 - 不修改 `backend/` 或 `frontend/` 的源码和测试行为。
-- 不把 008 写成 Accepted，不合并，不打 tag。
+- 不在本提交中合并，也不打 tag。交付是 [PR #8](https://github.com/Zhang-huanzhi/prisk-system/pull/8)。本记录状态为 Accepted。写下这条提交时该 PR 尚未合并。
 - 不重编号，不复用 001–007，不猜测并回填历史分支。
 - 不建立 `docs/versions/v1.1/` 或 `docs/versions/v1.1.0/`。
 - 不另写 `T008.yaml`，不另写第二份蓝图。
@@ -68,7 +70,7 @@ date: "2026-11-06"
 
 ## 实际验证
 
-本任务仍是 In Progress。下列结果不构成接受。
+下列检查写于状态改为 Accepted 之前。本提交不改那些检查对象。状态现为 Accepted。
 
 - 官方原文与 `docs/blueprint.md` 逐字节相同。SHA-256 为 `f0273030ec15fd0d8d87a767a37228b371d54a3f54b556f5e32c850f2454b817`。文件含八个 `###` 小节。流程代码块保留 `base...head`、`上下文` 和 `规则` 行末空格。
 - 机器学习定位句的原文是 `**规则引擎永远优先且独立，ML 属于可选、可独立关闭的辅助实验**。` 大模型条目的原文是 `仅用于对已有 Finding 和 Diff 切片进行辅助性的“变更意图推断”与“审查评语草拟”，不作为底层漏洞裁决器。`
