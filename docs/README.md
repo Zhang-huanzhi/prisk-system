@@ -11,6 +11,7 @@
 | 路径 | 职责 | 生命周期 |
 | --- | --- | --- |
 | `blueprint.md` | 目标系统规格原文 | 目标；不是当前实现 |
+| `roadmap.md` | 开发推进规划。This is a planning document and is not evidence of completion or implemented functionality. | 规划；不是完成证据，也不是已实现功能 |
 | `standards/` | 文档结构、任务与分支、开发流程 | 持续更新 |
 | `tasks/` | 未完成，或已接受但尚未随版本归档的任务 | 活动 |
 | `versions/v1.0.0/` | v1.0.0 阶段档案、冻结范围和任务索引 | Frozen |
@@ -27,6 +28,7 @@
 ## 入口
 
 - [核心蓝图](blueprint.md)
+- [推进大纲](roadmap.md)。This is a planning document and is not evidence of completion or implemented functionality.
 - [架构说明](architecture.md)
 - [运维手册](operations.md)
 - [文档结构](standards/document-structure.md)
