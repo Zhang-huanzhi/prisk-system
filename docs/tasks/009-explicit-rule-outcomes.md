@@ -13,7 +13,7 @@ date: "2026-11-06"
 
 在一次分析里，为现有 13 条运行时规则分别给出恰好一个终态：`Hit`、`NotFound` 或 `Unanalyzed`。只有 `Hit` 生成 Finding。`NotFound` 只在该规则已经完整执行、并且它的上下文适用时记录。零条 Finding 本身不是 `NotFound`。解析降级、证据不足、缺少框架或路径上下文、缺少前置阶段数据，都保持 `Unanalyzed`，并带上原因和对象。这些状态不加分，不是通过，也不是代码安全。
 
-本任务不改检测器语义、规则 ID、13 条运行时目录、默认权重或评分公式。已保存的 demo 与历史快照不重写。没有用户接受前，本记录保持 In Progress。
+本任务不改检测器语义、规则 ID、13 条运行时目录、默认权重或评分公式。已保存的 demo 与历史快照不重写。没有用户接受前，本记录保持 In Progress。交付分支是 `feat/009-explicit-rule-outcomes`，交付记录是 [PR #9](https://github.com/Zhang-huanzhi/prisk-system/pull/9)。写下这条记录时该 PR 尚未合并，本任务也不合并、不打 tag。
 
 ## 编号核对
 
