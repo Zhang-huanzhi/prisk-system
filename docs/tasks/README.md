@@ -4,7 +4,7 @@
 
 v1.1.0 仍未归档，所以 001–010 留在本目录。不建立 `docs/versions/v1.1/` 或 `docs/versions/v1.1.0/`。v1.0.0 阶段 08 不是任务 008，也没有冻结的阶段 09 占用任务 009。010 开始前没有任务 010。
 
-001–007 的前言都有 `branch`。下表引用原值，不把它们改写成现行分支形式。008 为 Accepted，其前言 `branch` 仍是 `docs/008-docs-structure-blueprint`。009 为 Accepted，其前言 `branch` 仍是 `feat/009-explicit-rule-outcomes`。010 为 In Progress，其前言 `branch` 是 `docs/010-development-roadmap`。用户尚未接受 010。接受不把 008 或 009 移入 `docs/versions/`。规划文档是 [开发推进大纲](../standards/development-roadmap.md)。This is a planning document and is not evidence of completion or implemented functionality.
+001–007 的前言都有 `branch`。下表引用原值，不把它们改写成现行分支形式。008 为 Accepted，其前言 `branch` 仍是 `docs/008-docs-structure-blueprint`。009 为 Accepted，其前言 `branch` 仍是 `feat/009-explicit-rule-outcomes`。010 为 Accepted，其前言 `branch` 仍是 `docs/010-development-roadmap`。接受不把 008、009 或 010 移入 `docs/versions/`。规划文档是 [开发推进大纲](../standards/development-roadmap.md)。This is a planning document and is not evidence of completion or implemented functionality.
 
 | 任务 | 状态 | 前言中的 `branch` | 记录 |
 | --- | --- | --- | --- |
@@ -17,7 +17,7 @@ v1.1.0 仍未归档，所以 001–010 留在本目录。不建立 `docs/version
 | 007 | Accepted | `feat/007-test-collaboration` | [测试协同复核提示](007-test-collaboration.md) |
 | 008 | Accepted | `docs/008-docs-structure-blueprint` | [文档信息架构与核心蓝图](008-docs-structure-blueprint.md) |
 | 009 | Accepted | `feat/009-explicit-rule-outcomes` | [显式规则终态](009-explicit-rule-outcomes.md) |
-| 010 | In Progress | `docs/010-development-roadmap` | [Add the Prisk-System development roadmap](010-development-roadmap.md) |
+| 010 | Accepted | `docs/010-development-roadmap` | [Add the Prisk-System development roadmap](010-development-roadmap.md) |
 
 [v1.1 入口原文](v1.1-entry.md) 随文件迁出后保留。其中“写下这次索引更新时，该 PR 尚未合并”是当时的句子，008 不改写。
 
