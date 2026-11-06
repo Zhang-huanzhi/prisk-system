@@ -9,6 +9,7 @@ from typing import Any
 
 from ..domain.changes import load_records
 from ..domain.rules import RULE_CATALOG, rule_domain
+from ..domain.test_collaboration import COLLABORATION_RULE_ID
 
 
 DEFAULT_CONFIG: dict[str, Any] = {
@@ -26,6 +27,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "code.deep_control_flow": 0,
         "code.hardcoded_secret": 0,
         "code.global_mutable_state": 0,
+        COLLABORATION_RULE_ID: 1,
     },
     "test_collaboration_weight": 1,
     "test_collaboration_enabled": True,
@@ -45,6 +47,7 @@ RULE_SCOPES = {
     "code.deep_control_flow": "Python if、for、while、with、try 的嵌套深度大于固定阈值 4",
     "code.hardcoded_secret": "Python 凭据名字上长度不少于 8 且不在占位符表中的 str 字面量",
     "code.global_mutable_state": "Python 函数体内的 global，或模块与类体中的列表、字典、集合绑定",
+    COLLABORATION_RULE_ID: "默认路径分类下的生产代码内容变更，且同一变更没有测试文件变更",
 }
 
 
@@ -77,13 +80,12 @@ class DemoData:
         enabled = set(config_value["enabled_rules"])
         selected = [finding for finding in findings if finding.get("rule_id") in enabled]
         found_rule_ids = {finding.get("rule_id") for finding in selected}
-        max_points = sum(config_value["rule_weights"][rule_id] for rule_id in enabled)
-        earned = sum(config_value["rule_weights"][rule_id] for rule_id in found_rule_ids)
+        max_points = summed_rule_points(enabled, config_value["rule_weights"])
+        earned = summed_rule_points(found_rule_ids, config_value["rule_weights"])
         collaboration = bool(rule_record.get("summary", {}).get("test_collaboration"))
-        if config_value["test_collaboration_enabled"]:
-            max_points += config_value["test_collaboration_weight"]
-            if collaboration:
-                earned += config_value["test_collaboration_weight"]
+        collaboration_maximum, collaboration_earned = collaboration_points(config_value, collaboration)
+        max_points += collaboration_maximum
+        earned += collaboration_earned
         score = round(100 * earned / max_points) if max_points else 0
         thresholds = config_value["thresholds"]
         level = "high" if score >= thresholds["high"] else "medium" if score >= thresholds["medium"] else "low"
@@ -149,6 +151,7 @@ class DemoData:
                 "test_cochanged": summary.get("test_cochanged", False),
                 "test_collaboration_gap": collaboration,
                 "parse_degraded": rule_record.get("summary", {}).get("parse_degraded", False),
+                "unanalyzed": rule_record.get("summary", {}).get("unanalyzed", []),
             },
             "files": [
                 {
@@ -235,9 +238,17 @@ def normalize_config(config: dict[str, Any] | None) -> dict[str, Any]:
         raise ValueError("rule_weights 包含未知规则")
     if any(not isinstance(value, int) or not 0 <= value <= 5 for value in weights.values()):
         raise ValueError("规则权重必须是 0 到 5 的整数")
-    collaboration_weight = supplied.get("test_collaboration_weight", DEFAULT_CONFIG["test_collaboration_weight"])
-    if not isinstance(collaboration_weight, int) or not 0 <= collaboration_weight <= 5:
+    supplied_weights = supplied.get("rule_weights") or {}
+    if (
+        COLLABORATION_RULE_ID in supplied_weights
+        and "test_collaboration_weight" not in supplied
+    ):
+        collaboration_weight = supplied_weights[COLLABORATION_RULE_ID]
+    else:
+        collaboration_weight = supplied.get("test_collaboration_weight", DEFAULT_CONFIG["test_collaboration_weight"])
+    if type(collaboration_weight) is not int or not 0 <= collaboration_weight <= 5:
         raise ValueError("测试协同权重必须是 0 到 5 的整数")
+    weights[COLLABORATION_RULE_ID] = collaboration_weight
     thresholds = {**DEFAULT_CONFIG["thresholds"], **supplied.get("thresholds", {})}
     medium, high = thresholds.get("medium"), thresholds.get("high")
     if not isinstance(medium, int) or not isinstance(high, int) or not 0 <= medium < high <= 100:
@@ -249,6 +260,19 @@ def normalize_config(config: dict[str, Any] | None) -> dict[str, Any]:
         "test_collaboration_enabled": bool(supplied.get("test_collaboration_enabled", True)),
         "thresholds": thresholds,
     }
+
+
+def summed_rule_points(rule_ids: set[str] | list[str], weights: dict[str, int]) -> int:
+    """Sum catalog weights except the collaboration rule, whose point is separate."""
+    return sum(weights[rule_id] for rule_id in rule_ids if rule_id != COLLABORATION_RULE_ID)
+
+
+def collaboration_points(config: dict[str, Any], matched: bool) -> tuple[int, int]:
+    """Return the historical collaboration maximum and earned points, added once."""
+    if not config.get("test_collaboration_enabled"):
+        return 0, 0
+    weight = config["test_collaboration_weight"]
+    return weight, weight if matched else 0
 
 
 def write_json_report(report: dict[str, Any], path: Path) -> None:

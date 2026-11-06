@@ -20,6 +20,7 @@ type Evidence = {
   used_as_with_context?: boolean; nesting_depth?: number; control_kind?: string;
   binding_name?: string; binding_form?: string; value_length?: number; value_preview?: string;
   mutable_state_form?: string; binding_targets?: string[];
+  path_class?: string; additions?: number; deletions?: number; content_change?: string;
 };
 type Finding = {
   rule_id: string; severity: string; message: string;
@@ -46,6 +47,7 @@ type Report = {
     finding_count: number; domains?: string[]; files_changed: number; business_files: number;
     test_files: number; additions: number; deletions: number; business_changed: boolean;
     test_changed: boolean; test_cochanged: boolean; test_collaboration_gap: boolean; parse_degraded: boolean;
+    unanalyzed?: { path: string; reason: string }[];
   };
   files: DiffFile[]; findings: Finding[]; limitations: string[];
 };
@@ -84,6 +86,7 @@ const ruleLabels: Record<string, string> = {
   "code.deep_control_flow": "深层控制流嵌套",
   "code.hardcoded_secret": "硬编码敏感字面量",
   "code.global_mutable_state": "全局可变状态",
+  "workflow.test_collaboration_gap": "生产代码变更未见测试路径变更",
 };
 const initialConfig: Config = {
   enabled_rules: Object.keys(ruleLabels),
@@ -93,6 +96,7 @@ const initialConfig: Config = {
     "code.swallowed_exception": 0, "code.bare_exception": 0, "code.dynamic_execution": 0,
     "code.unmanaged_open": 0, "code.deep_control_flow": 0,
     "code.hardcoded_secret": 0, "code.global_mutable_state": 0,
+    "workflow.test_collaboration_gap": 1,
   },
   test_collaboration_weight: 1, test_collaboration_enabled: true, thresholds: { medium: 30, high: 65 },
 };
@@ -104,6 +108,7 @@ function domainIcon(domain: string) {
   if (domain === "api") return <Network size={15} />;
   if (domain === "auth") return <LockKeyhole size={15} />;
   if (domain === "data") return <Settings2 size={15} />;
+  if (domain === "workflow") return <GitPullRequest size={15} />;
   return <AlertCircle size={15} />;
 }
 function roleLabel(role: string) { return role === "business" ? "业务" : role === "test" ? "测试" : "其他"; }
@@ -114,6 +119,9 @@ function evidenceDetail(item: Evidence) {
   if (item.binding_name) return `绑定 ${item.binding_name}，长度 ${item.value_length}`;
   if (item.mutable_state_form === "global_statement") return `global ${(item.binding_targets || []).join("、")}`;
   if (item.mutable_state_form === "mutable_binding") return `可变绑定 ${(item.binding_targets || []).join("、")}`;
+  if (item.path_class === "production" && typeof item.additions === "number" && typeof item.deletions === "number") {
+    return `生产代码 +${item.additions} / -${item.deletions}`;
+  }
   if (item.used_as_with_context === false) return "直接 open 未作为 with 上下文";
   if (item.callee_name) return `直接调用 ${item.callee_name}`;
   if (item.handler_body_is_single_pass) return "处理体只有 pass";
@@ -330,13 +338,20 @@ export function Dashboard() {
     openTab("code");
   };
   const updateRuleWeight = (ruleId: string, value: number) => setConfig((current) => ({
-    ...current, rule_weights: { ...current.rule_weights, [ruleId]: value },
+    ...current,
+    rule_weights: { ...current.rule_weights, [ruleId]: value },
+    ...(ruleId === "workflow.test_collaboration_gap" ? { test_collaboration_weight: value } : {}),
   }));
-  const toggleRule = (ruleId: string) => setConfig((current) => ({
-    ...current, enabled_rules: current.enabled_rules.includes(ruleId)
+  const toggleRule = (ruleId: string) => setConfig((current) => {
+    const enabled = current.enabled_rules.includes(ruleId);
+    const enabledRules = enabled
       ? current.enabled_rules.filter((item) => item !== ruleId)
-      : [...current.enabled_rules, ruleId],
-  }));
+      : [...current.enabled_rules, ruleId];
+    if (ruleId !== "workflow.test_collaboration_gap") {
+      return { ...current, enabled_rules: enabledRules };
+    }
+    return { ...current, enabled_rules: enabledRules, test_collaboration_enabled: !enabled };
+  });
 
   const downloadReport = (format: "json" | "md") => {
     if (!report) return;
@@ -542,6 +557,7 @@ function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate, m
 }) {
   return <div className="tab-page rules-page">
     <section className="rules-matched-section"><div className="section-heading"><div><h2>本次分析命中</h2><p>{report.findings.length} 条规则线索 · 展开证据可定位至代码行</p></div><span className="section-number">{report.findings.length}</span></div>
+      {report.summary.unanalyzed?.length ? <div className="parse-warning"><AlertCircle size={15} />{report.summary.unanalyzed.length} 项变更未能完成分析，未按通过处理。{report.summary.unanalyzed.map((item) => `${item.path || "本次变更"}：${item.reason === "path_classification_unavailable" ? "路径无法分类" : "差异统计不完整"}`).join("；")}</div> : null}
       {report.findings.length ? <div className="matched-findings">{report.findings.map((finding, index) => <article className="matched-finding" key={`${finding.rule_id}-${index}`}>
         <button className="matched-finding-head" onClick={() => setExpandedRule(expandedRule === `${finding.rule_id}-${index}` ? null : `${finding.rule_id}-${index}`)} aria-expanded={expandedRule === `${finding.rule_id}-${index}`}>
           <span className={`finding-symbol domain-${ruleDomain(finding.rule_id)}`}>{domainIcon(ruleDomain(finding.rule_id))}</span><span className="matched-finding-title"><small>{finding.rule_id}</small><strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong><span>{finding.message}</span></span>
@@ -578,7 +594,21 @@ function ScoringView({ report, catalog, config, setConfig, onWeight, onToggle, o
         <label className="rule-toggle"><input type="checkbox" checked={config.enabled_rules.includes(rule.rule_id)} onChange={() => onToggle(rule.rule_id)} /><span className="checkmark"><Check size={12} /></span><span className={`finding-symbol domain-${ruleDomain(rule.rule_id)}`}>{domainIcon(ruleDomain(rule.rule_id))}</span><span><strong>{ruleLabels[rule.rule_id] ?? rule.rule_id}</strong><small>{rule.rule_id}</small></span></label>
         <div className="weight-slider"><input type="range" min={0} max={5} step={1} value={config.rule_weights[rule.rule_id] ?? rule.default_weight} disabled={!config.enabled_rules.includes(rule.rule_id)} onChange={(event) => onWeight(rule.rule_id, Number(event.target.value))} aria-label={`${rule.rule_id} 权重`} /><output>{config.rule_weights[rule.rule_id] ?? rule.default_weight}</output></div>
       </div>)}</div>
-      <div className="auxiliary-weight"><label><span><strong>测试协同缺失</strong><small>业务文件有变更、测试文件未协同</small></span><input type="checkbox" checked={config.test_collaboration_enabled} onChange={(event) => setConfig((current) => ({ ...current, test_collaboration_enabled: event.target.checked }))} /></label><div className="weight-slider"><input type="range" min={0} max={5} step={1} value={config.test_collaboration_weight} disabled={!config.test_collaboration_enabled} onChange={(event) => setConfig((current) => ({ ...current, test_collaboration_weight: Number(event.target.value) }))} aria-label="测试协同缺失权重" /><output>{config.test_collaboration_weight}</output></div></div>
+      <div className="auxiliary-weight"><label><span><strong>生产代码变更未见测试路径变更</strong><small>与规则行使用同一个权重 1，不另外加分</small></span><input type="checkbox" checked={config.test_collaboration_enabled} onChange={(event) => setConfig((current) => {
+        const enabled = event.target.checked;
+        const hasRule = current.enabled_rules.includes("workflow.test_collaboration_gap");
+        const enabledRules = enabled
+          ? (hasRule ? current.enabled_rules : [...current.enabled_rules, "workflow.test_collaboration_gap"])
+          : current.enabled_rules.filter((item) => item !== "workflow.test_collaboration_gap");
+        return { ...current, test_collaboration_enabled: enabled, enabled_rules: enabledRules };
+      })} /></label><div className="weight-slider"><input type="range" min={0} max={5} step={1} value={config.test_collaboration_weight} disabled={!config.test_collaboration_enabled} onChange={(event) => {
+        const value = Number(event.target.value);
+        setConfig((current) => ({
+          ...current,
+          test_collaboration_weight: value,
+          rule_weights: { ...current.rule_weights, "workflow.test_collaboration_gap": value },
+        }));
+      }} aria-label="测试协同缺失权重" /><output>{config.test_collaboration_weight}</output></div></div>
     </section>
     <aside className="threshold-panel"><h2>等级阈值</h2><p>调整当前 PR 的复核优先级分段。</p><label>建议复核<input type="number" min={0} max={99} value={config.thresholds.medium} onChange={(event) => setConfig((current) => ({ ...current, thresholds: { ...current.thresholds, medium: Number(event.target.value) } }))} /></label><label>优先复核<input type="number" min={1} max={100} value={config.thresholds.high} onChange={(event) => setConfig((current) => ({ ...current, thresholds: { ...current.thresholds, high: Number(event.target.value) } }))} /></label><button className="primary-button apply-score" onClick={onApply} disabled={busy}>{busy ? <LoaderCircle size={15} className="spin" /> : <Settings2 size={15} />}应用并重算当前 PR</button></aside></div>
     <div className="score-boundary"><CircleHelp size={17} /><div><strong>评分是人工复核优先级，不是缺陷概率。</strong><p>规则按命中与配置权重计分，不按 evidence 条数重复累加。权重尚未通过独立标注集校准。</p></div></div>

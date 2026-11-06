@@ -823,11 +823,15 @@ def _file_structure(file_item: dict[str, Any], record: dict[str, Any], repo_path
         "new_path": file_item.get("new_path"),
         "status": file_item.get("status"),
         "role": file_item.get("role"),
+        "diff_lines": sorted(set(_changed_lines(file_item, "head") + _changed_lines(file_item, "base"))),
         "parse_status": {"base": "skipped", "head": "skipped"},
         "nodes": [],
         "structural_changes": [],
         "errors": [],
     }
+    for key in ("additions", "deletions", "binary"):
+        if key in file_item:
+            result[key] = file_item[key]
     if file_item.get("role") not in PYTHON_ROLES or not file_item.get("is_python"):
         return result
 

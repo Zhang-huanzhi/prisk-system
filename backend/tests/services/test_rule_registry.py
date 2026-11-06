@@ -25,9 +25,9 @@ class RuleRegistryTests(unittest.TestCase):
             {rule["rule_family"] for rule in rules},
             {"code_smell", "backend_contract", "breaking_impact"},
         )
-        self.assertEqual(sum(rule["rule_family"] == "code_smell" for rule in rules), 9)
+        self.assertEqual(sum(rule["rule_family"] == "code_smell" for rule in rules), 8)
         self.assertEqual(sum(rule["rule_family"] == "backend_contract" for rule in rules), 10)
-        self.assertEqual(sum(rule["rule_family"] == "breaking_impact" for rule in rules), 4)
+        self.assertEqual(sum(rule["rule_family"] == "breaking_impact" for rule in rules), 5)
 
     def test_every_rule_contains_paper_ready_sections(self) -> None:
         required = {
@@ -79,6 +79,7 @@ class RuleRegistryTests(unittest.TestCase):
                 "code.unmanaged_open",
                 "code.deep_control_flow",
                 "code.global_mutable_state",
+                "workflow.test_collaboration_gap",
             ],
         )
         registered = [rule["rule_id"] for rule in self.registry["rules"] if rule["lifecycle"] == "registered"]

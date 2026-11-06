@@ -815,86 +815,106 @@
       "rule_id": "workflow.test_collaboration_gap",
       "name": "业务变更缺少测试协同",
       "version": "v1",
-      "rule_family": "code_smell",
-      "lifecycle": "draft",
+      "rule_family": "breaking_impact",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
         "dependency_level": "process",
         "applicability": [
-          "Python"
+          "Python",
+          "JavaScript",
+          "TypeScript"
         ],
         "target_layer": [
-          "ast_syntax",
+          "change_metadata",
           "diff_delta"
         ],
         "evidence_type": [
-          "code_slice",
-          "symbol_pair"
+          "metric_value"
         ],
         "severity": "Medium",
         "gatekeeper": false,
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "业务代码修改而单元测试未协同修改 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
-        "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
-        "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
-        "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
+        "observed_problem": "生产代码发生变化时，同一变更里可能没有测试路径变化，审查时需要一条可复核的过程提示。",
+        "why_worth_detecting": "帮助审查者核对测试计划是否仍覆盖这些路径。",
+        "expected_consequence": "提示本身不增加已证实的缺陷或外部破坏，只标记需要人工查看的路径组合。",
+        "coverage_gap": "v1.0.0 只有摘要布尔值，不能区分内容变化、纯重命名和证据不足。",
+        "value": "用文件变更证据给出一条保守的复核提示。"
       },
       "definition": {
-        "target": "业务代码修改而单元测试未协同修改",
-        "trigger": "检测到与业务代码修改而单元测试未协同修改一致的结构或变更条件时生成 Finding。",
+        "target": "默认路径分类下的生产代码内容变更，且同一变更没有测试文件变更",
+        "trigger": "差异统计和路径分类都完整，至少一个生产代码文件有行数大于 0 的新增、修改或删除，且没有测试文件新增、修改、删除或重命名。",
         "trigger_features": [
           {
-            "name": "target_pattern",
-            "source": "stage04.v1.structural_objects",
-            "value_type": "string",
-            "operator": "contains",
-            "threshold": "业务代码修改而单元测试未协同修改",
+            "name": "production_files_changed",
+            "source": "stage03/stage04 file additions and deletions",
+            "value_type": "integer",
+            "operator": "gte",
+            "threshold": 1,
+            "required": true
+          },
+          {
+            "name": "test_files_changed",
+            "source": "stage03/stage04 file status for test paths",
+            "value_type": "integer",
+            "operator": "eq",
+            "threshold": 0,
+            "required": true
+          },
+          {
+            "name": "diff_complete",
+            "source": "stage03/stage04 file status, additions, deletions, and path class",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
             "required": true
           }
         ],
-        "non_trigger": "无法从输入证据确认目标模式时不触发。",
+        "non_trigger": "没有生产代码内容变化，或至少有一个测试文件变化时不触发。纯重命名不是内容变化。分类或统计不完整时写入 summary.unanalyzed，不当作未命中。",
         "inputs": [
-          "stage04.v1 structural objects",
-          "base/head Diff"
+          "three-dot diff file status",
+          "additions and deletions",
+          "default path classification"
         ],
-        "finding": "workflow.test_collaboration_gap Finding，包含规则 ID、严重度、影响类型和证据位置。",
+        "finding": "一条 workflow.test_collaboration_gap Finding，带生产路径、行数、code_removal 或 content_edit，以及 pr_intrinsic_risk。",
         "evidence_location": [
           "file path",
-          "node or diff lines"
+          "additions",
+          "deletions"
         ],
-        "context_slice": "展示命中节点及其 Diff 前后上下文。",
+        "context_slice": "列出本次差异中已分类文件的路径类别和是否计入测试变化。不复制仓库外测试，也不从缺失统计编造行号。",
         "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
-        "kind": "literature_and_language_docs",
+        "kind": "literature_inherited",
         "references": [
-          "待补充论文、CWE/OWASP、官方文档或项目依据"
+          "Zaidman et al. 2011, Empirical Software Engineering, DOI 10.1007/s10664-010-9143-7",
+          "Wang et al. 2021, SANER, DOI 10.1109/SANER50967.2021.00033",
+          "Spadini et al. 2018, ICSE, DOI 10.1145/3180155.3180192"
         ]
       },
       "limitations": {
-        "false_positive": "合法场景或防御性代码可能满足结构条件。",
-        "false_negative": "动态调用、间接配置或解析失败可能导致漏报。",
-        "dynamic_language": "Python 动态特性可能使静态结构证据不完整。",
-        "does_not_decide": "不直接判定缺陷、漏洞或实际运行时后果。",
-        "manual_review": "需要结合调用方、配置、测试和业务上下文人工复核。"
+        "false_positive": "测试已覆盖、位于后续变更，或路径被默认规则划成生产代码时仍可能提示。",
+        "false_negative": "测试文件不在 test/tests 目录或 test_*.py / *_test.py 命名下时，该路径会变成未知并停止判断，而不是记成已协同。",
+        "dynamic_language": "不分析调用关系。无法分类的路径进入 summary.unanalyzed。",
+        "does_not_decide": "不判断测试缺失、覆盖不足、回归、外部破坏、缺陷概率或因果测试债务。",
+        "manual_review": "需要查看已有测试、变更性质和后续测试计划。code_removal 只说明新增行数为 0 且删除行数大于 0。"
       },
       "validation_obligation": {
         "level": "literature_inherited",
-        "method": "正例、反例和边界构造样例；后续补充文献依据。",
-        "dataset": "待确定的构造样例或项目数据集。",
-        "oracle": "规则定义和测试预期。",
+        "method": "构造样例覆盖生产无测试、混合变更、纯删除、纯重命名、仅文档、证据不足、仅测试和无生产代码。已跟踪 demo 只核对摘要与文件列表不一致时未分析，以及已保存分数不变。",
+        "dataset": "构造样例与 backend/data/demo。不使用大型 frozen-netbox stage04。",
+        "oracle": "规则卡片与本登记定义。",
         "metrics": [
-          "构造样例通过率",
-          "证据完整率"
+          "构造样例通过率"
         ],
-        "acceptance_criteria": "待后续验证设计确定；当前不预填验证结果。",
+        "acceptance_criteria": "构造样例按卡片命中或进入未分析。不预填 Precision、Recall 或 NetBox 结论。",
         "unresolved_questions": [
-          "具体引用和数据范围待补齐",
-          "误报与漏报边界待验证"
+          "冻结 NetBox 的人工标注尚未进行",
+          "其他语言的测试命名不在当前默认分类中"
         ]
       }
     },
