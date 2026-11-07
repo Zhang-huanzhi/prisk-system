@@ -13,7 +13,7 @@ date: "2026-11-07"
 
 在已合并的 `a914091`（016）之上，修正所有者指出的卡片语义矛盾，并把 `docs/rules/catalog/` 下每张活动规则卡片对齐到 [规则说明卡片模板](../rules/rule-card-template.md)。本任务只改文档、卡片和登记册里与这些合同对应的文字。不实现检测器，不标记 v1.1.0 完成，不开始 v1.2。
 
-任务状态保持 In Progress。工程负责人以后再 Accept。接受前不把前言写成 Accepted。
+任务状态保持 In Progress。工程负责人以后再 Accept。接受前不把前言写成 Accepted。评审记录是 [PR #17](https://github.com/Zhang-huanzhi/prisk-system/pull/17)。写下这条记录时该 PR 尚未合并。
 
 ## 编号核对
 
