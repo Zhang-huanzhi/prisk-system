@@ -3,7 +3,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 规则 ID | `data.django_raw_sql_execution` |
-| 版本 / 阵营 / 生命周期 | `v1` / `backend_contract` / `draft` |
+| 版本 / 阵营 / 生命周期 | `v1` / `backend_contract` / `implemented` |
 | 负责人 | `Prisk-System` |
 | 风险性质 / 依赖层级 | `pr_intrinsic` / `framework` |
 | 适用范围 | Django 数据库 API；NetBox 的模型、查询和迁移是首要语境 |
@@ -58,7 +58,7 @@ note = "SELECT * FROM dcim_device"
 
 构造正例：`cursor.execute("SELECT id FROM dcim_device WHERE name = %s", [name])` 与新增行相交。构造反例：`Device.objects.filter(name=name)`。构造边界：`QuerySet.extra(...)` 记 Unanalyzed。迁移文件里的 `cursor.execute` 与视图文件里的同形调用使用同一闭集，路径留在证据里。
 
-这些边界写清之后，卡片仍是 `draft`。闭集还没有构造测试，接收者也还没有收窄，因此不写成 `registered`。
+013 按这一闭集接入了检测器和构造测试。接收者仍然没有类型，宽匹配仍是已知限制，不把卡片写成 `validated`。
 
 ## 依据
 
@@ -74,12 +74,25 @@ note = "SELECT * FROM dcim_device"
 
 人工复核应看调用位于迁移、管理命令还是请求处理，参数是序列还是拼进字符串，以及是否已有查询封装。
 
-## 未冻结、因此保持 draft 的部分
+## 当前实现
 
-- `extra`、`callproc` 和 `schema_editor.execute` 明确不在 Hit 闭集，见到时 Unanalyzed。以后若要纳入，需要另一次评审。
-- 迁移目录仍然没有纳入或排除政策。011 不发明该政策，也不让它阻断上面的名字闭集。排除迁移不能顺便关闭破坏性迁移等其他规则。
-- `callee` 已经在 call 节点上。缺的是按闭集读取它的检测器和构造测试，不是一张跨文件调用图。
+检测器在 `backend/prisk/domain/django_raw_sql.py`，由 `evaluate_rules` 在代码异味之后调用。它不读取 JSON 登记册。默认启用，默认权重是 0，不改变默认可得权重。
+
+命中只来自已经与新增行相交的 head 调用，沿用其他 AST 检测器的 `changed_lines` 交集。每个这样的调用一条 Finding。证据写出完整 `callee` 和路径；有直接名称时同时写出 `direct_callee_name`。判定不读取 SQL 字符串，也不另存一段 SQL 文本。
+
+- Hit：`direct_callee_name` 为 `RawSQL`，或 `callee` 最后一段是 `execute`、`executemany`、`raw`。`report.execute` 因此会命中，证据必须仍是完整 `callee`。
+- `extra`、`callproc`，或 `callee` 文本包含 `schema_editor`：不命中。终态原因是 `missing_framework_context`。已有其他调用命中时，终态仍是 Hit，这条缺口留在 `summary.unanalyzed`。
+- `callee` 为空，或切片被截断到不能确认最后一段：`unsupported_stage04_details`。
+- 适用调用已经分类且没有上述缺口时是 NotFound。只有 SQL 字符串、没有相交调用时，沿用 009：`context_not_established`，不是 NotFound。
+- 迁移文件和视图文件使用同一闭集。`migrations.RunSQL` 不在 Hit 闭集。路径只出现在证据里。
+
+## 仍不纳入 Hit 的部分
+
+- `extra`、`callproc` 和 `schema_editor.execute` 仍不在 Hit 闭集，见到时 Unanalyzed。以后若要纳入，需要另一次评审。
+- 迁移目录仍然没有纳入或排除政策。013 不发明该政策，也不让它阻断上面的名字闭集。排除迁移不能顺便关闭破坏性迁移等其他规则。
+- 别名 `run = cursor.execute` 之后的 `run(...)` 仍然漏报。不为此做数据流。
+- 限定名 `expressions.RawSQL` 的 `direct_callee_name` 不是 `RawSQL`，最后一段也不是闭集里的三个名字，因此不命中。
 
 ## 有效性计划
 
-`empirical_required`：名单和迁移路径政策冻结后，再写构造正例、反例和未配置路径。NetBox 上的人工标注用来判断命中是否符合定义。Django 安全文档只提供动机。当前没有检测器，不报告 Precision、Recall 或注入是否发生。
+`empirical_required`。013 用构造样例检查了新增行上的 `cursor.execute`、ORM `filter`、`QuerySet.extra` 的 Unanalyzed，以及迁移路径上的 `execute` 仍按同一闭集命中。这些测试只说明检测器按闭集工作。Django 安全文档只提供动机。本任务不报告 Precision、Recall、NetBox 经验有效性或注入是否发生。

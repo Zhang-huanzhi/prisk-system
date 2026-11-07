@@ -80,6 +80,7 @@ class RuleRegistryTests(unittest.TestCase):
                 "code.deep_control_flow",
                 "code.global_mutable_state",
                 "workflow.test_collaboration_gap",
+                "data.django_raw_sql_execution",
             ],
         )
         registered = [rule["rule_id"] for rule in self.registry["rules"] if rule["lifecycle"] == "registered"]
@@ -93,9 +94,9 @@ class RuleRegistryTests(unittest.TestCase):
         expected = [
             "api.drf_public_parameter_added",
             "auth.drf_permission_decorator_removed",
-            "data.django_raw_sql_execution",
         ]
         self.assertTrue(set(expected).isdisjoint(catalog_ids))
+        self.assertIn("data.django_raw_sql_execution", catalog_ids)
         self.assertTrue({"code.hardcoded_secret", "code.global_mutable_state"} <= catalog_ids)
         for rule_id in expected:
             rule = next(item for item in self.registry["rules"] if item["rule_id"] == rule_id)
