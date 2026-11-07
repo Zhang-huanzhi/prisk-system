@@ -177,6 +177,39 @@ class LifecycleFieldConsistencyTests(unittest.TestCase):
         self.assertIn("不表示分类元数据的其余栏已经一致", page)
         self.assertIn("不声称分类元数据已经对齐", page)
 
+    def test_large_change_scope_classification_is_provisional_high_pr_intrinsic(self) -> None:
+        rule = next(item for item in self.registry["rules"] if item["rule_id"] == "workflow.large_change_scope")
+        self.assertEqual(rule["lifecycle"], "draft")
+        self.assertEqual(rule["classification"]["severity"], "High")
+        self.assertEqual(rule["classification"]["risk_nature"], "pr_intrinsic")
+        self.assertEqual(rule["classification"]["dependency_level"], "process")
+        self.assertFalse(rule["classification"]["gatekeeper"])
+        self.assertIsNone(rule["classification"]["gatekeeper_condition"])
+        self.assertEqual(rule["definition"]["impact_type"], "pr_intrinsic_risk")
+        lifecycles = [item["lifecycle"] for item in self.registry["rules"]]
+        self.assertEqual(lifecycles.count("draft"), 14)
+        self.assertEqual(lifecycles.count("implemented"), 9)
+        self.assertEqual(lifecycles.count("registered"), 0)
+        self.assertEqual(lifecycles.count("validated"), 0)
+        self.assertEqual(lifecycles.count("deprecated"), 0)
+
+        card = (KNOWLEDGE_BASE / "catalog/breaking_impact/workflow.large_change_scope.md").read_text(encoding="utf-8")
+        self.assertRegex(card, r"(?m)^\| 版本 / 阵营 / 生命周期 \| `v1` / `breaking_impact` / `draft` \|$")
+        self.assertRegex(card, r"(?m)^\| 风险性质 / 依赖层级 \| `pr_intrinsic` / `process` \|$")
+        self.assertRegex(card, r"(?m)^\| 严重度 / 一票抬升 \| `High` / `false`，条件 `null`；设计值待验证 \|$")
+        self.assertIn("后续算法阶段可以修订", card)
+        self.assertIn("这不是终局", card)
+
+        page = (KNOWLEDGE_BASE / "v1.1-card-readiness.md").read_text(encoding="utf-8")
+        self.assertIn("后续算法阶段可以修订，不是终局", page)
+        self.assertIn("`definition.impact_type` 改为 `pr_intrinsic_risk`", page)
+        screen = (KNOWLEDGE_BASE / "structural-feasibility.md").read_text(encoding="utf-8")
+        self.assertIn("两边写成 `High` / `pr_intrinsic`", screen)
+        self.assertIn("这不是终局", screen)
+        readme = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
+        self.assertIn("严重度 `High`、风险性质 `pr_intrinsic`", readme)
+        self.assertIn("这不是终局", readme)
+
     def test_knowledge_base_badges_use_registry_lifecycle(self) -> None:
         index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
         for rule in self.registry["rules"]:

@@ -2308,7 +2308,7 @@
       "lifecycle": "draft",
       "owner": "Prisk-System",
       "classification": {
-        "risk_nature": "external_impact",
+        "risk_nature": "pr_intrinsic",
         "dependency_level": "process",
         "applicability": [
           "Python"
@@ -2396,7 +2396,7 @@
           "node or diff lines"
         ],
         "context_slice": "展示命中节点及其 Diff 前后上下文。",
-        "impact_type": "external_impact"
+        "impact_type": "pr_intrinsic_risk"
       },
       "basis": {
         "kind": "software_engineering_research_and_project_data",

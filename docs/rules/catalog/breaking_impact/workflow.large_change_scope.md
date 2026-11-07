@@ -8,7 +8,7 @@
 | 风险性质 / 依赖层级 | `pr_intrinsic` / `process` |
 | 适用范围 | 跨语言 PR；模块映射和排除规则由项目配置 |
 | 分析目标层 / 证据形态 | `change_metadata`, `diff_delta` / `metric_value`, `code_slice` |
-| 严重度 / 一票抬升 | `Medium` / `false`，条件 `null`；设计值待验证 |
+| 严重度 / 一票抬升 | `High` / `false`，条件 `null`；设计值待验证 |
 
 ## 制定理由
 
@@ -37,7 +37,15 @@
 
 卡片表格里的生命周期是 `draft`，登记册 `lifecycle` 也是 `draft`。比较单位本应是同一次三点 Diff 的行数、文件数和模块数对项目阈值。三个阈值和模块映射都还没有。在那之前没有 Hit，也不能把较小的 diff 记成 NotFound。014 不指定 200 行或 3 个模块，不写成 `registered`。
 
-登记册的 `classification.severity` 是 `High`，`risk_nature` 是 `external_impact`。卡片表格是 `Medium` 和 `pr_intrinsic`。011 留下这处分类差异。014 不改任何一边。两边的 `lifecycle` 没有冲突。
+014 记录当时的分类差异，并且不改任何一边：登记册 `classification.severity` 是 `High`，`risk_nature` 是 `external_impact`；卡片表格当时是 `Medium` 和 `pr_intrinsic`。两边的 `lifecycle` 没有冲突，当时都是 `draft`。
+
+## 015 临时分类裁决
+
+工程负责人在所有者授权下做了临时判断。后续算法阶段可以修订。这不是终局，也不表示 v1.1.0 已经完成。
+
+卡片严重度改为 `High`。风险性质保持 `pr_intrinsic`。登记册 `classification.severity` 保持 `High`，`classification.risk_nature` 改为 `pr_intrinsic`。`definition.impact_type` 从 `external_impact` 改为 `pr_intrinsic_risk`，与其余 `pr_intrinsic` 条目相同，避免同一条登记册同时留下外部影响标签。`lifecycle` 两边仍是 `draft`。一票抬升仍是 `false`，条件仍是 `null`。
+
+理由：大规模变更的关注级别是 High。性质是该 PR 自身的变更规模冲击，不是对外部 API 的经验断言。严重度仍是待验证的设计值，不是权重。阈值和模块映射仍未指定，本规则仍不能产生 Finding。015 不实现检测器。
 
 ## 有效性计划
 

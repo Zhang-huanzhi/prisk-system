@@ -4,7 +4,7 @@
 
 ## 必读
 
-开发者和 AI 在改动本系统前阅读 [核心蓝图](blueprint.md)。该文件是目标系统规格的原文。它不把机器学习、权重调优、动态配置或 NetBox 实证验证登记为当前实现。009 起，新鲜分析会为运行时目录中的每条已启用规则记录 Hit / NotFound / Unanalyzed。013 起该目录为 14 条，其中包括 `data.django_raw_sql_execution`。014 没有扩大这份目录，也不宣布 v1.1.0 完成。上下文不成立时不记 NotFound，已保存历史快照也不补写终态。命中不是注入已经发生。当前实现见 [架构说明](architecture.md)，活动任务见 [活动任务](tasks/README.md)。
+开发者和 AI 在改动本系统前阅读 [核心蓝图](blueprint.md)。该文件是目标系统规格的原文。它不把机器学习、权重调优、动态配置或 NetBox 实证验证登记为当前实现。009 起，新鲜分析会为运行时目录中的每条已启用规则记录 Hit / NotFound / Unanalyzed。013 起该目录为 14 条，其中包括 `data.django_raw_sql_execution`。014 没有扩大这份目录，也不宣布 v1.1.0 完成。015 只把 `workflow.large_change_scope` 的严重度和风险性质临时对齐为 `High` / `pr_intrinsic`，生命周期仍是 `draft`。这不是终局，也不宣布 v1.1.0 完成，也不开始检测器。上下文不成立时不记 NotFound，已保存历史快照也不补写终态。命中不是注入已经发生。当前实现见 [架构说明](architecture.md)，活动任务见 [活动任务](tasks/README.md)。
 
 ## 文档分层
 
