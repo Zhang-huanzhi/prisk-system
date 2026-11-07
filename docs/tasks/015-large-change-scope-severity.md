@@ -15,7 +15,7 @@ date: "2026-11-07"
 
 起始提交是 `9b40ce48af15c91de2dd730bcacf313f7622cccd`。卡片平时是设计依据。这次由所有者授权工程负责人现在选定严重度，两边一起改。后续算法阶段可以修订。这不是终局完成，也不表示 v1.1.0 已经完成。
 
-状态保持 In Progress，留给工程负责人评审。本任务不写成 Accepted。
+状态保持 In Progress，留给工程负责人评审。评审记录是 [PR #15](https://github.com/Zhang-huanzhi/prisk-system/pull/15)。写下这条记录时该 PR 尚未合并。本任务不写成 Accepted。
 
 ## 编号核对
 
