@@ -1,4 +1,4 @@
-# 模型字段改名缺少 db_column
+# 规则说明卡片：`data.django_field_rename_without_db_column`
 
 > 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。严重度与风险性质是工程负责人的临时判断，不是终局。登记册没有权重字段；概念上的默认权重是 0，本任务不接入评分。本规则不运行 `makemigrations`，也不证明迁移文件里已经出现 `RemoveField` 与 `AddField`。
 
@@ -52,11 +52,11 @@
 
 ### 比较单位
 
-base 与 head 都存在的同一个类。类的直接基类最后一段必须是 `Model`。比较的是该类体里字段赋值的名字集合，以及 head 上新名字那一次调用的关键字。
+base 与 head 都存在的同一个类。类的直接基类最后一段必须是 `Model`，或按 [已知框架基类映射](../../known-framework-bases.md) 视为 `Model`（`NetBoxModel`）。比较的是该类体里字段赋值的名字集合，以及 head 上新名字那一次调用的关键字。
 
 ### 适用性
 
-文件路径按段不含 `migrations`。类体里的赋值或带值注解，值是调用，调用名最后一段以 `Field` 结尾，或最后一段恰好是 `ForeignKey`。这与非空规则里的字段构造表面相同，不用于识别序列化器。`NetBoxModel` 的最后一段不是 `Model`。不读父类文件。
+文件路径按段不含 `migrations`。类体里的赋值或带值注解，值是调用，调用名最后一段以 `Field` 结尾，或最后一段恰好是 `ForeignKey`。这与非空规则里的字段构造表面相同，不用于识别序列化器。`NetBoxModel` 按映射表视为 `Model`。未列入的项目基类不是 `Model`。不读父类文件。
 
 字段节点保存名字和值指纹，不保存关键字名。同一次赋值上的调用节点保存 `keyword_names` 和 `callee`。配对要在同一条赋值里完成。对不上时不能只用指纹相同来声明 `db_column` 存在。
 
@@ -79,7 +79,7 @@ base 与 head 都存在的同一个类。类的直接基类最后一段必须是
 
 ### 触发特征
 
-- `model_base`：`source` 为类节点 `details.bases` 的最后一段；`value_type` 为 `string`；`operator` 为 `eq`；`threshold` 为 `Model`；`required` 为 true。
+- `model_base`：`source` 为类节点 `details.bases` 的最后一段；`value_type` 为 `string`；`operator` 为 `contains`；`threshold` 为 `Model`，或映射表中的 `NetBoxModel`；`required` 为 true。
 - `renamed_pair`：`source` 为同一类字段名在 base/head 的差集；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为两侧差集大小都是 1；`required` 为 true。
 - `constructor_name`：`source` 为两次调用的最后一段；`value_type` 为 `string`；`operator` 为 `eq`；`threshold` 为两侧相等且属于字段构造表面；`required` 为 true。
 - `db_column`：`source` 为 head 调用的 `keyword_names`；`value_type` 为 `boolean`；`operator` 为 `missing`；`threshold` 为 `db_column`；`required` 为 true。
@@ -88,7 +88,7 @@ base 与 head 都存在的同一个类。类的直接基类最后一段必须是
 
 ### 不触发条件
 
-新字段带有 `db_column`；差集不是恰好一个对一个；构造器最后一段不同；路径段含 `migrations`；类只出现在一侧；直接基类最后一段不是 `Model`。
+新字段带有 `db_column`；差集不是恰好一个对一个；构造器最后一段不同；路径段含 `migrations`；类只出现在一侧；直接基类最后一段不是 `Model`，也不在映射表里。
 
 ### 输入
 
@@ -114,11 +114,11 @@ base 与 head 都存在的同一个类。类的直接基类最后一段必须是
 
 设计预期，不是运行结果。
 
-- Hit：直接基类是 `Model`，恰好一对字段名替换，构造器最后一段相同，新调用没有 `db_column`，且改动与 diff 相交。
+- Hit：直接基类是 `Model` 或映射表中的 `NetBoxModel`，恰好一对字段名替换，构造器最后一段相同，新调用没有 `db_column`，且改动与 diff 相交。
 - NotFound：同一对名字之外的情况已经读完，新调用含有 `db_column`，或字段名集合没有这种一对一差集。只新增一个可空字段是 NotFound。
-- Unanalyzed：直接基类不是 `Model`，包括项目模型基类，原因是 `missing_framework_context`。差集大于一对，或构造器最后一段不同：字段名读得到，但没有写明的配对政策，不把它记成 NotFound，以免盖住可能丢列的改动。实现时若必须写入已有原因名，用 `missing_framework_context`，不用 `unsupported_stage04_details`。调用与字段赋值无法配对，或 `keyword_names` 含 `None`，原因是 `unsupported_stage04_details`。路径段含 `migrations` 的 `RemoveField` 不由本规则判终态，仍归破坏性迁移规则。这些都不记 Hit。
+- Unanalyzed：直接基类不是 `Model`，也不在映射表里，原因是 `missing_framework_context`。差集大于一对，或构造器最后一段不同：字段名读得到，但没有写明的配对政策，不把它记成 NotFound，以免盖住可能丢列的改动。实现时若必须写入已有原因名，用 `missing_framework_context`，不用 `unsupported_stage04_details`。调用与字段赋值无法配对，或 `keyword_names` 含 `None`，原因是 `unsupported_stage04_details`。路径段含 `migrations` 的 `RemoveField` 不由本规则判终态，仍归破坏性迁移规则。这些都不记 Hit。
 
-项目模型基类与查询集规则里的项目 ViewSet 基类是同一类继承证据。当前没有 ADR。本任务不把 `NetBoxModel` 写进闭集。
+`NetBoxModel` 的身份只来自映射表的整段名字，不来自后缀，也没有 ADR。未列入的项目模型基类仍是 Unanalyzed。
 
 ### 构造样例
 
@@ -126,7 +126,7 @@ base 与 head 都存在的同一个类。类的直接基类最后一段必须是
 
 反例：head 为 `tag = models.CharField(max_length=50, db_column="asset_tag")`。另一个反例：同一类里同时改掉两个字段名，或 `CharField` 换成 `IntegerField`。`app/migrations/0005_rename.py` 里的 `migrations.RemoveField` 不由本规则触发。
 
-无法分析：`class Device(NetBoxModel)` 上的同样改名。另一个无法分析的例子：字段构造的关键字通过 `**options` 传入，读不到 `db_column` 是否存在。
+正例补充：`class Device(NetBoxModel)` 上的同样一对改名，且新字段没有 `db_column`，按映射表记设计 Hit。无法分析：字段构造的关键字通过 `**options` 传入，读不到 `db_column` 是否存在。另一个无法分析的例子：`class Device(OrganizationalModel)`，该最后一段不在映射表里。
 
 ### 与现有规则的去重
 
@@ -158,4 +158,4 @@ base 与 head 都存在的同一个类。类的直接基类最后一段必须是
 | 判定依据 | 将来的人工标注。官方文档不证明自动检测器在本项目数据上的配对结果 |
 | 指标 | 不预填 |
 | 验收标准 | 字段名与 `keyword_names` 能在同一赋值上配对，并且构造测试按本卡片工作之前，不能写成 `implemented`。文档写完也不是 `registered` |
-| 未解决问题 | 项目模型基类没有名单；不跨文件读取 `RenameField`；没有检测器，没有实证 |
+| 未解决问题 | `NetBoxModel` 已写入映射表，检测器还不读这张表。未列入的项目基类仍是 Unanalyzed。不跨文件读取 `RenameField`；没有检测器，没有实证 |

@@ -1,4 +1,4 @@
-# DRF 查询集收紧被绕过
+# 规则说明卡片：`auth.drf_queryset_scope_tighten_bypassed`
 
 > 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。严重度与风险性质是工程负责人的临时判断，不是终局。登记册没有权重字段；概念上的默认权重是 0，本任务不接入评分。
 
@@ -54,7 +54,7 @@ DRF 写明 `get_queryset` 同时供给列表和详情查找。返回值若变成
 
 ### 适用性
 
-类语句的直接基类文本里，最后一段标识符属于 `ViewSet`、`GenericViewSet`、`ModelViewSet`、`ReadOnlyModelViewSet` 之一。按最后一段相等，不按子串。`NetBoxModelViewSet` 的最后一段不是这四个名字。不沿继承链读其他文件。
+类语句的直接基类文本里，最后一段标识符属于 `ViewSet`、`GenericViewSet`、`ModelViewSet`、`ReadOnlyModelViewSet` 之一，或按 [已知框架基类映射](../../known-framework-bases.md) 视为 `ModelViewSet`（`NetBoxModelViewSet`）。按最后一段相等，不按子串。未列入的名字仍不适用。不沿继承链读其他文件。
 
 当前函数节点没有「返回表达式」字段，控制流节点也没有「语句属于哪个 return」。`.objects.all` 的调用节点有 `callee`。返回值是不是这个调用，要从该方法未截断切片判断。切片截断时不能匹配。
 
@@ -68,7 +68,7 @@ DRF 写明 `get_queryset` 同时供给列表和详情查找。返回值若变成
 
 `super().get_queryset` 与 `super(Cls, self).get_queryset` 是证据形态：接收者文本以 `super` 开头，调用的最后一段是 `get_queryset`。它单独出现不是 Hit。
 
-不在闭集、因此不能凭名字记 Hit 的例子：`restrict_queryset`、`restrict`，以及任何项目基类。
+不在闭集、因此不能凭名字记 Hit 的例子：`restrict_queryset`、`restrict`。它们是方法名，不是基类。未写入映射表的项目基类同样不能凭名字记 Hit。
 
 ### 触发条件
 
@@ -80,7 +80,7 @@ DRF 写明 `get_queryset` 同时供给列表和详情查找。返回值若变成
 
 ### 触发特征
 
-- `viewset_base`：`source` 为类节点 `details.bases` 的最后一段；`value_type` 为 `string`；`operator` 为 `contains`；`threshold` 为四个直接名称；`required` 为 true。
+- `viewset_base`：`source` 为类节点 `details.bases` 的最后一段；`value_type` 为 `string`；`operator` 为 `contains`；`threshold` 为四个直接名称，或映射表中的 `NetBoxModelViewSet`；`required` 为 true。
 - `method_name`：`source` 为函数名；`value_type` 为 `string`；`operator` 为 `eq`；`threshold` 为 `get_queryset`；`required` 为 true。
 - `return_form`：`source` 为 head 返回表达式的调用链；`value_type` 为 `enum`；`operator` 为 `eq`；`threshold` 为 `objects_all`；`required` 为 true。
 - `return_changed`：`source` 为该返回表达式与新增行的交集；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true。
@@ -90,7 +90,7 @@ DRF 写明 `get_queryset` 同时供给列表和详情查找。返回值若变成
 
 ### 不触发条件
 
-返回 `user.accounts.all()`；返回 `Model.objects.all().filter(...)` 或 `.exclude(...)` 或 `.none()`；只改类属性 `queryset = Model.objects.all()` 而没有改 `get_queryset`；方法名是 `list` 或 `retrieve`；四个直接基类之外的类。
+返回 `user.accounts.all()`；返回 `Model.objects.all().filter(...)` 或 `.exclude(...)` 或 `.none()`；只改类属性 `queryset = Model.objects.all()` 而没有改 `get_queryset`；方法名是 `list` 或 `retrieve`；最后一段不在四个直接名称里，也不在映射表里的类。
 
 ### 输入
 
@@ -116,11 +116,11 @@ DRF 写明 `get_queryset` 同时供给列表和详情查找。返回值若变成
 
 设计预期，不是运行结果。
 
-- Hit：直接基类在四个名字里，head 返回未过滤的 `objects.all`，且这个形态相对 base 是新的，返回与新增行相交。
+- Hit：直接基类在四个原生名字里，或是映射表中的 `NetBoxModelViewSet`，head 返回未过滤的 `objects.all`，且这个形态相对 base 是新的，返回与新增行相交。
 - NotFound：直接基类在闭集里，方法切片已读完，head 返回不是该形态，并且不存在「去掉了 `super().get_queryset` 或项目收紧调用、但返回形态对不上」的情况。类属性 `queryset = Model.objects.all()` 对这条规则是 NotFound。
-- Unanalyzed：直接基类不是四个名字，包括 `NetBoxModelViewSet`，即使方法里写了 `Model.objects.all()`。原因是 `missing_framework_context`。返回切片截断，原因是 `unsupported_stage04_details`。调用链上有闭集之外的方法名，原因是 `missing_framework_context`。去掉 `super().get_queryset()` 或 `restrict_queryset` 之后返回的是 `filter`、名字或其他表达式，原因是 `missing_framework_context`。这些都不记 Hit，也不记 NotFound。
+- Unanalyzed：直接基类不在四个原生名字里，也不在映射表里，即使方法里写了 `Model.objects.all()`。原因是 `missing_framework_context`。返回切片截断，原因是 `unsupported_stage04_details`。调用链上有闭集之外的方法名，原因是 `missing_framework_context`。去掉 `super().get_queryset()` 或 `restrict_queryset` 之后返回的是 `filter`、名字或其他表达式，原因是 `missing_framework_context`。这些都不记 Hit，也不记 NotFound。
 
-最后一种 Unanalyzed 是本卡片留给所有者的边界：`restrict_queryset` 和项目基类上的收紧合同没有闭集。把它们收进 Hit 需要写明的名单；那会是继承证据，当前没有 ADR。
+单独去掉 `restrict_queryset` 仍然不是 Hit。映射表只解决 `NetBoxModelViewSet` 的基类身份，不把 `restrict_queryset` 收进返回形态闭集。未列入的项目基类仍是 `missing_framework_context`。当前没有 ADR。
 
 ### 构造样例
 
@@ -128,7 +128,7 @@ DRF 写明 `get_queryset` 同时供给列表和详情查找。返回值若变成
 
 反例：同一基类上 `return request.user.accounts.all()`。另一个反例：`queryset = Device.objects.all()` 写在类体里，`get_queryset` 没有改。`return Device.objects.filter(status="active")` 也不是未过滤形态。
 
-无法分析：`class DeviceViewSet(NetBoxModelViewSet)` 里 `return Device.objects.all()`。另一个无法分析的例子：base 为 `return self.restrict_queryset(super().get_queryset())`，head 为 `return Device.objects.filter(status="active")`。
+正例补充：`class DeviceViewSet(NetBoxModelViewSet)` 里，base 为 `return super().get_queryset()`，head 为 `return Device.objects.all()`。这按映射表记设计 Hit。无法分析：base 为 `return self.restrict_queryset(super().get_queryset())`，head 为 `return Device.objects.filter(status="active")`。另一个无法分析的例子：`class DeviceViewSet(ProjectViewSet)`，`ProjectViewSet` 不在映射表里。
 
 ### 与现有规则的去重
 
@@ -138,7 +138,7 @@ DRF 写明 `get_queryset` 同时供给列表和详情查找。返回值若变成
 
 - [DRF `get_queryset`](https://www.django-rest-framework.org/api-guide/generic-views/#get_querysetself) 写明它返回列表使用的查询集，并作为详情查找的基础，默认返回 `queryset` 属性。同页的例子是 `return user.accounts.all()`，接收者不是 `objects`。
 - 同页没有写「必须调用 `super().get_queryset()`」，也没有定义 `restrict_queryset`。本卡片因此不把单独缺少 `super()` 记成 Hit。
-- 四个 ViewSet 名字与 [`api.drf_viewset_action_changed`](api.drf_viewset_action_changed.md) 的直接名称相同。`PrimaryModelSerializer` 那类项目基类仍不按后缀并入闭集；014 没有为它建 ADR。
+- 四个 ViewSet 名字与 [`api.drf_viewset_action_changed`](api.drf_viewset_action_changed.md) 的直接名称相同。`NetBoxModelViewSet` 只通过 [已知框架基类映射](../../known-framework-bases.md) 视为 `ModelViewSet`，不按后缀并入。没有 ADR。
 - 这些句子不是 NetBox 试点，也不是数据暴露已经发生的证据。
 
 ## 6. 限制与反例
@@ -159,4 +159,4 @@ DRF 写明 `get_queryset` 同时供给列表和详情查找。返回值若变成
 | 判定依据 | 将来的人工标注。DRF 文档不提供项目辅助函数的强弱顺序 |
 | 指标 | 不预填 |
 | 验收标准 | 返回表达式可读并且构造测试按本卡片工作之前，不能写成 `implemented`。文档写完也不是 `registered` |
-| 未解决问题 | 项目基类和 `restrict_queryset` 没有名单；返回表达式还不是结构化字段；没有检测器，没有实证 |
+| 未解决问题 | `NetBoxModelViewSet` 已写入映射表，检测器还不读这张表。`restrict_queryset` 仍不是 Hit。返回表达式还不是结构化字段；没有检测器，没有实证 |

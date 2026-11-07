@@ -1,4 +1,4 @@
-# 敏感配置变化
+# 规则说明卡片：`config.django_sensitive_settings_changed`
 
 > 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。
 
@@ -32,11 +32,11 @@
 
 ### 观察到的工程问题
 
-部署检查清单里的设置在 diff 中被改写。新值不一定更不安全，但这些名字被 Django 标成部署时要单独看的设置。
+部署检查清单里的设置在 diff 中被改得更宽或不安全。收紧方向，例如 `DEBUG` 从 `True` 改为 `False`，不是同等的回归。
 
 ### 为什么值得检测
 
-`SECRET_KEY` 和数据库密码被文档要求保密；`DEBUG` 被要求不要在生产打开；`ALLOWED_HOSTS` 与两个 cookie 安全标志被写进同一份清单。审查者需要看到这些名字变了。
+`SECRET_KEY` 和数据库密码被文档要求保密；`DEBUG` 被要求不要在生产打开；`ALLOWED_HOSTS` 与两个 cookie 安全标志被写进同一份清单。审查者需要看到不安全或放宽的方向。收紧不需要一条 High Hit。
 
 ### 现有规则为什么不能覆盖
 
@@ -60,7 +60,18 @@
 
 ### 检测边界
 
-任何方向的变化都记录：`DEBUG = True` 改成 `False` 也是变化，不表示新值已经安全。不读取环境变量的运行值，不判断生产环境实际启用了哪一份设置。
+只把不安全或放宽记为 Hit，严重度 `High`。收紧记 NotFound，不是较低严重度的 Hit，也不是一票抬升。方向从赋值切片里读不出来时记 Unanalyzed，不能因为指纹变了就 Hit。不读取环境变量的运行值，不判断生产环境实际启用了哪一份设置。
+
+| 名字 | 不安全或放宽，Hit | 收紧，NotFound | 方向不明，Unanalyzed |
+| --- | --- | --- | --- |
+| `DEBUG` | head 为常量 `True`，且 base 不是 `True` | 切片显示 `True` 变为 `False` | 不是常量 `True` / `False`，或切片截断 |
+| `CSRF_COOKIE_SECURE` | `True` 变为 `False`，或 head 为 `False` 且 base 不是 `False` | `False` 变为 `True` | 同上 |
+| `SESSION_COOKIE_SECURE` | 与 `CSRF_COOKIE_SECURE` 相同 | 与 `CSRF_COOKIE_SECURE` 相同 | 同上 |
+| `ALLOWED_HOSTS` | head 的列表字面量含 `'*'`，且 base 的可读列表不含 `'*'`，或 base 没有这条赋值 | head 去掉 `'*'`，或从含 `'*'` 的列表字面量变成不含 `'*'` 的列表字面量 | 列表不是字符串字面量、含解包，或来自其他名字 |
+| `SECRET_KEY` | head 是非空字符串字面量，且与 base 不同或 base 不是字面量；或 head 删掉了该赋值 | head 从字符串字面量改为非字面量，例如 `os.environ[...]` | 两侧都无法看出是写入字面量还是挪走字面量 |
+| `SECRET_KEY_FALLBACKS` | head 新增字符串字面量元素，或从缺失/空变成非空字面量列表 | head 删掉字面量元素，或从非空字面量列表变成空列表或非字面量 | 元素不是可逐个读出的字符串字面量 |
+| `DATABASES` | 可读结构里 `PASSWORD` 被写成非空字符串字面量，且 base 的同一位置不是这个字面量 | 同一 `PASSWORD` 从字符串字面量改为非字面量 | 字典不是字面量、键是动态的，或切片截断 |
+
 
 ### 检测对象
 
@@ -68,18 +79,18 @@
 
 ### 触发条件
 
-目标名在名单内，且 base 与 head 的赋值指纹不同，或一侧没有这条赋值。函数体内的同名局部变量不触发。
+目标名在名单内，赋值与新增行或删除行相交，并且上一节的方向表给出 Hit。函数体内的同名局部变量不触发。指纹不同但方向表给不出 Hit 或 NotFound 时，是 Unanalyzed。
 
 ### 触发特征
 
 - `setting_name`：`source` 为赋值目标的直接名称；`value_type` 为 `string`；`operator` 为 `contains`；`threshold` 为上面七个名字；`required` 为 true。
-- `assignment_changed`：`source` 为该赋值节点的指纹差异，或有无差异，且与新增或删除行相交；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true。
+- `assignment_changed`：`source` 为该赋值与新增或删除行相交，且方向表的 Hit 列成立；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true。
 
-stage04 的 field 节点记录名字和值指纹。字符串值会进入 `literal_binding.literal_text`。布尔值目前是 `literal_kind: non_literal`，没有单独的布尔字段。证据可以给出名字和指纹变了，不能从现有字段读出 `DEBUG` 的 True/False。值的方向留在未截断切片里供人工看。
+stage04 的 field 节点记录名字和值指纹。字符串值会进入 `literal_binding.literal_text`。布尔值目前是 `literal_kind: non_literal`，没有单独的布尔字段。方向必须从未截断切片读出。读不出时是 Unanalyzed，不是 Hit。
 
 ### 不触发条件
 
-名字不在七个之内；只改了注释；同名赋值在函数内部；`os.environ` 的读取出现在其他文件。
+名字不在七个之内；只改了注释；同名赋值在函数内部；方向表的收紧列成立，包括 `DEBUG = True` 改为 `DEBUG = False`，以及 `CSRF_COOKIE_SECURE` / `SESSION_COOKIE_SECURE` 从 `False` 改为 `True`。其他文件里的 `os.environ` 读取看不见。
 
 ### 输入
 
@@ -87,7 +98,7 @@ stage04 的 field 节点记录名字和值指纹。字符串值会进入 `litera
 
 ### Finding
 
-设计线索：规则 ID、设置名、文件和行、`pr_intrinsic_risk`。不展示完整秘密值作为必须字段；字符串证据沿用 `code.hardcoded_secret` 已有的长度和短预览边界，不把整段密钥写进设计 Finding 的必填栏。本任务不生成 Finding。
+设计线索：规则 ID、设置名、方向是放宽、文件和行、`pr_intrinsic_risk`、严重度 `High`。不展示完整秘密值作为必须字段；字符串证据沿用 `code.hardcoded_secret` 已有的长度和短预览边界。收紧不生成 Finding。本任务不生成 Finding。
 
 ### 证据位置
 
@@ -112,17 +123,11 @@ stage04 的 field 节点记录名字和值指纹。字符串值会进入 `litera
 
 ### 构造样例
 
-正例：模块级 `DEBUG = True` 改为 `DEBUG = False`。另一个正例：`SECRET_KEY = "dev-only"` 改为 `SECRET_KEY = os.environ["SECRET_KEY"]`。
+正例：模块级 `DEBUG = False` 改为 `DEBUG = True`。另一个正例：`SECRET_KEY = os.environ["SECRET_KEY"]` 改为 `SECRET_KEY = "dev-only-secret"`。
 
-反例：函数里 `def f(): DEBUG = True`。另一个反例：模块级 `PAGE_SIZE = 50` 改成 `100`，名字不在闭集。
+反例：`DEBUG = True` 改为 `DEBUG = False`，记 NotFound。`SECRET_KEY` 从字符串字面量改为 `os.environ[...]`，记 NotFound。函数里 `def f(): DEBUG = True` 不触发。模块级 `PAGE_SIZE = 50` 改成 `100`，名字不在闭集。
 
 边界：`DATABASES["default"]["PASSWORD"] = "..."` 这种下标赋值不是直接名称赋值。当前字段节点不覆盖下标目标，记 Unanalyzed，不把它漏当成已经检查过的 `DATABASES` 整体。若变化的是 `DATABASES = {...}` 这个直接名称，则按名单命中。
-
-### 014 比较单位
-
-`lifecycle` 仍是 `draft`。没有检测器，不写成 `registered`。
-
-比较单位是模块级直接名称赋值。变更前和变更后比的是同一个名字的值指纹：两侧指纹不同，或一侧没有这条赋值。函数体内的同名局部变量不比较。闭集就是上面七个设置名。闭集外的名字记 `missing_framework_context`，不记 Hit，也不把整条规则记成 NotFound。下标赋值和截断切片是 `unsupported_stage04_details`。`config.configuration_structure_changed` 仍是运行时的粗路径规则。本规则不抑制它，也还没有 Finding。
 
 ## 5. 理论与项目依据
 
@@ -132,11 +137,11 @@ stage04 的 field 节点记录名字和值指纹。字符串值会进入 `litera
 
 ## 6. 限制与反例
 
-- 可能误报：开发用设置文件里的 `DEBUG` 来回切换，对生产并没有影响。规则不区分文件是不是生产设置。
+- 可能误报：开发用设置文件里把 `DEBUG` 改成 `True`，对生产并没有影响。规则不区分文件是不是生产设置。收紧方向不再记成 High Hit。
 - 可能漏报：设置在未改动的私有模块里，或通过环境变量在仓库外变化。
 - Python 动态特性限制：`locals()`、动态字典和解包赋值。
 - 规则不判断：新值是否适合生产、密钥是否已经泄露、cookie 标志在浏览器里是否生效。
-- 必须人工复核的上下文：该文件是开发默认还是生产模块，以及密钥是否只是从字面量改成了环境变量。
+- 必须人工复核的上下文：该文件是开发默认还是生产模块。密钥从字面量改成环境变量按方向表是 NotFound，不再用 High Hit 要求这次复核。
 
 ## 7. 有效性计划
 
@@ -148,4 +153,4 @@ stage04 的 field 节点记录名字和值指纹。字符串值会进入 `litera
 | 判定依据 | 将来的人工标注。清单只提供名单，不提供本项目的 Precision |
 | 指标 | 不预填 |
 | 验收标准 | 待实现任务再写 |
-| 未解决问题 | 布尔方向没有结构化字段；项目自定义设置名单不存在，本任务不补 |
+| 未解决问题 | 布尔方向没有结构化字段，必须读未截断切片；读不出则 Unanalyzed。没有检测器。项目自定义设置名单不存在，本任务不补 |

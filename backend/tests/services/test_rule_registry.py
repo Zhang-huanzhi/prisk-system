@@ -104,9 +104,7 @@ class RuleRegistryTests(unittest.TestCase):
             match = re.search(rf"\[`{re.escape(rule_id)}`\]\(([^)]+)\) · `draft`", index)
             self.assertIsNotNone(match, rule_id)
             content = (KNOWLEDGE_BASE / match.group(1)).read_text(encoding="utf-8")
-            self.assertIn(f"`{rule['version']}` / `{rule['rule_family']}` / `draft`", content)
-            for key in ("risk_nature", "dependency_level", "severity"):
-                self.assertIn(f"`{rule['classification'][key]}`", content)
+            _assert_split_card_identity(self, content, rule)
         for lifecycle in ("registered", "implemented"):
             entries = [rule for rule in self.registry["rules"] if rule["lifecycle"] == lifecycle]
             for rule in entries:
@@ -118,9 +116,16 @@ class RuleRegistryTests(unittest.TestCase):
                 self.assertTrue(path.is_file(), rule_id)
                 content = path.read_text(encoding="utf-8")
                 self.assertIn(f"`{rule_id}`", content)
-                self.assertIn(f"`{rule['version']}` / `{rule['rule_family']}` / `{lifecycle}`", content)
-                for key in ("risk_nature", "dependency_level", "severity"):
-                    self.assertIn(f"`{rule['classification'][key]}`", content)
+                _assert_split_card_identity(self, content, rule)
+
+
+def _assert_split_card_identity(test: unittest.TestCase, content: str, rule: dict) -> None:
+    """Template cards keep version, family, and lifecycle in separate rows."""
+    test.assertRegex(content, rf"(?m)^\| 版本 \| `{re.escape(rule['version'])}` \|$")
+    test.assertRegex(content, rf"(?m)^\| 规则阵营 \| `{re.escape(rule['rule_family'])}` \|$")
+    test.assertRegex(content, rf"(?m)^\| 生命周期 \| `{re.escape(rule['lifecycle'])}` \|$")
+    for key in ("risk_nature", "dependency_level", "severity"):
+        test.assertIn(f"`{rule['classification'][key]}`", content)
 
 
 def _lifecycle_tokens(text: str) -> set[str]:
@@ -195,11 +200,17 @@ class LifecycleFieldConsistencyTests(unittest.TestCase):
         self.assertEqual(lifecycles.count("deprecated"), 0)
 
         card = (KNOWLEDGE_BASE / "catalog/breaking_impact/workflow.large_change_scope.md").read_text(encoding="utf-8")
-        self.assertRegex(card, r"(?m)^\| 版本 / 阵营 / 生命周期 \| `v1` / `breaking_impact` / `draft` \|$")
-        self.assertRegex(card, r"(?m)^\| 风险性质 / 依赖层级 \| `pr_intrinsic` / `process` \|$")
-        self.assertRegex(card, r"(?m)^\| 严重度 / 一票抬升 \| `High` / `false`，条件 `null`；设计值待验证 \|$")
+        self.assertRegex(card, r"(?m)^\| 版本 \| `v1` \|$")
+        self.assertRegex(card, r"(?m)^\| 规则阵营 \| `breaking_impact` \|$")
+        self.assertRegex(card, r"(?m)^\| 生命周期 \| `draft` \|$")
+        self.assertRegex(card, r"(?m)^\| 风险性质 \| `pr_intrinsic` \|$")
+        self.assertRegex(card, r"(?m)^\| 依赖层级 \| `process`")
+        self.assertRegex(card, r"(?m)^\| 严重度 \| `High` \|$")
+        self.assertRegex(card, r"(?m)^\| 一票抬升 \| `false` \|$")
+        self.assertRegex(card, r"(?m)^\| 一票抬升条件 \| `null` \|$")
         self.assertIn("后续算法阶段可以修订", card)
         self.assertIn("这不是终局", card)
+        self.assertNotIn("不改任何一边", card)
 
         page = (KNOWLEDGE_BASE / "v1.1-card-readiness.md").read_text(encoding="utf-8")
         self.assertIn("后续算法阶段可以修订，不是终局", page)
@@ -318,6 +329,67 @@ class DraftContractConsistencyTests(unittest.TestCase):
         self.assertIn("设计终态是 Unanalyzed，不是 Hit", card)
         self.assertIn("收窄到同一个函数或同一个类，是未决提议", card)
         self.assertNotIn("同一所有者的 head 上出现", card)
+
+
+class Task017CardContractTests(unittest.TestCase):
+    """017 card contracts. Detectors are intentionally unchanged."""
+
+    def setUp(self) -> None:
+        self.registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8-sig"))
+        self.by_id = {rule["rule_id"]: rule for rule in self.registry["rules"]}
+
+    def test_gatekeeper_conditions_match_the_cards(self) -> None:
+        destructive = self.by_id["data.django_destructive_migration"]
+        self.assertTrue(destructive["classification"]["gatekeeper"])
+        condition = destructive["classification"]["gatekeeper_condition"]
+        self.assertIn("DeleteModel", condition)
+        self.assertIn("RemoveField", condition)
+        self.assertIn("不是 DeleteField", condition)
+        self.assertNotIn("裸 RunSQL", condition)
+        card = (KNOWLEDGE_BASE / "catalog/breaking_impact/data.django_destructive_migration.md").read_text(encoding="utf-8")
+        self.assertRegex(card, r"(?m)^\| 一票抬升 \| `true` \|$")
+        self.assertIn(condition, card)
+
+        policy = self.by_id["auth.drf_permission_policy_downgrade"]
+        self.assertTrue(policy["classification"]["gatekeeper"])
+        allow = policy["classification"]["gatekeeper_condition"]
+        self.assertIn("AllowAny", allow)
+        self.assertIn("空列表", allow)
+        card = (KNOWLEDGE_BASE / "catalog/backend_contract/auth.drf_permission_policy_downgrade.md").read_text(encoding="utf-8")
+        self.assertRegex(card, r"(?m)^\| 一票抬升 \| `true` \|$")
+        self.assertIn(allow, card)
+
+    def test_known_framework_bases_are_written_and_not_runtime(self) -> None:
+        from prisk.domain.rules import RULE_CATALOG
+
+        mapping = (KNOWLEDGE_BASE / "known-framework-bases.md").read_text(encoding="utf-8")
+        self.assertIn("PrimaryModelSerializer", mapping)
+        self.assertIn("NetBoxModelViewSet", mapping)
+        self.assertIn("NetBoxModel", mapping)
+        self.assertIn("RackBaseSerializer", mapping)
+        self.assertIn("restrict_queryset", mapping)
+        catalog_ids = {item["rule_id"] for item in RULE_CATALOG}
+        self.assertNotIn("api.drf_viewset_action_changed", catalog_ids)
+        added = (KNOWLEDGE_BASE / "catalog/backend_contract/api.drf_public_parameter_added.md").read_text(encoding="utf-8")
+        self.assertIn("known-framework-bases.md", added)
+        self.assertIn("省略 `required` 仍然 Unanalyzed", added)
+
+    def test_detector_followups_stay_documented(self) -> None:
+        bare = (KNOWLEDGE_BASE / "catalog/code_smell/code.bare_exception.md").read_text(encoding="utf-8")
+        self.assertIn("except Exception", bare)
+        self.assertIn("BROAD_HANDLER_NAMES", bare)
+        self.assertIn("不是本规则的 Hit", bare)
+        self.assertEqual(self.by_id["code.bare_exception"]["definition"]["trigger_features"][0]["threshold"], ["bare", "BaseException"])
+        opened = (KNOWLEDGE_BASE / "catalog/code_smell/code.unmanaged_open.md").read_text(encoding="utf-8")
+        self.assertIn("Path(...).open", opened)
+        self.assertIn("检测器仍只认直接名称 `open`", opened)
+        non_null = (KNOWLEDGE_BASE / "catalog/breaking_impact/data.django_non_null_constraint_tightened.md").read_text(encoding="utf-8")
+        self.assertIn("不能只因为省略了 `null=True` 就 Hit", non_null)
+        sensitive = (KNOWLEDGE_BASE / "catalog/backend_contract/config.django_sensitive_settings_changed.md").read_text(encoding="utf-8")
+        self.assertIn("`DEBUG = True` 改为 `DEBUG = False`，记 NotFound", sensitive)
+        removed = (KNOWLEDGE_BASE / "catalog/backend_contract/api.drf_public_parameter_removed.md").read_text(encoding="utf-8")
+        self.assertIn("Meta.fields", removed)
+        self.assertIn("unsupported_stage04_details", removed)
 
 
 if __name__ == "__main__":

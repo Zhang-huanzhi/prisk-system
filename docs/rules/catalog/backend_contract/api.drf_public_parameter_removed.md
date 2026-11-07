@@ -1,4 +1,4 @@
-# 公有接口删除既有参数
+# 规则说明卡片：`api.drf_public_parameter_removed`
 
 > 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。
 
@@ -56,7 +56,7 @@
 
 ### 检测边界
 
-- 序列化器：类语句的基类文本含有直接名称 `Serializer`，且不含 `ModelSerializer` 时，类体里的字段赋值属于适用表面。基类含 `ModelSerializer` 时，类体里显式字段赋值仍可比较是否消失；模型上未写进类体的隐式字段不在本规则里。
+- 序列化器：基类最后一段是 `Serializer` 或 `ModelSerializer`，或按 [已知框架基类映射](../../known-framework-bases.md) 视为 `ModelSerializer`（`PrimaryModelSerializer`）时，类体里显式字段赋值可以比较是否消失。纯 `Serializer` 与 `ModelSerializer` 一样只比较写出来的字段。模型上未写进类体的隐式字段不在本规则里。未列入的名字，包括 `RackBaseSerializer`，不是适用表面。
 - 视图：函数或方法节点的装饰器文本含有 `@api_view` 或 `@action` 时，该函数签名里的参数属于适用表面。
 - 不把“文件名像 `serializers.py`”单独当成公有路由已经证明。
 
@@ -68,9 +68,17 @@ base 与 head 上、与删除行或新增行相交的类体字段节点，以及
 
 适用表面成立，且同一个限定名下的字段名或参数名在 base 有、在 head 没有。一条名字一条设计 Finding。改名会同时表现为删除和新增；新增半边交给 `api.drf_public_parameter_added`，本规则只记录消失的名字。
 
+同一适用类上的嵌套类 `Meta` 也在设计范围内，比较的是列表成员，不是类体字段赋值名：
+
+- base 的 `Meta.fields` 含有字符串字面量 `S`，head 的 `Meta.fields` 仍是可读的列表或元组且不含 `S`：设计 Hit，表示该名字从公开字段名单里去掉。
+- base 的 `Meta.exclude` 不含 `S`，head 的 `Meta.exclude` 新增字符串字面量 `S`：设计 Hit，表示该名字被排除。
+- `Meta.fields = "__all__"` 与一个具体列表之间的替换读得出两侧形态，但无法列出消失的模型字段名。这不是 Hit，记 `missing_framework_context`。
+- 当前 stage04 的类体字段节点保存的是序列化器字段赋值。嵌套类 `Meta` 的列表元素如果不是结构化的字符串名单，就读不出成员变化。此时记 `unsupported_stage04_details`，不把「看不到 Meta」写成 NotFound，也不把字段赋值通道上已经读完的名字补成已通过。
+- 类上没有 `Meta` 时，这一通道不存在。字段赋值通道已经读完且没有缺口时，仍可以只按赋值名记 NotFound。
+
 ### 触发特征
 
-- `parameter_removed`：`name` 为该字段；`source` 为 base 字段或签名参数集合有该名、head 没有；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true。
+- `parameter_removed`：`name` 为该字段；`source` 为 base 的类体字段名、签名参数名，或可读的 `Meta.fields` / `Meta.exclude` 字符串成员；head 上该名字按上一节的删除或排除形态消失；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true。
 - `same_file_surface`：`source` 为同一类基类文本或同一函数装饰器文本；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true。
 
 两个都要成立。当前 stage04 的函数节点带有完整 `signature.parameters`。类体字段只有赋值行与 diff 相交时才进入节点列表；未改动的兄弟字段不会出现。比较“消失”时，以 base 上与删除行相交的字段节点为准。
@@ -103,32 +111,18 @@ base 与 head 上、与删除行或新增行相交的类体字段节点，以及
 
 设计预期，不是 009 已经对这条规则产出的运行结果。009 的 Hit / NotFound / Unanalyzed 只覆盖当前 13 条运行时规则。
 
-- 类基类不是上述直接名称，或装饰器文本读不出：`missing_framework_context`。不记 Hit，也不记 NotFound。
+- 类基类最后一段不在 `Serializer` / `ModelSerializer` 里，也不在映射表里，或装饰器文本读不出：`missing_framework_context`。不记 Hit，也不记 NotFound。`PrimaryModelSerializer` 视为 `ModelSerializer`。
 - 字段赋值的源码切片被截断，无法确认目标名：`unsupported_stage04_details`。
 - 同一 diff 里类基类文本也变了：字段可能被挪到新的基类。记 `missing_framework_context`，不把本地消失直接当成 Hit。
 - 父类文件里的字段本规则看不到。这是漏报边界，不启动跨文件分析来补。
 
 ### 构造样例
 
-正例：base 的类体有 `asset_tag = serializers.CharField(required=False)`，head 的同一 `Serializer` 子类不再有 `asset_tag`。
+正例：base 的类体有 `asset_tag = serializers.CharField(required=False)`，head 的同一 `Serializer` 或 `PrimaryModelSerializer` 子类不再有 `asset_tag`。另一个正例：同一类的 `Meta.fields` 从 `("id", "asset_tag")` 变成 `("id",)`，且列表元素可读。
 
 反例：只把 `help_text` 从 `"old"` 改成 `"new"`，字段名仍在。另一个反例：模块级 helper `def export(self, queryset, output="json")` 删掉 `output`，函数上没有 `@api_view` 或 `@action`。
 
 边界：`ModelSerializer` 子类的类体里没有写 `name`，模型字段 `name` 仍由框架生成。本地 AST 看不到这条隐式字段，不能记成删除，也不能记成 NotFound。
-
-### 014 比较单位
-
-卡片表格和登记册的 `lifecycle` 都是 `draft`。本节不把它改成 `registered`。设计终态不是运行记录。上文「009 只覆盖当前 13 条」写于 011；013 起运行时目录是 14 条。本规则仍不在其中。
-
-- **比较单位**：同一个类限定名上的字段名，或同一个函数限定名上的参数名。这个类或函数在 head 仍然存在。
-- **变更前**：base 上与删除行相交的适用字段或参数有这个名字。
-- **变更后**：head 的同一表面没有这个名字。
-- **身份**：最后一段标识符等于 `Serializer`，且没有基类的最后一段等于 `ModelSerializer` 时，类体字段可以比较消失。最后一段等于 `ModelSerializer` 时，只比较类体里写出来的字段。`PrimaryModelSerializer` 的最后一段两个名字都不是，不因为字符串里含有 `Serializer` 或 `ModelSerializer` 而进入闭集，记 `missing_framework_context`。
-- **排除**：整个类或函数从 head 消失；名字还在，只改 `help_text` 或 `required`；没有 `@api_view` / `@action` 的普通函数少了一个参数。改名留下的新名字交给 `api.drf_public_parameter_added`，两条规则不把两个不同名字自动判成同一次改名。
-- **证据位置**：文件、限定名、消失的名字、相交的删除行、base 侧切片。切片截断到不能确认目标名时，是 `unsupported_stage04_details`。
-- **设计终态**：基类最后一段在同一 diff 里也变了，是 `missing_framework_context`。适用名字已经对完且没有缺口时，才可以记 NotFound。当前没有检测器。
-
-不支持的例子：`class DeviceSerializer(PrimaryModelSerializer)` 去掉类体里的 `asset_tag`；整个视图函数被删除。
 
 ## 5. 理论与项目依据
 
@@ -140,8 +134,8 @@ base 与 head 上、与删除行或新增行相交的类体字段节点，以及
 
 ## 6. 限制与反例
 
-- 可能误报：字段被改名、被收进 `Meta.fields` 的字符串，或被挪进本文件另一处动态 `get_fields`。这些都不是“客户端不再需要这个名字”的证明。
-- 可能漏报：父类字段、`extra_kwargs` 里删除的名字、运行时拼接的字段。
+- 可能误报：字段被改名，新名字与旧名字没有自动配对；或名字从类体赋值挪进本文件的 `get_fields`。`Meta.fields` 成员变化本身是设计 Hit，不再当成误报理由。
+- 可能漏报：父类字段、`extra_kwargs` 里删除的名字、运行时拼接的字段，以及结构对象还读不出的 `Meta` 列表。后者按 Unanalyzed 记录，不算已经检查过。
 - Python 动态特性限制：`locals()` 或循环里创建的字段没有稳定的赋值目标名。
 - 规则不判断：客户端兼容范围、已发布版本是否承诺该字段、请求是否已经失败。
 - 必须人工复核的上下文：发布说明、序列化器继承，以及该字段是请求字段还是响应字段。
@@ -156,4 +150,4 @@ base 与 head 上、与删除行或新增行相交的类体字段节点，以及
 | 判定依据 | 将来以人工标注对照本卡片。当前卡片还不是检测器的 Ground Truth |
 | 指标 | 命中频次、Precision、Recall 都待验证设计确定，不预填 |
 | 验收标准 | 待后续实现任务自定。本任务只要求设计边界写明 |
-| 未解决问题 | 路由图未建；`Meta.fields` 字符串名单未解析；没有检测器 |
+| 未解决问题 | 路由图未建。`Meta.fields` / `Meta.exclude` 的设计 Hit 已写明，当前结构对象读不出嵌套列表时必须 Unanalyzed。映射表不由运行时执行。没有检测器 |

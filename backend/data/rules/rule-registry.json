@@ -125,24 +125,23 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "except Exception/BaseException 可能在变更中引入，需要显式记录为可复核信号。",
-        "why_worth_detecting": "帮助审查者定位需要上下文复核的变更。",
+        "observed_problem": "裸 except 或 except BaseException 可能在变更中引入。except Exception 不是同一种捕获。",
+        "why_worth_detecting": "PEP 8 把裸 except 与 except Exception 分开。审查者需要看到会捕获 SystemExit 和 KeyboardInterrupt 的写法。",
         "expected_consequence": "可能增加缺陷、兼容性、维护或复核成本。",
         "coverage_gap": "现有 v1.0.0 粗粒度演示规则未对该模式作专门定义。",
         "value": "为规则研究和后续实证验证提供明确、可复现的假设。"
       },
       "definition": {
-        "target": "裸 except 或直接名称 Exception/BaseException 的异常捕获",
-        "trigger": "新增或修改裸 except 或显式 Exception/BaseException 捕获时提示复核；详见规则卡片。",
+        "target": "裸 except，或直接名称 BaseException 的异常捕获。except Exception 不在本规则的 Hit 集合。",
+        "trigger": "新增行与裸 except 或直接名称 BaseException 的处理分支相交时提示复核。except Exception 不是本规则的 Hit。运行时检测器仍把 Exception 放在同一 Finding 里，直到后续任务拆开。",
         "trigger_features": [
           {
             "name": "handler_type",
-            "source": "head AST ExceptHandler.type 的直接名称，空类型记为 bare",
+            "source": "head AST ExceptHandler.type 的直接名称；空类型记为 bare。Exception 不是本特征的 threshold。",
             "value_type": "string",
             "operator": "contains",
             "threshold": [
               "bare",
-              "Exception",
               "BaseException"
             ],
             "required": true
@@ -156,7 +155,7 @@
             "required": true
           }
         ],
-        "non_trigger": "只捕获具体异常、与新增行无交集，或 head AST 不可用时不把文件记为通过。",
+        "non_trigger": "except Exception；只捕获具体异常；与新增行无交集。head AST 不可用时不把文件记为通过。",
         "inputs": [
           "head Python 源码 AST",
           "三点 Diff 新增行"
@@ -195,8 +194,9 @@
         ],
         "acceptance_criteria": "构造样例按卡片命中；不预填 Precision、Recall 或缺陷结论。",
         "unresolved_questions": [
-          "实证数据范围待补齐",
-          "误报与漏报边界待验证"
+          "运行时 BROAD_HANDLER_NAMES 仍包含 Exception，与本卡片合同不一致",
+          "except* 仍待设计",
+          "实证数据范围待补齐"
         ]
       }
     },
@@ -445,15 +445,15 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "直接名称 open 的结果没有作为 with 或 async with 的上下文表达式。",
-        "why_worth_detecting": "帮助审查者核对关闭路径，同时避免把属性调用 Path.open 混进同一规则。",
+        "observed_problem": "直接名称 open，或 Path(...).open，没有作为 with 或 async with 的上下文表达式。",
+        "why_worth_detecting": "Path.open 返回文件对象，关闭理由与内置 open 相同。命中不表示泄漏已经发生。",
         "expected_consequence": "文件对象可能依赖稍后的 close 或包装器；命中不表示泄漏已经发生。",
         "coverage_gap": "004 的动态执行规则只覆盖 eval 和 exec，不覆盖 open。",
         "value": "沿用 head AST 与新增行交集，给资源关闭复核一个可测试的结构定义。"
       },
       "definition": {
-        "target": "直接名称 open 调用，且该 Call 不是 with 或 async with 的 context_expr",
-        "trigger": "调用节点与新增行相交，direct_callee_name 为 open，used_as_with_context 为 false。详见规则卡片。",
+        "target": "直接名称 open，或属性名为 open 且接收者是最后一段为 Path 的调用；并且该 Call 不是 with 或 async with 的 context_expr。",
+        "trigger": "调用节点与新增行相交，形态为直接名称 open 或 Path(...).open / pathlib.Path(...).open，used_as_with_context 为 false。运行时检测器仍只认直接名称 open。",
         "trigger_features": [
           {
             "name": "direct_callee_name",
@@ -480,7 +480,7 @@
             "required": true
           }
         ],
-        "non_trigger": "with 或 async with 的上下文表达式、属性调用、别名调用、未改动或只删除的调用；缺少 used_as_with_context 时标记未分析。",
+        "non_trigger": "with 或 async with 的上下文表达式；io.open 与 builtins.open；接收者不是 Path(...) 调用的属性 open；别名调用；未改动或只删除的调用。接收者只是名字时 Unanalyzed。缺少 used_as_with_context 时标记未分析。",
         "inputs": [
           "head Python 源码 AST",
           "三点 Diff 新增行"
@@ -506,7 +506,7 @@
       },
       "limitations": {
         "false_positive": "手动 close、closing 或 ExitStack 仍会命中；被遮蔽的 open 名字也会命中。",
-        "false_negative": "io.open、builtins.open、Path.open 和先赋值再调用不会命中。",
+        "false_negative": "io.open、builtins.open 和先赋值再调用不会命中。设计上的 Path.open 目前仍被运行时漏掉。",
         "dynamic_language": "直接名称可能被局部名字遮蔽，规则不解析绑定目标。",
         "does_not_decide": "不判断文件描述符是否仍然打开，也不判断泄漏。",
         "manual_review": "需要看关闭路径、调用绑定和该 open 是否就是 with 的上下文表达式。"
@@ -522,8 +522,9 @@
         ],
         "acceptance_criteria": "构造样例按卡片命中；不预填 Precision、Recall 或泄漏结论。",
         "unresolved_questions": [
-          "实证数据范围待补齐",
-          "误报与漏报边界待验证"
+          "运行时仍排除属性调用 Path.open，与本卡片合同不一致",
+          "path.open() 这种名字接收者仍是 Unanalyzed",
+          "实证数据范围待补齐"
         ]
       }
     },
@@ -951,8 +952,8 @@
         "value": "比较单位与 011 的同一文件表面一致。跨文件 router.register 或 include() 不是表面证据，缺少该表面时仍是 Unanalyzed。"
       },
       "definition": {
-        "target": "同一文件内：基类最后一段为 Serializer 且不是 ModelSerializer 的类体字段，或装饰器含 @api_view / @action 的函数参数。不把已路由写成已经证明。跨文件 router.register 与 include() 不是表面证据。GraphQL 不在范围内。",
-        "trigger": "设计：同一限定名的类或函数在 base 与 head 都在；名字在 base 没有、在 head 有；必填由源码写明 required=True 且无 default=，或视图参数 has_default 为假。整份新表面、必填性改写和新增端点都不是本规则。没有检测器。详见规则卡片。",
+        "target": "同一文件内：基类最后一段为 Serializer 或 ModelSerializer，或已知框架基类映射视为 ModelSerializer（PrimaryModelSerializer）的类体字段，或装饰器含 @api_view / @action 的函数参数。未列入的基类不是表面。不把已路由写成已经证明。跨文件 router.register 与 include() 不是表面证据。GraphQL 不在范围内。",
+        "trigger": "设计：同一限定名的类或函数在 base 与 head 都在；名字在 base 没有、在 head 有；必填由源码写明 required=True 且无 default=，或视图参数 has_default 为假。省略 required 仍是 Unanalyzed，包括映射后的 ModelSerializer。整份新表面、必填性改写和新增端点都不是本规则。没有检测器。",
         "trigger_features": [
           {
             "name": "parameter_added",
@@ -1022,10 +1023,10 @@
         ],
         "acceptance_criteria": "待验证设计确定；当前不预填结果。",
         "unresolved_questions": [
-          "项目基类如 PrimaryModelSerializer 不在闭集，014 不按后缀并入",
+          "PrimaryModelSerializer 按映射表视为 ModelSerializer；RackBaseSerializer 仍不在表内",
           "省略 required 不按默认必填",
-          "已有名字的必填性改写没有单独规则 ID",
-          "跨文件路由登记仍然看不见。011 不把它当成 Hit 前提，也不把它的缺失写成已经证明未公开",
+          "显式 required=True 且无 default= 对 Serializer、ModelSerializer 和映射基类使用同一设计 Hit",
+          "跨文件路由登记仍然看不见",
           "没有检测器，也没有构造测试"
         ]
       }
@@ -1065,8 +1066,8 @@
         "value": "把同一文件表面和 Unanalyzed 条件写进设计，不跟随其他文件的路由或父类。"
       },
       "definition": {
-        "target": "同一 Serializer 类体中的字段赋值，或同一函数上带 @api_view/@action 的签名参数。",
-        "trigger": "适用表面在 head 仍在，字段名或参数名在 base 有、head 没有。整个类或函数消失不是本规则。基类最后一段同时变化时 Unanalyzed。身份按最后一段标识符，不按子串。没有检测器。详见规则卡片。",
+        "target": "同一 Serializer、ModelSerializer 或映射表视为 ModelSerializer 的类体字段，同一类上可读的 Meta.fields / Meta.exclude 字符串成员，或同一函数上带 @api_view/@action 的签名参数。",
+        "trigger": "适用表面在 head 仍在。类体字段名或参数名在 base 有、head 没有；或 Meta.fields 去掉一个可读字符串，或 Meta.exclude 新增一个可读字符串。Meta 列表读不出时 Unanalyzed，不记 NotFound。整个类或函数消失不是本规则。没有检测器。",
         "trigger_features": [
           {
             "name": "parameter_removed",
@@ -1110,8 +1111,8 @@
         ]
       },
       "limitations": {
-        "false_positive": "改名、Meta.fields 字符串或同文件动态 get_fields 可能看起来像删除。",
-        "false_negative": "父类字段、extra_kwargs 和运行时拼接的字段看不到。",
+        "false_positive": "改名没有自动配对，或名字被挪进动态 get_fields，可能看起来像删除。可读的 Meta.fields / Meta.exclude 成员变化是设计 Hit，不再当成误报。",
+        "false_negative": "父类字段、extra_kwargs 和运行时拼接的字段看不到。读不出的 Meta 列表记 Unanalyzed，不算已经检查过。",
         "dynamic_language": "循环或 locals() 生成的字段没有稳定赋值名。",
         "does_not_decide": "不证明已有客户端已经失败。",
         "manual_review": "需要看发布说明、继承，以及字段是请求还是响应。"
@@ -1129,7 +1130,8 @@
         "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
           "跨文件路由图明确不做",
-          "Meta.fields 字符串未解析",
+          "Meta.fields 的设计谓词已写明；结构对象读不出嵌套列表时必须 Unanalyzed",
+          "映射表不由运行时执行",
           "没有检测器"
         ]
       }
@@ -1280,11 +1282,11 @@
         "why_worth_detecting": "router 登记行可以不变，而类体动作集合已经变了。",
         "expected_consequence": "可能改变暴露的 HTTP 动作。不证明 router 已经登记这个类。",
         "coverage_gap": "api.django_url_pattern_changed 看 path/register 调用，不看类体动作。",
-        "value": "只接受四个 DRF 基类直接名称，不沿跨文件继承查找。"
+        "value": "原生四个 DRF 基类仍按最后一段整段相等。NetBoxModelViewSet 只通过已知框架基类映射视为 ModelViewSet。不沿跨文件继承查找，不按后缀匹配。"
       },
       "definition": {
-        "target": "基类文本含 ViewSet、GenericViewSet、ModelViewSet 或 ReadOnlyModelViewSet 的类体。",
-        "trigger": "同一类在 base 与 head 都在。标准动作或 @action 的有无变化，或同一 @action 的 detail/methods 文本变化。基类最后一段不是四个直接名称时 Unanalyzed。只在 head 出现的新类不是本规则。没有检测器。详见规则卡片。",
+        "target": "基类最后一段为 ViewSet、GenericViewSet、ModelViewSet、ReadOnlyModelViewSet，或已知框架基类映射中的 NetBoxModelViewSet 的类体。",
+        "trigger": "同一类在 base 与 head 都在。标准动作或 @action 的有无变化，或同一 @action 的 detail/methods 文本变化。最后一段不在原生闭集和映射表里时 Unanalyzed。只在 head 出现的新类不是本规则。没有检测器。",
         "trigger_features": [
           {
             "name": "viewset_base",
@@ -1499,7 +1501,7 @@
         ],
         "severity": "High",
         "gatekeeper": true,
-        "gatekeeper_condition": "受保护视图被改为 AllowAny 或空权限策略时"
+        "gatekeeper_condition": "同一类或同一函数上的 permission_classes 赋值或 @permission_classes 装饰器，head 侧直接名称或属性最后一段是 AllowAny，或该绑定是空列表或空元组，并且 base 侧不是这两种形态。空列表和空元组是 DRF 文档写明的 AllowAny 同等形态，已经在本卡片的触发面内，不是本任务新扩大的范围。"
       },
       "rationale": {
         "observed_problem": "permission_classes 被写成 AllowAny，或写成空列表、空元组。",
@@ -1790,7 +1792,7 @@
         ],
         "severity": "Critical",
         "gatekeeper": true,
-        "gatekeeper_condition": "非初始迁移中出现 RemoveField、DeleteModel 或裸 RunSQL 时"
+        "gatekeeper_condition": "路径段含有 migrations 的文件中，与新增行相交的调用，其最后一段是 DeleteModel 或 RemoveField。RemoveField 已在本规则删除字段的范围内；Django 迁移操作名是 RemoveField，不是 DeleteField。RunSQL 与 RunPython 不满足本条件。"
       },
       "rationale": {
         "observed_problem": "迁移文件新增 DeleteModel 或 RemoveField。",
@@ -1907,7 +1909,7 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "已有字段的 null=True 消失或变成 False，或 AddField 新增不可空列。",
+        "observed_problem": "已有字段在没有 default= 的情况下去掉 null=True 或写成 null=False，或 AddField 在没有 null=True 且没有 default= 时向已有模型加列。",
         "why_worth_detecting": "Django 把 null 定义为数据库存储，默认 False。已有行可能没有值。",
         "expected_consequence": "约束比 base 更紧。不证明迁移已经在某个数据库失败。",
         "coverage_gap": "破坏性迁移规则只看 DeleteModel 和 RemoveField。blank 只影响表单，不并入本规则。",
@@ -1915,7 +1917,7 @@
       },
       "definition": {
         "target": "同一文件的模型字段调用，或迁移中的 AlterField/AddField。",
-        "trigger": "null 从 True 变为 False 或缺失；AddField 的字段表达式不是 null=True。CreateModel 的默认不可空字段不触发。详见规则卡片。",
+        "trigger": "已有模型上 null 从 True 变为 False 或缺失，且同一未截断字段表达式没有 default=。AddField 省略 null=True 但写了 default= 时是 NotFound，不能因此 Hit。CreateModel 的默认不可空字段不触发。读不出 default= 是否存在时 Unanalyzed。",
         "trigger_features": [
           {
             "name": "null_keyword",
@@ -1946,7 +1948,7 @@
             "threshold": true
           }
         ],
-        "non_trigger": "只改 blank；null=True 保持或被加上；新建模型的默认字段；RemoveField。",
+        "non_trigger": "只改 blank；null=True 保持或被加上；看见 default=；新建模型的默认字段；RemoveField。",
         "inputs": [
           "同一文件的 base/head Python AST",
           "未截断调用切片",
@@ -1969,7 +1971,7 @@
         ]
       },
       "limitations": {
-        "false_positive": "同一次迁移可能用 preserve_default 填充已有行。结构上仍是收紧。",
+        "false_positive": "字段可能还没有数据，但源码已经是非空且没有 default=。看见 default= 不再把 preserve_default 填值记成 Hit。",
         "false_negative": "约束写在 CheckConstraint、触发器或 RunSQL。",
         "dynamic_language": "循环和 contribute_to_class 生成的字段看不到。",
         "does_not_decide": "不查询已有 NULL，也不判断某个数据库后端会不会失败。",
@@ -1987,7 +1989,8 @@
         ],
         "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
-          "literal_facts 不保存布尔值",
+          "literal_facts 不保存布尔值，default= 要从未截断切片确认",
+          "确认不了 default= 时必须 Unanalyzed，不能 Hit",
           "父类字段不跨文件",
           "没有检测器"
         ]
@@ -2219,15 +2222,15 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "部署检查清单中的七个设置名在模块级赋值里发生变化。",
-        "why_worth_detecting": "这些名字被 Django 标成部署时要核对的设置。变化方向不表示新值已经安全。",
+        "observed_problem": "部署检查清单中的七个设置名在模块级赋值里向不安全或更宽的方向变化。",
+        "why_worth_detecting": "这些名字被 Django 标成部署时要核对的设置。放宽记 High Hit；收紧记 NotFound；方向不明记 Unanalyzed。",
         "expected_consequence": "密钥、调试开关、主机或 cookie 标志的声明变了。不判断生产环境实际值。",
         "coverage_gap": "config.configuration_structure_changed 不指出设置名。code.hardcoded_secret 不覆盖 DEBUG 这类没有秘密字面量的变化。",
         "value": "用官方清单的闭集，而不是项目自定义名单。闭集外记 Unanalyzed。"
       },
       "definition": {
         "target": "模块级直接名称赋值，名称属于 SECRET_KEY、SECRET_KEY_FALLBACKS、DEBUG、ALLOWED_HOSTS、DATABASES、CSRF_COOKIE_SECURE、SESSION_COOKIE_SECURE。",
-        "trigger": "名字在闭集内，且赋值指纹或有无发生变化，并与新增或删除行相交。详见规则卡片。",
+        "trigger": "名字在七个闭集内，赋值与新增或删除行相交，并且卡片方向表的不安全或放宽列成立。DEBUG True 到 False、cookie 安全标志 False 到 True、字面量密钥改为环境变量，都是 NotFound。方向读不出时 Unanalyzed，不因指纹变化 Hit。",
         "trigger_features": [
           {
             "name": "setting_name",
@@ -2254,7 +2257,7 @@
             "threshold": true
           }
         ],
-        "non_trigger": "闭集外的名字；函数内同名局部变量；只改注释。",
+        "non_trigger": "闭集外的名字；函数内同名局部变量；只改注释；方向表的收紧列。",
         "inputs": [
           "同一文件的 base/head Python AST",
           "三点 Diff"
@@ -2276,7 +2279,7 @@
         ]
       },
       "limitations": {
-        "false_positive": "开发设置文件里的 DEBUG 切换不一定影响生产。规则不区分文件角色。",
+        "false_positive": "开发设置文件里把 DEBUG 改为 True 不一定影响生产。规则不区分文件角色。收紧方向不再记成 High Hit。",
         "false_negative": "设置在未改动的私有模块，或只存在于仓库外的环境变量。",
         "dynamic_language": "下标赋值、解包和 globals() 不覆盖。",
         "does_not_decide": "不判断新值是否适合生产，也不判断密钥已经泄露。",
@@ -2294,8 +2297,9 @@
         ],
         "acceptance_criteria": "待后续实现任务确定。011 不预填结果。",
         "unresolved_questions": [
-          "布尔方向没有结构化字段",
-          "项目自定义设置名单不存在，011 不补",
+          "布尔方向没有结构化字段，必须读未截断切片",
+          "方向不明必须 Unanalyzed",
+          "项目自定义设置名单不存在，017 不补",
           "没有检测器"
         ]
       }
@@ -2795,10 +2799,10 @@
         "why_worth_detecting": "DRF 写明 get_queryset 供给列表，并作为详情查找的基础。",
         "expected_consequence": "列表和单对象查找可能使用这份未过滤查询集。不证明行已经对外可见。",
         "coverage_gap": "权限策略只看 permission_classes。动作规则不含 get_queryset。单独去掉 super() 或 restrict_queryset 不是本规则的 Hit。",
-        "value": "直接基类闭集与 ViewSet 动作卡片相同。项目基类需要另写的继承名单，本任务不建 ADR。"
+        "value": "直接基类闭集与 ViewSet 动作卡片相同，并加上映射表中的 NetBoxModelViewSet。restrict_queryset 仍不是 Hit。未列入的项目基类仍是 Unanalyzed。"
       },
       "definition": {
-        "target": "直接基类最后一段为 ViewSet、GenericViewSet、ModelViewSet 或 ReadOnlyModelViewSet 的类上的 get_queryset。",
+        "target": "直接基类最后一段为 ViewSet、GenericViewSet、ModelViewSet、ReadOnlyModelViewSet，或已知框架基类映射中的 NetBoxModelViewSet 的类上的 get_queryset。",
         "trigger": "head 返回未过滤的 objects.all，该返回与新增行相交，且 base 的同一方法不存在或返回形态不同。详见规则卡片。",
         "trigger_features": [
           {
@@ -2851,7 +2855,7 @@
             "required": false
           }
         ],
-        "non_trigger": "user.accounts.all()；带 filter、exclude 或 none 的调用链；只改类属性 queryset；四个直接基类之外的类。",
+        "non_trigger": "user.accounts.all()；带 filter、exclude 或 none 的调用链；只改类属性 queryset；四个直接基类和映射表之外的类。单独去掉 restrict_queryset 或 super() 不是 Hit。",
         "inputs": [
           "同一文件的 base/head AST",
           "三点 Diff"
@@ -2892,7 +2896,8 @@
         ],
         "acceptance_criteria": "返回表达式可读并且构造测试按卡片工作之前，不能写成 implemented。",
         "unresolved_questions": [
-          "NetBoxModelViewSet 与 restrict_queryset 没有名单，需要所有者决定是否单独立项",
+          "NetBoxModelViewSet 已写入映射表；检测器还不读这张表",
+          "restrict_queryset 仍不是 Hit，没有单独的辅助函数名单",
           "返回表达式还不是结构化字段",
           "没有检测器，没有实证"
         ]
@@ -3064,10 +3069,10 @@
         "why_worth_detecting": "未设置 db_column 时 Django 用字段名作为列名。若迁移被写成 RemoveField 加 AddField，删除字段的数据丢失不可逆。",
         "expected_consequence": "列可能被删掉重建。不证明 makemigrations 已经发出这两条操作，也不证明数据已经丢失。",
         "coverage_gap": "data.django_destructive_migration 只看迁移文件里的 DeleteModel 和 RemoveField。本规则不在迁移文件里触发。",
-        "value": "只接受一对一的同构造器替换。多字段改动不猜测配对。项目模型基类不进入闭集。"
+        "value": "只接受一对一的同构造器替换。多字段改动不猜测配对。NetBoxModel 按已知框架基类映射视为 Model。未列入的项目基类不进入闭集。"
       },
       "definition": {
-        "target": "路径段不含 migrations、直接基类最后一段为 Model 的类体字段。",
+        "target": "路径段不含 migrations、直接基类最后一段为 Model 或映射表中的 NetBoxModel 的类体字段。",
         "trigger": "两侧差集都恰好一个字段名，构造器最后一段相同，head 调用的 keyword_names 不含 db_column，且改动与 diff 相交。详见规则卡片。",
         "trigger_features": [
           {
@@ -3119,7 +3124,7 @@
             "required": true
           }
         ],
-        "non_trigger": "新字段带有 db_column；差集不是一对一；构造器不同；迁移文件；类只出现在一侧；直接基类不是 Model。",
+        "non_trigger": "新字段带有 db_column；差集不是一对一；构造器不同；迁移文件；类只出现在一侧；直接基类不是 Model 且不在映射表里。",
         "inputs": [
           "同一文件的 base/head AST",
           "字段节点与字段构造调用",
@@ -3163,7 +3168,8 @@
         ],
         "acceptance_criteria": "字段名与 keyword_names 能配对并且构造测试按卡片工作之前，不能写成 implemented。",
         "unresolved_questions": [
-          "NetBoxModel 等项目基类没有名单",
+          "NetBoxModel 已写入映射表；检测器还不读这张表",
+          "未列入的项目基类仍是 Unanalyzed",
           "不跨文件读取 RenameField",
           "没有检测器，没有实证"
         ]

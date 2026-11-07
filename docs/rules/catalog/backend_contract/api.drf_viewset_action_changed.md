@@ -1,4 +1,4 @@
-# ViewSet 暴露动作变化
+# 规则说明卡片：`api.drf_viewset_action_changed`
 
 > 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。
 
@@ -50,7 +50,7 @@ ViewSet 上新增、删除或改写暴露给 router 的动作后，URL 集合会
 
 ### 适用性
 
-类语句的 `bases` 文本里出现上述四个直接名称之一。基类只是项目自己的 `NetBoxModelViewSet` 这类名字时，不适用 Hit。不沿继承链追到其他文件。
+类语句的 `bases` 文本里，最后一段是 `ViewSet`、`GenericViewSet`、`ModelViewSet`、`ReadOnlyModelViewSet` 之一，或按 [已知框架基类映射](../../known-framework-bases.md) 视为 `ModelViewSet`（`NetBoxModelViewSet`）。按最后一段整段相等，不按子串或后缀。未列入的项目基类不适用 Hit。不沿继承链追到其他文件。
 
 ### 检测边界
 
@@ -74,7 +74,7 @@ DRF 写明的标准动作是 `list`、`create`、`retrieve`、`update`、`partia
 
 ### 触发特征
 
-- `viewset_base`：`source` 为类节点 `details.bases` 的文本；`value_type` 为 `string`；`operator` 为 `contains`；`threshold` 为上面四个名字；`required` 为 true。
+- `viewset_base`：`source` 为类节点 `details.bases` 的最后一段；`value_type` 为 `string`；`operator` 为 `contains`；`threshold` 为四个原生名字，或映射表中视为 `ModelViewSet` 的 `NetBoxModelViewSet`；`required` 为 true。
 - `action_name`：`source` 为函数名，或 `@action` 所装饰的函数名；`value_type` 为 `string`；`operator` 为 `present`；`required` 为 true。
 - `action_delta`：`source` 为该函数在 base/head 的有无，或装饰器表达式中 `detail` / `methods` 文本；`value_type` 为 `enum`；`operator` 为 `changed`；`threshold` 为 `added`、`removed`、`methods_or_detail_changed`；`required` 为 true。
 
@@ -82,7 +82,7 @@ DRF 写明的标准动作是 `list`、`create`、`retrieve`、`update`、`partia
 
 ### 不触发条件
 
-动作仍在，且 `detail` / `methods` 文本相同，只改了函数体；方法名不在标准名单里，也没有 `@action`；类基类文本不含上述名字。
+动作仍在，且 `detail` / `methods` 文本相同，只改了函数体；方法名不在标准名单里，也没有 `@action`；类基类最后一段不在四个原生名字里，也不在映射表里。
 
 ### 输入
 
@@ -108,7 +108,7 @@ DRF 写明的标准动作是 `list`、`create`、`retrieve`、`update`、`partia
 
 设计预期，不是运行结果。
 
-- 基类不是四个直接名称之一：`missing_framework_context`。不记 NotFound。
+- 基类最后一段不在四个原生名字里，也不在映射表里：`missing_framework_context`。不记 NotFound。`NetBoxModelViewSet` 视为 `ModelViewSet`，不再因「不是四个原生拼写」而整类 Unanalyzed。
 - 装饰器表达式被截断，读不出 `detail` 或 `methods`：`unsupported_stage04_details`。不能把截断后的文本差异当成 Hit。
 - 只改 `http_method_names`，或只改 `get_permissions`：`missing_framework_context`。
 - router 是否登记了这个类：未知。未知不升格为 Hit，也不把“类变了”当成 URL 已变。本规则的 Hit 只表示类体动作集合的本地差异。
@@ -119,18 +119,7 @@ DRF 写明的标准动作是 `list`、`create`、`retrieve`、`update`、`partia
 
 反例：同一个 `destroy` 只改了函数体里的查询，`def` 与装饰器未变。另一个反例：`class DeviceHelper` 没有 ViewSet 基类，增删 `list` 不触发。
 
-边界：`class DeviceViewSet(BaseDeviceViewSet)`，`BaseDeviceViewSet` 定义在别的文件并继承 `ModelViewSet`。本文件基类文本对不上四个名字，记 Unanalyzed，不沿文件外的基类查找。
-
-### 014 比较单位
-
-`lifecycle` 仍是 `draft`。没有检测器，不写成 `registered`。
-
-- **比较单位**：同一个类限定名上的标准动作名，或同一个 `@action` 函数。该类在 base 和 head 都存在。
-- **变更前 / 变更后**：标准动作或 `@action` 的有无不同；或者同一个 `@action` 的 `detail=` 或 `methods=` 源码文本不同。
-- **身份**：基类表达式的最后一段等于 `ViewSet`、`GenericViewSet`、`ModelViewSet`、`ReadOnlyModelViewSet` 之一。`NetBoxModelViewSet` 的最后一段不是这四个，不因为后缀含有 `ModelViewSet` 而记 Hit。这与上面的跨文件基类边界是同一种读法。
-- **排除**：只在 head 出现的新类。不把该类上的每个标准方法记成动作被加上，因为 router 可能在别的文件。只改函数体、`detail` / `methods` 文本相同，不触发。这不是参数新增或删除，也不是「已经多了一个 URL」的证明。`api.django_url_pattern_changed` 看本文件的 `path` / `register`。
-- **证据位置**：类限定名、基类最后一段、函数名、装饰器表达式、相交行号。
-- **设计终态**：四个名字都对不上时是 `missing_framework_context`，不是 NotFound。装饰器截断、读不出 `detail` 或 `methods` 时是 `unsupported_stage04_details`。只改 `http_method_names` 时同样是 `missing_framework_context`。当前没有运行终态。
+边界：`class DeviceViewSet(BaseDeviceViewSet)`，`BaseDeviceViewSet` 定义在别的文件并继承 `ModelViewSet`。本文件最后一段不在映射表里，记 Unanalyzed，不沿文件外的基类查找。`class DeviceViewSet(NetBoxModelViewSet)` 上删掉 `def destroy` 按 `ModelViewSet` 记设计 Hit。
 
 ## 5. 理论与项目依据
 
