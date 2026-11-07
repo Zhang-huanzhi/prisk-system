@@ -40,7 +40,7 @@ ViewSet 上新增、删除或改写暴露给 router 的动作后，URL 集合会
 
 ### 现有规则为什么不能覆盖
 
-`api.django_url_pattern_changed` 看本文件的 `path` / `register` 调用。`api.signature_changed` 不识别动作名单。权限装饰器规则不判断动作是否还暴露。
+`api.django_url_pattern_changed` 看本文件的 `path` / `register` 调用。`api.signature_changed` 不识别动作名单。权限装饰器规则不判断动作是否还暴露。[`auth.drf_queryset_scope_tighten_bypassed`](auth.drf_queryset_scope_tighten_bypassed.md) 看 `get_queryset`，不看动作名单。本规则的生命周期不变。
 
 ### 研究或工程价值
 

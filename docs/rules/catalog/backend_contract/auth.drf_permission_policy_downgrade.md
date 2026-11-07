@@ -40,7 +40,7 @@ DRF 说明空列表与 `AllowAny` 都是不加限制的写法，而且类属性�
 
 ### 现有规则为什么不能覆盖
 
-[`auth.drf_permission_decorator_removed`](auth.drf_permission_decorator_removed.md) 只看装饰器表达式是否消失，不解释留下的列表变成了什么。`auth.permission_structure_changed` 只报告权限路径上的结构变化。
+[`auth.drf_permission_decorator_removed`](auth.drf_permission_decorator_removed.md) 只看装饰器表达式是否消失，不解释留下的列表变成了什么。`auth.permission_structure_changed` 只报告权限路径上的结构变化。[`auth.drf_queryset_scope_tighten_bypassed`](auth.drf_queryset_scope_tighten_bypassed.md) 只看闭集 ViewSet 上 `get_queryset` 的未过滤 `objects.all()`。本规则不看查询集，那条规则也不改本规则的生命周期。
 
 ### 研究或工程价值
 

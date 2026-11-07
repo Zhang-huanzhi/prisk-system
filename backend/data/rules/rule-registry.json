@@ -740,7 +740,7 @@
         "observed_problem": "模块或类体新增可变容器绑定，或函数体内新增 global 语句。",
         "why_worth_detecting": "共享可变对象和显式全局重新绑定会让一次调用改到其他调用看到的状态。",
         "expected_consequence": "可能造成跨请求或跨测试的状态残留；缓存和注册表也可能是有意设计。",
-        "coverage_gap": "现有语言级规则不区分模块级可变绑定和 global 声明。函数默认参数里的可变对象不在本规则内。",
+        "coverage_gap": "现有语言级规则不区分模块级可变绑定和 global 声明。函数默认参数里的可变对象不在本规则内，见 code.mutable_default_argument。",
         "value": "两种结构形式已接入 Finding 管道。命中只要求复核共享绑定，不判断串扰已经发生。"
       },
       "definition": {
@@ -2425,6 +2425,747 @@
         "unresolved_questions": [
           "具体引用和数据范围待补齐",
           "误报与漏报边界待验证"
+        ]
+      }
+    },
+    {
+      "rule_id": "code.mutable_default_argument",
+      "name": "函数默认参数中的可变对象",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "language",
+        "applicability": [
+          "Python",
+          "function default arguments"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "函数、异步函数或 lambda 的默认值是列表、字典、集合，或无参的 list/dict/set 调用。",
+        "why_worth_detecting": "默认值在定义时只求值一次，后续调用会共享这个可变对象。",
+        "expected_consequence": "一次调用对默认对象的原地修改会留到下一次调用。不证明串扰已经发生。",
+        "coverage_gap": "code.global_mutable_state 明确不覆盖函数默认参数。本规则不扩大那条已实现规则的命中条件。",
+        "value": "闭集与全局可变状态的容器形态对齐。当前签名只有 has_default，不能据此记 Hit。"
+      },
+      "definition": {
+        "target": "FunctionDef、AsyncFunctionDef 或 Lambda 上一个参数的默认值表达式。",
+        "trigger": "默认值属于 List、Dict、Set 显示，或无参无关键字的直接名称 list/dict/set，且与新增行相交。详见规则卡片。",
+        "trigger_features": [
+          {
+            "name": "default_kind",
+            "source": "参数默认值表达式的 AST 种类",
+            "value_type": "enum",
+            "operator": "contains",
+            "threshold": [
+              "list_display",
+              "dict_display",
+              "set_display",
+              "list_call",
+              "dict_call",
+              "set_call"
+            ],
+            "required": true
+          },
+          {
+            "name": "parameter_name",
+            "source": "参数名；lambda 无名字时用参数序号",
+            "value_type": "string",
+            "operator": "present",
+            "required": true
+          },
+          {
+            "name": "default_changed",
+            "source": "默认值表达式与新增行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          }
+        ],
+        "non_trigger": "None、元组、函数体内的局部列表、模块级或类级容器、未与新增行相交的旧默认值。has_default 为真不是触发。",
+        "inputs": [
+          "同一文件的 head Python AST",
+          "三点 Diff 新增行"
+        ],
+        "finding": "code.mutable_default_argument 设计 Finding。016 不生成运行时 Finding。",
+        "evidence_location": [
+          "file path",
+          "qualified name",
+          "parameter name",
+          "default expression"
+        ],
+        "context_slice": "该参数所在的函数签名；截断到无法确认种类时不记 Hit。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "Python Tutorial: default argument values are evaluated only once"
+        ]
+      },
+      "limitations": {
+        "false_positive": "有意共享的默认缓存也会落在闭集里。",
+        "false_negative": "defaultdict、自定义容器和推导式不在闭集里。",
+        "dynamic_language": "不证明直接名称 list 就是内建 list，也不跟踪其他模块对默认对象的修改。",
+        "does_not_decide": "不判断线程安全，也不判断调用方是否每次都传入实参。",
+        "manual_review": "需要看谁清空该对象，以及变更改的是默认值还是函数体。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "构造样例仍待实现任务编写。016 不下载真实 PR，也不预填命中结果。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。语言文档不是已测得的误报率。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "默认值种类进入结构化字段并且构造测试按卡片工作之前，不能写成 implemented。",
+        "unresolved_questions": [
+          "当前节点没有默认值种类",
+          "推导式未纳入闭集",
+          "没有检测器，没有实证"
+        ]
+      }
+    },
+    {
+      "rule_id": "code.assert_in_production",
+      "name": "生产代码中的 assert",
+      "version": "v1",
+      "rule_family": "code_smell",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "language",
+        "applicability": [
+          "Python",
+          "default_source_and_test_directories production paths"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta",
+          "change_metadata"
+        ],
+        "evidence_type": [
+          "code_slice"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "路径分类为生产代码的 Python 文件新增 assert 语句。",
+        "why_worth_detecting": "请求优化时编译器不为 assert 生成代码。业务或认证检查若写在语句里，会在 python -O 下消失。",
+        "expected_consequence": "该检查可能不再执行。不证明进程已经以优化模式启动，也不证明它承担认证。",
+        "coverage_gap": "现有代码异味不看 assert。workflow.test_collaboration_gap 只比较路径是否一起变化。",
+        "value": "语句种类加上已经版本化的 default_source_and_test_directories。不新造 auth 目录名单。"
+      },
+      "definition": {
+        "target": "production 路径上的一条 ast.Assert 语句。",
+        "trigger": "路径类是 production，语句种类是 Assert，且与新增行相交。测试路径、迁移路径和 settings.py 不触发。详见规则卡片。",
+        "trigger_features": [
+          {
+            "name": "statement_kind",
+            "source": "语句节点种类",
+            "value_type": "string",
+            "operator": "eq",
+            "threshold": "Assert",
+            "required": true
+          },
+          {
+            "name": "path_class",
+            "source": "default_source_and_test_directories",
+            "value_type": "enum",
+            "operator": "eq",
+            "threshold": "production",
+            "required": true
+          },
+          {
+            "name": "statement_changed",
+            "source": "语句与新增行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          }
+        ],
+        "non_trigger": "test 与 non_production 路径；raise AssertionError；self.assertEqual 等方法调用；未与新增行相交的旧语句。",
+        "inputs": [
+          "同一文件的 head Python AST",
+          "三点 Diff 新增行",
+          "default_source_and_test_directories"
+        ],
+        "finding": "code.assert_in_production 设计 Finding。016 不生成运行时 Finding。",
+        "evidence_location": [
+          "file path",
+          "path class",
+          "statement lines"
+        ],
+        "context_slice": "该 assert 语句。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "literature_and_language_docs",
+        "references": [
+          "Python Language Reference: the assert statement and command-line option -O"
+        ]
+      },
+      "limitations": {
+        "false_positive": "生产路径上的调试断言也会命中。命中不表示它承担认证。",
+        "false_negative": "检查写在 raise AssertionError 或迁移文件、settings.py 里。",
+        "dynamic_language": "不判断运行中的 __debug__，也不分析 exec 字符串。",
+        "does_not_decide": "不判断进程是否以 -O 启动，也不判断表达式是不是权限不变量。",
+        "manual_review": "需要看断言保护的条件，以及部署命令会不会打开优化。"
+      },
+      "validation_obligation": {
+        "level": "literature_inherited",
+        "method": "构造样例仍待实现任务编写。016 不启动优化模式，也不下载真实 PR。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。语言文档不是本项目的 Ground Truth。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "Assert 节点进入结构结果并且构造测试按卡片工作之前，不能写成 implemented。",
+        "unresolved_questions": [
+          "当前没有 Assert 节点",
+          "不建立认证函数名单",
+          "没有检测器，没有实证"
+        ]
+      }
+    },
+    {
+      "rule_id": "auth.django_csrf_exempt_added",
+      "name": "新增的 Django CSRF 豁免",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python",
+          "Django csrf_exempt",
+          "method_decorator"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "函数、方法或类上新出现 csrf_exempt，或 method_decorator 的参数是 csrf_exempt。",
+        "why_worth_detecting": "Django 写明 csrf_exempt 把视图标成不受 CSRF 中间件保护。",
+        "expected_consequence": "该视图可能不再经过中间件校验。不证明存在跨站请求伪造。",
+        "coverage_gap": "DRF 权限装饰器和 permission_classes 不看 CSRF。CSRF_COOKIE_SECURE 属于设置名闭集。",
+        "value": "只比较同一所有者上新增的两种装饰器形态。"
+      },
+      "definition": {
+        "target": "同一函数、方法或类上的装饰器表达式。",
+        "trigger": "head 有闭集表达式，base 的同一所有者没有，且装饰器与新增行相交。详见规则卡片。",
+        "trigger_features": [
+          {
+            "name": "decorator_form",
+            "source": "装饰器表达式的最后一段，或 method_decorator 参数的最后一段",
+            "value_type": "enum",
+            "operator": "contains",
+            "threshold": [
+              "csrf_exempt",
+              "method_decorator"
+            ],
+            "required": true
+          },
+          {
+            "name": "decorator_added",
+            "source": "同一所有者在 base/head 的表达式有无",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          },
+          {
+            "name": "decorator_changed",
+            "source": "装饰器与新增行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          }
+        ],
+        "non_trigger": "base 与 head 都有同一 csrf_exempt；只新增 csrf_protect；只改 CSRF_COOKIE_SECURE；字符串或注释中的名字。",
+        "inputs": [
+          "同一文件的 base/head 装饰器节点",
+          "三点 Diff"
+        ],
+        "finding": "auth.django_csrf_exempt_added 设计 Finding。016 不生成运行时 Finding。",
+        "evidence_location": [
+          "file path",
+          "owner",
+          "decorator expression",
+          "base absent or present"
+        ],
+        "context_slice": "该装饰器，不附带整个视图函数体。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "framework_docs",
+        "references": [
+          "Django csrf_exempt marks a view exempt from CSRF middleware",
+          "Django method_decorator, name required when decorating a class"
+        ]
+      },
+      "limitations": {
+        "false_positive": "有意的回调或测试视图豁免仍会命中。测试路径不排除。",
+        "false_negative": "豁免写在中间件子类或运行时包装里。",
+        "dynamic_language": "别名和工厂函数返回的装饰器看不出 csrf_exempt。",
+        "does_not_decide": "不判断中间件是否启用，也不发送请求。",
+        "manual_review": "需要看豁免的方法是否改状态，以及是否还有别的来源校验。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "构造样例仍待实现任务编写。016 不发送请求，也不下载真实 PR。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待实现任务确定。016 不预填结果。",
+        "unresolved_questions": [
+          "method_decorator 的位置参数还不是名字数组",
+          "别名不解析",
+          "没有检测器，没有实证"
+        ]
+      }
+    },
+    {
+      "rule_id": "auth.drf_queryset_scope_tighten_bypassed",
+      "name": "DRF 查询集收紧被绕过",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python",
+          "Django REST framework",
+          "get_queryset"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "闭集 DRF ViewSet 的 get_queryset 改为返回未过滤的 Model.objects.all()。",
+        "why_worth_detecting": "DRF 写明 get_queryset 供给列表，并作为详情查找的基础。",
+        "expected_consequence": "列表和单对象查找可能使用这份未过滤查询集。不证明行已经对外可见。",
+        "coverage_gap": "权限策略只看 permission_classes。动作规则不含 get_queryset。单独去掉 super() 或 restrict_queryset 不是本规则的 Hit。",
+        "value": "直接基类闭集与 ViewSet 动作卡片相同。项目基类需要另写的继承名单，本任务不建 ADR。"
+      },
+      "definition": {
+        "target": "直接基类最后一段为 ViewSet、GenericViewSet、ModelViewSet 或 ReadOnlyModelViewSet 的类上的 get_queryset。",
+        "trigger": "head 返回未过滤的 objects.all，该返回与新增行相交，且 base 的同一方法不存在或返回形态不同。详见规则卡片。",
+        "trigger_features": [
+          {
+            "name": "viewset_base",
+            "source": "类节点 details.bases 的最后一段",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": [
+              "ViewSet",
+              "GenericViewSet",
+              "ModelViewSet",
+              "ReadOnlyModelViewSet"
+            ],
+            "required": true
+          },
+          {
+            "name": "method_name",
+            "source": "函数名",
+            "value_type": "string",
+            "operator": "eq",
+            "threshold": "get_queryset",
+            "required": true
+          },
+          {
+            "name": "return_form",
+            "source": "head 返回表达式的调用链",
+            "value_type": "enum",
+            "operator": "eq",
+            "threshold": "objects_all",
+            "required": true
+          },
+          {
+            "name": "return_changed",
+            "source": "返回表达式与新增行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          },
+          {
+            "name": "super_call",
+            "source": "同一方法 base/head 是否含有 super 接收者上的 get_queryset",
+            "value_type": "enum",
+            "operator": "changed",
+            "threshold": [
+              "removed",
+              "absent",
+              "kept"
+            ],
+            "required": false
+          }
+        ],
+        "non_trigger": "user.accounts.all()；带 filter、exclude 或 none 的调用链；只改类属性 queryset；四个直接基类之外的类。",
+        "inputs": [
+          "同一文件的 base/head AST",
+          "三点 Diff"
+        ],
+        "finding": "auth.drf_queryset_scope_tighten_bypassed 设计 Finding。016 不生成运行时 Finding。",
+        "evidence_location": [
+          "file path",
+          "class",
+          "return expression",
+          "base method or absent"
+        ],
+        "context_slice": "get_queryset 方法。返回表达式读不全时不记 Hit。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "framework_docs",
+        "references": [
+          "Django REST framework GenericAPIView.get_queryset",
+          "Direct ViewSet base names shared with api.drf_viewset_action_changed"
+        ]
+      },
+      "limitations": {
+        "false_positive": "父类本来就返回 objects.all()，子类只是把同一表达式写进本文件。",
+        "false_negative": "收紧放在 filter_queryset、get_object 或其他文件的混入类里。",
+        "dynamic_language": "返回值由辅助函数构造，或方法由元类生成。",
+        "does_not_decide": "不判断模型是否敏感，也不比较两个 filter 谁更严。",
+        "manual_review": "需要看父类实现、permission_classes，以及 ViewSet 是否挂在路由上。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "构造样例仍待实现任务编写。016 不下载真实 PR，也不预填命中结果。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。项目辅助函数没有官方全序。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "返回表达式可读并且构造测试按卡片工作之前，不能写成 implemented。",
+        "unresolved_questions": [
+          "NetBoxModelViewSet 与 restrict_queryset 没有名单，需要所有者决定是否单独立项",
+          "返回表达式还不是结构化字段",
+          "没有检测器，没有实证"
+        ]
+      }
+    },
+    {
+      "rule_id": "data.django_signal_receiver_leak",
+      "name": "Django 信号接收器缺少 dispatch_uid",
+      "version": "v1",
+      "rule_family": "backend_contract",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "pr_intrinsic",
+        "dependency_level": "framework",
+        "applicability": [
+          "Python",
+          "django.db.models.signals",
+          "Signal.connect"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "Medium",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "闭集模型信号或管理信号上新增 connect 或 receiver，关键字里没有 dispatch_uid。",
+        "why_worth_detecting": "Django 把 dispatch_uid 定义为避免重复登记的标识。绑定方法和新实例会再登记一次。",
+        "expected_consequence": "接收器可能被重复调用。文档同时写明模块级函数按对象身份只登记一次，所以命中不是泄漏已经发生。",
+        "coverage_gap": "原生 SQL 闭集不看 connect。事务边界规则不读 dispatch_uid。",
+        "value": "信号名使用 django.db.models.signals 文档中的十个名字。阵营暂记 backend_contract，因为判定的是框架关键字。"
+      },
+      "definition": {
+        "target": "闭集信号上的一次 connect 调用，或一次 receiver 调用。",
+        "trigger": "调用与新增行相交，keyword_names 不含 dispatch_uid，且 connect 的 args_count 小于 4。详见规则卡片。",
+        "trigger_features": [
+          {
+            "name": "signal_name",
+            "source": "callee 接收者的最后一段，或 receiver 位置参数的最后一段",
+            "value_type": "string",
+            "operator": "contains",
+            "threshold": [
+              "pre_init",
+              "post_init",
+              "pre_save",
+              "post_save",
+              "pre_delete",
+              "post_delete",
+              "m2m_changed",
+              "class_prepared",
+              "pre_migrate",
+              "post_migrate"
+            ],
+            "required": true
+          },
+          {
+            "name": "connect_form",
+            "source": "callee 的最后一段",
+            "value_type": "enum",
+            "operator": "contains",
+            "threshold": [
+              "connect",
+              "receiver"
+            ],
+            "required": true
+          },
+          {
+            "name": "dispatch_uid",
+            "source": "keyword_names",
+            "value_type": "boolean",
+            "operator": "missing",
+            "threshold": "dispatch_uid",
+            "required": true
+          },
+          {
+            "name": "call_changed",
+            "source": "调用与新增行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          }
+        ],
+        "non_trigger": "关键字里已有 dispatch_uid；disconnect；闭集之外的信号；未与新增行相交的旧调用。",
+        "inputs": [
+          "同一文件的 head Python AST",
+          "三点 Diff"
+        ],
+        "finding": "data.django_signal_receiver_leak 设计 Finding。016 不生成运行时 Finding。ID 中的 leak 指重复登记，不是内存泄漏。",
+        "evidence_location": [
+          "file path",
+          "callee",
+          "signal name",
+          "keyword names",
+          "args_count"
+        ],
+        "context_slice": "该调用或装饰器。读不到接收器表达式时不猜测它是不是绑定方法。",
+        "impact_type": "pr_intrinsic_risk"
+      },
+      "basis": {
+        "kind": "framework_docs",
+        "references": [
+          "Django signals: Signal.connect dispatch_uid",
+          "Django signals: preventing duplicate signals",
+          "Django model and management signals"
+        ]
+      },
+      "limitations": {
+        "false_positive": "模块级函数按文档不会因再次 connect 而多登记。",
+        "false_negative": "自定义信号，或 dispatch_uid 经 **kwargs 传入。",
+        "dynamic_language": "信号放在变量里时，callee 只剩 connect，接收者最后一段读不出来。",
+        "does_not_decide": "不判断接收器是否绑定方法，也不统计 ready() 的执行次数。",
+        "manual_review": "需要看接收器是函数还是实例方法，以及连接代码放在 ready() 还是模块顶层。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "构造样例仍待实现任务编写。016 不导入 Django 应用，也不下载真实 PR。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。官方文档说明身份去重，不是本项目的误报率。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "待实现任务确定。016 不预填结果。",
+        "unresolved_questions": [
+          "是否把 Hit 收窄到接收器表达式为属性访问",
+          "receiver 的位置参数还不是结构化字段",
+          "没有检测器，没有实证"
+        ]
+      }
+    },
+    {
+      "rule_id": "data.django_field_rename_without_db_column",
+      "name": "模型字段改名缺少 db_column",
+      "version": "v1",
+      "rule_family": "breaking_impact",
+      "lifecycle": "draft",
+      "owner": "Prisk-System",
+      "classification": {
+        "risk_nature": "external_impact",
+        "dependency_level": "database",
+        "applicability": [
+          "Python",
+          "Django model fields",
+          "non-migration modules"
+        ],
+        "target_layer": [
+          "ast_syntax",
+          "diff_delta"
+        ],
+        "evidence_type": [
+          "code_slice",
+          "symbol_pair"
+        ],
+        "severity": "High",
+        "gatekeeper": false,
+        "gatekeeper_condition": null
+      },
+      "rationale": {
+        "observed_problem": "直接基类为 Model 的类里，恰好一个字段名被另一个字段名替换，新构造没有 db_column。",
+        "why_worth_detecting": "未设置 db_column 时 Django 用字段名作为列名。若迁移被写成 RemoveField 加 AddField，删除字段的数据丢失不可逆。",
+        "expected_consequence": "列可能被删掉重建。不证明 makemigrations 已经发出这两条操作，也不证明数据已经丢失。",
+        "coverage_gap": "data.django_destructive_migration 只看迁移文件里的 DeleteModel 和 RemoveField。本规则不在迁移文件里触发。",
+        "value": "只接受一对一的同构造器替换。多字段改动不猜测配对。项目模型基类不进入闭集。"
+      },
+      "definition": {
+        "target": "路径段不含 migrations、直接基类最后一段为 Model 的类体字段。",
+        "trigger": "两侧差集都恰好一个字段名，构造器最后一段相同，head 调用的 keyword_names 不含 db_column，且改动与 diff 相交。详见规则卡片。",
+        "trigger_features": [
+          {
+            "name": "model_base",
+            "source": "类节点 details.bases 的最后一段",
+            "value_type": "string",
+            "operator": "eq",
+            "threshold": "Model",
+            "required": true
+          },
+          {
+            "name": "renamed_pair",
+            "source": "同一类字段名在 base/head 的差集",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          },
+          {
+            "name": "constructor_name",
+            "source": "两次字段构造调用的最后一段",
+            "value_type": "string",
+            "operator": "eq",
+            "threshold": "same field constructor",
+            "required": true
+          },
+          {
+            "name": "db_column",
+            "source": "head 调用的 keyword_names",
+            "value_type": "boolean",
+            "operator": "missing",
+            "threshold": "db_column",
+            "required": true
+          },
+          {
+            "name": "field_changed",
+            "source": "旧赋值与删除行或新赋值与新增行相交",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          },
+          {
+            "name": "migration_path",
+            "source": "文件路径目录段不含 migrations",
+            "value_type": "boolean",
+            "operator": "eq",
+            "threshold": true,
+            "required": true
+          }
+        ],
+        "non_trigger": "新字段带有 db_column；差集不是一对一；构造器不同；迁移文件；类只出现在一侧；直接基类不是 Model。",
+        "inputs": [
+          "同一文件的 base/head AST",
+          "字段节点与字段构造调用",
+          "三点 Diff"
+        ],
+        "finding": "data.django_field_rename_without_db_column 设计 Finding。016 不生成运行时 Finding，也不运行 makemigrations。",
+        "evidence_location": [
+          "file path",
+          "class",
+          "old field name",
+          "new field name",
+          "keyword names"
+        ],
+        "context_slice": "旧赋值和新赋值。",
+        "impact_type": "external_impact"
+      },
+      "basis": {
+        "kind": "framework_docs_and_project_constraints",
+        "references": [
+          "Django model field db_column",
+          "Django migration operations: RenameField",
+          "Django migration operations: RemoveField data loss"
+        ]
+      },
+      "limitations": {
+        "false_positive": "自动检测器仍可能生成 RenameField。本规则不打开迁移文件核对此事。",
+        "false_negative": "一次改动多个字段，或列名由 SeparateDatabaseAndState 保留。",
+        "dynamic_language": "字段由循环或 contribute_to_class 生成。",
+        "does_not_decide": "不判断 db_column 字符串是否写对，也不证明数据已经丢失。",
+        "manual_review": "需要看生成的操作是 RenameField 还是 RemoveField 加 AddField。"
+      },
+      "validation_obligation": {
+        "level": "empirical_required",
+        "method": "构造样例仍待实现任务编写。016 不运行 makemigrations，也不下载真实 PR。",
+        "dataset": "未圈定。当前没有运行结果。",
+        "oracle": "规则卡片中的设计边界。官方文档不证明自动检测器的配对结果。",
+        "metrics": [
+          "命中频次",
+          "Precision",
+          "Recall"
+        ],
+        "acceptance_criteria": "字段名与 keyword_names 能配对并且构造测试按卡片工作之前，不能写成 implemented。",
+        "unresolved_questions": [
+          "NetBoxModel 等项目基类没有名单",
+          "不跨文件读取 RenameField",
+          "没有检测器，没有实证"
         ]
       }
     }

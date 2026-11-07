@@ -2,7 +2,7 @@
 
 本页是设计复核，不是测试结果，也不是实现承诺。它不记录 Hit 次数、Precision、Recall 或真实 PR 试点。009 当时的 Hit / NotFound / Unanalyzed 覆盖当时的 13 条运行时规则；本页对尚未实现的候选只写设计预期。
 
-011 记录当时的运行时目录是 13 条：五条历史结构规则、七条代码异味、一条测试协同。研究候选是下面 20 条。登记册还有 3 条故意不在这 20 条里的草稿。这三个计数不能互相替换。011 没有改权重。013 后来把 `data.django_raw_sql_execution` 按本页闭集接入运行时，默认权重 0。下面的 8 / 10 / 2 分类仍是 011 的设计筛选，不因这一条实现而重计。该命中不是注入已经发生，也没有 Precision 或 Recall。
+011 记录当时的运行时目录是 13 条：五条历史结构规则、七条代码异味、一条测试协同。研究候选是下面 20 条。登记册当时还有 3 条故意不在这 20 条里的草稿。这三个计数不能互相替换。011 没有改权重。013 后来把 `data.django_raw_sql_execution` 按本页闭集接入运行时，默认权重 0。下面的 8 / 10 / 2 分类仍是 011 的设计筛选，不因这一条实现而重计。该命中不是注入已经发生，也没有 Precision 或 Recall。016 在页末另记 6 条新草稿的结构备注。那 6 条不进入下面的 20 条表，也不把 8 / 10 / 2 重计。
 
 014 不重计这三类，也不改任何规则的 `lifecycle`。相关卡片把「直接名称」写成基类或装饰器表达式的最后一段标识符。`PrimaryModelSerializer` 不因此进入闭集，也不因此改成另一类。
 
@@ -116,4 +116,36 @@ exclusions:
   - code.dead_code_after_exit
   - auth.drf_object_permission_bypass
   - auth.django_permission_module_changed
+```
+
+## 016 的六条新增候选
+
+本节只描述 016 新登记的 6 条草稿。它不改写上面的 8 / 10 / 2，也不把 3 条排除项写成已经有卡片。6 条都没有检测器，没有运行终态，没有权重字段。概念上的默认权重是 0。严重度是临时判断。
+
+当前节点事实仍以本节之前的描述为准，并核对过结构访问器：函数签名的参数只有 `has_default`；参数默认值的 `literal_binding` 不保存列表、字典或集合种类；没有 `Assert` 节点；装饰器保存表达式文本；调用保存 `callee`、`args_count` 和 `keyword_names`；字段节点保存名字和值指纹，不保存 `keyword_names`。
+
+| 规则 ID | 016 的类 | 局部证据 | 还缺的输入 | 设计备注 |
+| --- | --- | --- | --- | --- |
+| `code.mutable_default_argument` | `same_file_ast_kind_missing` | 函数节点和 `parameter_default` 绑定在同一文件 | 默认值的容器种类。`has_default` 不能区分 `[]` 与 `None` | 种类可读之前不能记 Hit，也不能记 NotFound |
+| `code.assert_in_production` | `same_file_ast_kind_missing` | 路径类已经由 `default_source_and_test_directories` 版本化 | `ast.Assert` 节点。单词 `assert` 不是语句 | 同上。不采用 stage03 把 `netbox/` 记为 business 的那套分类 |
+| `auth.django_csrf_exempt_added` | `bounded_framework_context` | 装饰器表达式和 base/head 有无 | `method_decorator` 的位置参数名字。截断或别名则 Unanalyzed | 闭集是 `csrf_exempt` 与包住它的 `method_decorator` |
+| `auth.drf_queryset_scope_tighten_bypassed` | `bounded_framework_context` | 类基类文本、方法名、`.objects.all` 的 `callee` | 返回表达式是不是这个调用。当前没有这栏 | 四个直接基类之外，包括 `NetBoxModelViewSet`，记 Unanalyzed。`restrict_queryset` 不在 Hit 闭集 |
+| `data.django_signal_receiver_leak` | `bounded_framework_context` | `callee` 与 `keyword_names` 已能看出 `dispatch_uid` 是否以关键字出现 | `@receiver` 的位置参数信号名不在结构化字段里 | 闭集是模型信号文档里的十个名字。缺少关键字不是重复执行已经发生 |
+| `data.django_field_rename_without_db_column` | `bounded_framework_context` | 字段名、类基类文本，以及另一次调用上的 `keyword_names` | 同一次赋值要把字段名和 `db_column` 配在一起 | 只接受一对一改名。直接基类不是 `Model` 时 Unanalyzed。不读迁移文件 |
+
+`same_file_ast_kind_missing` 不是 011 的三类之一。它表示触发模式在同一文件的 Python AST 上，但当前保存的节点没有那个子节点种类。不把它并进 `local_diff_ast`，是因为那一类在 011 里要求证据已经在现有节点上，而且其中 8 条检测器已经接入。不把它并进 `bounded_framework_context`，是因为这两条不需要框架名单。
+
+查询集规则如果以后要把 `NetBoxModelViewSet` 或 `restrict_queryset` 收进 Hit，缺的是写明的继承或辅助函数名单，那才属于 `deferred_cross_file_or_policy`。016 没有做这个扩大，也没有为此建 ADR。字段改名规则对 `NetBoxModel` 同样停在 Unanalyzed。
+
+```yaml
+task_016_additional_candidates:
+  same_file_ast_kind_missing:
+    - code.mutable_default_argument
+    - code.assert_in_production
+  bounded_framework_context:
+    - auth.django_csrf_exempt_added
+    - auth.drf_queryset_scope_tighten_bypassed
+    - data.django_signal_receiver_leak
+    - data.django_field_rename_without_db_column
+  not_in_task_011_counts: true
 ```
