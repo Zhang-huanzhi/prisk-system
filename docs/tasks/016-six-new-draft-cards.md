@@ -15,7 +15,7 @@ date: "2026-11-07"
 
 这六条是 011 那 20 条候选之外的新增候选，不是那 20 条的重写。011 的结构筛选仍是局部 Diff/AST 8、有界框架上下文 10、延后 2。
 
-本任务状态是 In Progress。没有用户接受时不写成 Accepted。不合并，不打 tag。
+本任务状态是 In Progress。没有用户接受时不写成 Accepted。不合并，不打 tag。评审记录是 [PR #16](https://github.com/Zhang-huanzhi/prisk-system/pull/16)。写下这条记录时该 PR 尚未合并。补上链接的提交不改卡片、登记册或测试。
 
 ## 编号核对
 
