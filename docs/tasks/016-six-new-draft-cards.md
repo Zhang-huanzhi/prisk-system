@@ -2,7 +2,7 @@
 task_id: "016"
 target_version: "v1.1.0"
 title: "六张新的草稿规则卡片"
-status: "In Progress"
+status: "Accepted"
 branch: "docs/016-six-new-draft-cards"
 date: "2026-11-07"
 ---
@@ -15,7 +15,7 @@ date: "2026-11-07"
 
 这六条是 011 那 20 条候选之外的新增候选，不是那 20 条的重写。011 的结构筛选仍是局部 Diff/AST 8、有界框架上下文 10、延后 2。
 
-本任务状态是 In Progress。没有用户接受时不写成 Accepted。不合并，不打 tag。评审记录是 [PR #16](https://github.com/Zhang-huanzhi/prisk-system/pull/16)。写下这条记录时该 PR 尚未合并。补上链接的提交不改卡片、登记册或测试。
+工程负责人已接受本任务。状态为 Accepted。交付分支仍是 `docs/016-six-new-draft-cards`。评审记录是 [PR #16](https://github.com/Zhang-huanzhi/prisk-system/pull/16)。写下这条记录时该 PR 尚未合并。本提交只把任务状态改为 Accepted，并同步活动索引、v1.1 入口和分支规范。不改六张卡片，不改登记册，不改任何 `rules[].lifecycle`，不扩大 NetBox 继承上的 Hit，不建 ADR，不实现检测器，不合并，不打 tag，不删除分支，也不开始 017。接受不表示 v1.1.0 已经完成。信号、查询集和 `assert` 的未决设计仍是遗留风险。严重度和风险性质仍是临时判断。
 
 ## 编号核对
 
@@ -46,7 +46,7 @@ date: "2026-11-07"
 - 不运行 `makemigrations`，不下载真实 PR，不报告 Precision、Recall 或 NetBox 试点。
 - 不改 `docs/blueprint.md`，不改推进大纲正文，不改冻结的 v1.0.0。
 - 不标记 v1.1.0 完成，不建立 `docs/versions/v1.1/` 或 `docs/versions/v1.1.0/`，不合并，不打 tag。
-- 不把本任务写成 Accepted。
+- 本提交只把任务状态改为 Accepted，并同步活动索引、v1.1 入口和分支规范。不改卡片、登记册或任何 `rules[].lifecycle`。不扩大 NetBox 继承上的 Hit，不建 ADR，不实现检测器，不合并，不打 tag，不删除分支，不开始 017。不宣布 v1.1.0 完成。信号、查询集和 `assert` 的未决设计仍是遗留风险。
 
 ## 技术方案
 
@@ -85,11 +85,11 @@ date: "2026-11-07"
 
 ## 验收
 
-- 前言 `status` 为 In Progress，`branch` 与 Git 分支同为 `docs/016-six-new-draft-cards`。
-- 六张卡片的生命周期与登记册 `lifecycle` 都是 `draft`，且值属于 schema 枚举。
+- 前言 `status` 为 Accepted，`branch` 与 Git 分支同为 `docs/016-six-new-draft-cards`。
+- 六张卡片的生命周期与登记册 `lifecycle` 都是 `draft`，且值属于 schema 枚举。本提交不改这些字段。
 - 六条不在 `RULE_CATALOG`。运行时目录仍是 14 条。
 - 011 的 20 条计数仍是 8 / 10 / 2。就绪页仍保留「不是登记册里全部 23 条」这句 014 的范围说明。
-- `docs/blueprint.md` 未被修改。v1.1.0 没有被写成已经完成。任务没有被写成 Accepted。
+- `docs/blueprint.md` 未被修改。v1.1.0 没有被写成已经完成。NetBox 继承上的 Hit 没有扩大，也没有新的 ADR。
 
 ## 实际验证
 
@@ -102,10 +102,16 @@ date: "2026-11-07"
 
 本次新增和改写的活动 Markdown 相对链接已检查，没有断链。`git diff --check` 在提交前通过。这些测试不是先导试点，也不是 Precision 或 Recall。
 
+本状态提交只把任务改为 Accepted，并同步活动索引、v1.1 入口和分支规范里的任务状态。没有改卡片、登记册或任何 `rules[].lifecycle`。没有扩大 NetBox 继承上的 Hit，没有建 ADR，没有因此重跑后端 unittest，也没有跑前端 lint、typecheck 或 build。`git diff --check` 在这次提交前通过。
+
 ## 遗留风险
 
+接受不关闭下面这些设计说明。本提交不改对应卡片，不扩大 Hit，也不建 ADR。
+
 - 六条严重度和风险性质都是临时判断，不是终局，也不是实证。
-- 查询集和字段改名的项目基类没有名单。扩大 Hit 会碰到继承证据，当前没有 ADR。
-- 信号规则对模块级函数可能过宽。文档已经写明身份去重。
+- 查询集：`NetBoxModelViewSet` 与 `restrict_queryset` 仍是 Unanalyzed。单独去掉 `super().get_queryset()` 仍不是 Hit。项目继承名单仍没有，当前没有 ADR。
+- 字段改名：`NetBoxModel` 仍是 Unanalyzed。接受不把项目模型基类写进 Hit。
+- 信号：是否把缺少 `dispatch_uid` 的 Hit 收窄到绑定方法仍未决。Django 文档写明模块级函数按对象身份只登记一次。阵营仍是临时的 `backend_contract`。
+- `assert`：严重度仍是 `Medium`。路径仍用 `default_source_and_test_directories`，不单列 auth 目录，也不改用 stage03 的 business 分类。语句本身看不出它是不是权限检查。
 - 默认参数种类和 `Assert` 节点都还不是结构化字段。在那之前不能实现检测器而不把缺字段记成 Hit。
-- v1.1.0 没有冻结目录。本任务不代为宣布大纲已经完成。
+- v1.1.0 没有冻结目录。本任务不代为宣布大纲已经完成。接受不开始 017，也不开始检测器。
