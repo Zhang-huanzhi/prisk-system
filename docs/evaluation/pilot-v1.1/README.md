@@ -22,3 +22,14 @@
 | [t013-priority.md](t013-priority.md) | 给下一任务的建议，不是实现决定 |
 
 本地补丁、临时仓库和 stage04 JSONL 不提交。忽略规则见仓库 `.gitignore` 里的 pilot cache。
+
+## 遗留风险 / Residual risks
+
+完整六条在 [012](../../tasks/012-pilot-protocol.md) 的「遗留风险 / Residual risks」。这里先写短的，避免只出现在对话里。
+
+1. 16 条是目的分层样本。命中次数不是 NetBox 发生率。
+2. 筛查用合并提交对第一父提交的变更文件，不是完整克隆，也不是三点 merge-base。22473、19846、21941 落在 `feature`，不是 `main`。
+3. 研究规则 Hit 大多是 `code.global_mutable_state` 的 false-looking Hit。`zero_hit` 为 9 不表示八条都已 NotFound。
+4. 估计分钟只覆盖一个人一轮，不含把历史结构规则在测试上的每条证据标完。
+5. 后端 unittest 和前端 lint、typecheck、build 没有跑。本次只有文档和 `.gitignore`，这是验证缺口。
+6. [t013-priority.md](t013-priority.md) 只是建议，不授权开始 013，也不授权改卡片或权重。

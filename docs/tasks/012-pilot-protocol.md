@@ -57,3 +57,14 @@ date: "2026-11-07"
 - 临时仓库上的文件数和增删行数与 GitHub PR 计数一致。运行入口是现有的 `analyze_branches`。权重未改，筛查不报告评分。
 - `zero_hit` 为 9，`saturated_hit` 为 0。估计分钟合计 135。这些数字不是 Precision 或 Recall。
 - 清单可解析，条数为 16。新增和改写的活动 Markdown 相对链接已检查。`git diff --check` 在提交前运行。
+
+## 遗留风险 / Residual risks
+
+下面这些限制写在任务正文里。它们不是 Precision、Recall，也不是经验有效性。状态仍是 In Progress。
+
+1. 16 条是目的分层样本，不是随机样本。命中次数不能当成 NetBox 里的发生率。
+2. 筛查比较的是合并提交和它的第一父提交，输入是临时检出的变更文件。这不是完整 NetBox 克隆，也不是相对 merge-base 的三点 diff。22473、19846、21941 落在 `feature`，不是 `main`。
+3. 研究规则的 Hit 大多是 false-looking Hit：`code.global_mutable_state` 打在框架或测试要求的列表上。`zero_hit` 为 9，只表示八条研究规则里没有 Hit。它不表示这八条都已经 NotFound。23509 上八条都是 Unanalyzed。
+4. 估计分钟是一个人一轮的估计，合计约 135。这一轮没有把五条历史结构规则的每条证据都标完。那些规则在测试文件上很吵。
+5. 没有运行后端 unittest，也没有运行前端 lint、typecheck 或 build。本变更只有文档和 `.gitignore`。若把本次记录当成 CI 式证明，这是尚未补上的验证缺口。
+6. [t013-priority.md](../evaluation/pilot-v1.1/t013-priority.md) 只是建议。它不授权开始 013，也不授权改卡片或权重。
