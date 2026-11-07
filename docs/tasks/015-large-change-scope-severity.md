@@ -2,7 +2,7 @@
 task_id: "015"
 target_version: "v1.1.0"
 title: "大规模变更范围的严重度与风险性质"
-status: "In Progress"
+status: "Accepted"
 branch: "docs/015-large-change-scope-severity"
 date: "2026-11-07"
 ---
@@ -15,7 +15,7 @@ date: "2026-11-07"
 
 起始提交是 `9b40ce48af15c91de2dd730bcacf313f7622cccd`。卡片平时是设计依据。这次由所有者授权工程负责人现在选定严重度，两边一起改。后续算法阶段可以修订。这不是终局完成，也不表示 v1.1.0 已经完成。
 
-状态保持 In Progress，留给工程负责人评审。评审记录是 [PR #15](https://github.com/Zhang-huanzhi/prisk-system/pull/15)。写下这条记录时该 PR 尚未合并。本任务不写成 Accepted。
+工程负责人已接受本任务。状态为 Accepted。交付分支仍是 `docs/015-large-change-scope-severity`。评审记录是 [PR #15](https://github.com/Zhang-huanzhi/prisk-system/pull/15)。写下这条记录时该 PR 尚未合并。本提交只把任务状态改为 Accepted，并同步活动索引。不改 `workflow.large_change_scope` 的 `High` / `pr_intrinsic` 对齐，不改临时判断和「不是终局」的记录，不改任何 `rules[].lifecycle`，不改其他规则的权重，不合并，不打 tag，不删除分支，也不开始 016 或检测器。接受不表示 v1.1.0 已经完成。严重度和风险性质仍是临时判断，后续算法阶段可以修订。
 
 ## 编号核对
 
@@ -64,7 +64,7 @@ date: "2026-11-07"
 - 不把任何 `draft` 改成 `registered`、`implemented` 或 `validated`。
 - 不指定 200 行、3 个模块或其他阈值，不补模块映射。
 - 不标记 v1.1.0 完成，不建立 `docs/versions/v1.1/` 或 `docs/versions/v1.1.0/`，不合并，不打 tag。
-- 不把本任务写成 Accepted。工程负责人评审前保持 In Progress。
+- 本提交只把任务状态改为 Accepted，并同步活动索引。不改卡片、登记册、`lifecycle` 或权重。不合并，不打 tag，不删除分支，不开始 016，不开始检测器。不宣布 v1.1.0 完成。`High` / `pr_intrinsic` 仍是临时判断，不是终局。
 - 不改 `docs/blueprint.md`，不改推进大纲正文，不改冻结的 v1.0.0。
 - 不改 001–014 的任务结论。那些文件里「不覆盖这处差异」「014 不改」仍是当时的事实。
 
@@ -82,7 +82,7 @@ date: "2026-11-07"
 
 ## 验收
 
-- 前言 `status` 为 In Progress，`branch` 与 Git 分支同为 `docs/015-large-change-scope-severity`。
+- 前言 `status` 为 Accepted，`branch` 与 Git 分支同为 `docs/015-large-change-scope-severity`。
 - 卡片与登记册的严重度都是 `High`，风险性质都是 `pr_intrinsic`，`lifecycle` 都是 `draft`。
 - 登记册 `definition.impact_type` 是 `pr_intrinsic_risk`。
 - 其他规则的 `lifecycle` 不变。运行时目录仍是 14 条。
@@ -100,11 +100,12 @@ date: "2026-11-07"
 
 没有改前端，所以没有跑 lint、typecheck 或 build。`git diff --check` 在提交前通过。本次新增和改写的活动 Markdown 相对链接已检查，没有断链。这些测试不是先导试点，也不是 Precision 或 Recall。
 
+本状态提交只把任务改为 Accepted，并同步活动索引、v1.1 入口和分支规范里的任务状态。没有改卡片、登记册、`lifecycle` 或权重。没有因此重跑后端 unittest，也没有跑前端 lint、typecheck 或 build。`git diff --check` 在这次提交前通过。
+
 ## 遗留风险
 
 - 严重度和风险性质是临时判断。后续算法阶段可以修订。这不是终局，也不是实证结果。
 - 阈值和模块映射仍未指定。行数和文件数仍然不能单独改写成 Hit。检测器没有开始。
-- `definition.impact_type` 改为 `pr_intrinsic_risk` 只为和 `risk_nature` 一致。若评审只保留分类字段，可以单独收回这一处。
+- `definition.impact_type` 改为 `pr_intrinsic_risk` 只为和 `risk_nature` 一致。已接受的记录保留这个值。后续算法阶段仍可以修订严重度、风险性质或这一字段。这不是终局。
 - 就绪页仍写明本表只核对生命周期，不声称全部分类元数据已经对齐。015 只处理这一条规则的上述字段。
-- v1.1.0 没有冻结目录。本任务不代为宣布三条大纲已经完成。
-- 本任务在工程负责人接受前保持 In Progress。
+- v1.1.0 没有冻结目录。本任务不代为宣布三条大纲已经完成。接受不开始 016，也不开始检测器。

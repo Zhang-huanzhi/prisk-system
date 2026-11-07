@@ -2,9 +2,9 @@
 
 这里只放尚未随版本归档的任务：未完成的任务，以及已经接受、但目标版本还没有冻结进 `docs/versions/` 的任务。
 
-v1.1.0 仍未归档，所以 001–012 留在本目录。013 的目标版本是 v1.2.0，状态为 Accepted，因此也留在本目录。014 的目标版本是 v1.1.0，状态为 Accepted，因此也留在本目录。015 的目标版本是 v1.1.0，状态为 In Progress，因此也留在本目录。接受不表示 v1.1.0 已经完成。In Progress 同样不表示 v1.1.0 已经完成。不建立 `docs/versions/v1.1/`、`docs/versions/v1.1.0/` 或 `docs/versions/v1.2/`。v1.0.0 阶段 08 不是任务 008，也没有冻结的阶段 09 占用任务 009。010 开始前没有任务 010。011 开始前没有任务 011。012 开始前没有任务 012。013 开始前没有任务 013。014 开始前没有任务 014。015 开始前没有任务 015。014 不宣布 v1.1.0 完成。015 也不宣布 v1.1.0 完成，也不开始检测器。
+v1.1.0 仍未归档，所以 001–012 留在本目录。013 的目标版本是 v1.2.0，状态为 Accepted，因此也留在本目录。014 的目标版本是 v1.1.0，状态为 Accepted，因此也留在本目录。015 的目标版本是 v1.1.0，状态为 Accepted，因此也留在本目录。接受不表示 v1.1.0 已经完成。不建立 `docs/versions/v1.1/`、`docs/versions/v1.1.0/` 或 `docs/versions/v1.2/`。v1.0.0 阶段 08 不是任务 008，也没有冻结的阶段 09 占用任务 009。010 开始前没有任务 010。011 开始前没有任务 011。012 开始前没有任务 012。013 开始前没有任务 013。014 开始前没有任务 014。015 开始前没有任务 015。014 不宣布 v1.1.0 完成。015 的接受也不宣布 v1.1.0 完成，不开始检测器，也不开始 016。严重度和风险性质仍是临时判断，不是终局。
 
-001–007 的前言都有 `branch`。下表引用原值，不把它们改写成现行分支形式。008 为 Accepted，其前言 `branch` 仍是 `docs/008-docs-structure-blueprint`。009 为 Accepted，其前言 `branch` 仍是 `feat/009-explicit-rule-outcomes`。010 为 Accepted，其前言 `branch` 仍是 `docs/010-development-roadmap`。011 为 Accepted，其前言 `branch` 仍是 `docs/011-rule-card-feasibility`。012 为 Accepted，其前言 `branch` 仍是 `docs/012-pilot-protocol`。013 为 Accepted，其前言 `branch` 仍是 `feat/013-django-raw-sql`。014 为 Accepted，其前言 `branch` 仍是 `feat/014-rule-card-readiness`。015 为 In Progress，其前言 `branch` 是 `docs/015-large-change-scope-severity`。接受不把 008、009、010、011、012、013 或 014 移入 `docs/versions/`。In Progress 也不把 015 移入 `docs/versions/`，也不写成 Accepted。不建立 v1.2 冻结目录。规划文档是 [开发推进大纲](../standards/development-roadmap.md)。This is a planning document and is not evidence of completion or implemented functionality.
+001–007 的前言都有 `branch`。下表引用原值，不把它们改写成现行分支形式。008 为 Accepted，其前言 `branch` 仍是 `docs/008-docs-structure-blueprint`。009 为 Accepted，其前言 `branch` 仍是 `feat/009-explicit-rule-outcomes`。010 为 Accepted，其前言 `branch` 仍是 `docs/010-development-roadmap`。011 为 Accepted，其前言 `branch` 仍是 `docs/011-rule-card-feasibility`。012 为 Accepted，其前言 `branch` 仍是 `docs/012-pilot-protocol`。013 为 Accepted，其前言 `branch` 仍是 `feat/013-django-raw-sql`。014 为 Accepted，其前言 `branch` 仍是 `feat/014-rule-card-readiness`。015 为 Accepted，其前言 `branch` 仍是 `docs/015-large-change-scope-severity`。接受不把 008、009、010、011、012、013、014 或 015 移入 `docs/versions/`。不建立 v1.2 冻结目录。规划文档是 [开发推进大纲](../standards/development-roadmap.md)。This is a planning document and is not evidence of completion or implemented functionality.
 
 | 任务 | 状态 | 前言中的 `branch` | 记录 |
 | --- | --- | --- | --- |
@@ -22,7 +22,7 @@ v1.1.0 仍未归档，所以 001–012 留在本目录。013 的目标版本是 
 | 012 | Accepted | `docs/012-pilot-protocol` | [真实 PR 先导试点协议](012-pilot-protocol.md) |
 | 013 | Accepted | `feat/013-django-raw-sql` | [Django 原生 SQL 执行](013-django-raw-sql.md) |
 | 014 | Accepted | `feat/014-rule-card-readiness` | [v1.1 规则卡片就绪核对](014-rule-card-readiness.md) |
-| 015 | In Progress | `docs/015-large-change-scope-severity` | [大规模变更范围的严重度与风险性质](015-large-change-scope-severity.md) |
+| 015 | Accepted | `docs/015-large-change-scope-severity` | [大规模变更范围的严重度与风险性质](015-large-change-scope-severity.md) |
 
 [v1.1 入口原文](v1.1-entry.md) 随文件迁出后保留。其中“写下这次索引更新时，该 PR 尚未合并”是当时的句子，008 不改写。
 
