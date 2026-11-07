@@ -18,7 +18,7 @@
 
 ### 与现有登记册的关系
 
-上述清单是知识库整理方案；[JSON 登记册](../../backend/data/rules/rule-registry.json)已完成关注域 ID 迁移。草稿规则的 ID 仍可在入册或实现前调整，已登记规则的改名需要在迭代中记录迁移关系。JSON 登记册仍不是运行时配置。`workflow.test_collaboration_gap` 的检测器在版本化源码中，不从登记册加载。`workflow.large_change_scope` 仍是 `draft`。015 按工程负责人的临时裁决，把这条的卡片和登记册写成严重度 `High`、风险性质 `pr_intrinsic`。011 留下的分类差异由这次临时判断覆盖。后续算法阶段可以修订，这不是终局。015 不实现检测器，也不把 v1.1.0 写成已经完成。
+上述清单是知识库整理方案；[JSON 登记册](../../backend/data/rules/rule-registry.json)已完成关注域 ID 迁移。草稿规则的 ID 仍可在入册或实现前调整，已登记规则的改名需要在迭代中记录迁移关系。JSON 登记册仍不是运行时配置。`workflow.test_collaboration_gap` 的检测器在版本化源码中，不从登记册加载。`workflow.large_change_scope` 仍是 `draft`。015 按工程负责人的临时裁决，把这条的卡片和登记册写成严重度 `High`、风险性质 `pr_intrinsic`。后续算法阶段可以修订，这不是终局。015 不实现检测器，也不把 v1.1.0 写成已经完成。017 不改这条的严重度或风险性质。
 
 `code.dead_code_after_exit` 暂不纳入本方案；`auth.drf_object_permission_bypass` 和 `auth.django_permission_module_changed` 暂缓，不代表它们已从登记册删除，011 也不给它们写卡片。20 条候选现在各有一张卡片。`draft` 仍表示定义或验证还没有接到检测器，不是实证结论。
 
@@ -33,7 +33,7 @@
 | [`code.mutable_default_argument`](catalog/code_smell/code.mutable_default_argument.md) · `draft` | `code_smell`。补 `code.global_mutable_state` 明确留给以后的函数默认参数。 |
 | [`code.assert_in_production`](catalog/code_smell/code.assert_in_production.md) · `draft` | `code_smell`。生产路径上的 `assert` 语句。路径类沿用已有的 `default_source_and_test_directories`。 |
 | [`auth.django_csrf_exempt_added`](catalog/backend_contract/auth.django_csrf_exempt_added.md) · `draft` | `backend_contract`。新增 `@csrf_exempt` 或 `method_decorator(csrf_exempt)`。 |
-| [`auth.drf_queryset_scope_tighten_bypassed`](catalog/backend_contract/auth.drf_queryset_scope_tighten_bypassed.md) · `draft` | `backend_contract`。闭集 ViewSet 的 `get_queryset` 改为未过滤的 `objects.all()`。项目基类不在 Hit 里。 |
+| [`auth.drf_queryset_scope_tighten_bypassed`](catalog/backend_contract/auth.drf_queryset_scope_tighten_bypassed.md) · `draft` | `backend_contract`。闭集 ViewSet 的 `get_queryset` 改为未过滤的 `objects.all()`。`NetBoxModelViewSet` 按 [已知框架基类映射](known-framework-bases.md) 视为 `ModelViewSet`。未列入的项目基类不在 Hit 里。`restrict_queryset` 仍不是 Hit。 |
 | [`data.django_signal_receiver_leak`](catalog/backend_contract/data.django_signal_receiver_leak.md) · `draft` | `backend_contract`。闭集信号的 `connect` / `@receiver` 没有 `dispatch_uid`。ID 里的 leak 指重复登记。 |
 | [`data.django_field_rename_without_db_column`](catalog/breaking_impact/data.django_field_rename_without_db_column.md) · `draft` | `breaking_impact`。非迁移文件里一对字段改名且没有 `db_column`。不运行 `makemigrations`。 |
 

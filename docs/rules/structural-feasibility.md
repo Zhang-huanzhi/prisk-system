@@ -4,7 +4,7 @@
 
 011 记录当时的运行时目录是 13 条：五条历史结构规则、七条代码异味、一条测试协同。研究候选是下面 20 条。登记册当时还有 3 条故意不在这 20 条里的草稿。这三个计数不能互相替换。011 没有改权重。013 后来把 `data.django_raw_sql_execution` 按本页闭集接入运行时，默认权重 0。下面的 8 / 10 / 2 分类仍是 011 的设计筛选，不因这一条实现而重计。该命中不是注入已经发生，也没有 Precision 或 Recall。016 在页末另记 6 条新草稿的结构备注。那 6 条不进入下面的 20 条表，也不把 8 / 10 / 2 重计。
 
-014 不重计这三类，也不改任何规则的 `lifecycle`。相关卡片把「直接名称」写成基类或装饰器表达式的最后一段标识符。`PrimaryModelSerializer` 不因此进入闭集，也不因此改成另一类。
+014 不重计这三类，也不改任何规则的 `lifecycle`。相关卡片把「直接名称」写成基类或装饰器表达式的最后一段标识符。017 的 [已知框架基类映射](known-framework-bases.md) 只为已经点名的 `PrimaryModelSerializer`、`NetBoxModelViewSet` 和 `NetBoxModel` 增加整段对照。未列入的名字不因此进入闭集。`lifecycle` 仍不因此改变。
 
 筛选只用当前已经保存的局部证据：同一文件里、行范围与三点 Diff 相交的 AST 节点，以及文件路径和新增/删除行数。不新增跨文件符号表、继承链、URLconf 图或全仓库框架分析。
 
@@ -63,7 +63,7 @@
 
 `data.django_transaction_boundary_changed` 延后，是因为边界是包含关系，不是因为事务不重要。跨函数的 helper 也不内联。
 
-`workflow.large_change_scope` 延后，是因为卡片已经禁止在阈值和模块映射缺失时产生 Finding。行数和文件数虽然局部可见，但不能单独改写成这条规则的 Hit。011 当时记下登记册严重度 `High`、风险性质 `external_impact`，卡片为 `Medium` 和 `pr_intrinsic`，并且不覆盖这处差异。015 按工程负责人的临时裁决把两边写成 `High` / `pr_intrinsic`。后续算法阶段可以修订，这不是终局。状态两边仍是 `draft`。015 不因此实现本规则。
+`workflow.large_change_scope` 延后，是因为卡片已经禁止在阈值和模块映射缺失时产生 Finding。行数和文件数虽然局部可见，但不能单独改写成这条规则的 Hit。015 把卡片和登记册两边写成 `High` / `pr_intrinsic`。后续算法阶段可以修订，这不是终局。状态两边仍是 `draft`。015 不因此实现本规则。
 
 下面三条在登记册里，不在 20 条候选里。011 不给它们写卡片，也不改写登记册里尚未核实的占位依据。
 
@@ -129,13 +129,13 @@ exclusions:
 | `code.mutable_default_argument` | `same_file_ast_kind_missing` | 函数节点和 `parameter_default` 绑定在同一文件 | 默认值的容器种类。`has_default` 不能区分 `[]` 与 `None` | 种类可读之前不能记 Hit，也不能记 NotFound |
 | `code.assert_in_production` | `same_file_ast_kind_missing` | 路径类已经由 `default_source_and_test_directories` 版本化 | `ast.Assert` 节点。单词 `assert` 不是语句 | 同上。不采用 stage03 把 `netbox/` 记为 business 的那套分类 |
 | `auth.django_csrf_exempt_added` | `bounded_framework_context` | 装饰器表达式和 base/head 有无 | `method_decorator` 的位置参数名字。截断或别名则 Unanalyzed | 闭集是 `csrf_exempt` 与包住它的 `method_decorator` |
-| `auth.drf_queryset_scope_tighten_bypassed` | `bounded_framework_context` | 类基类文本、方法名、`.objects.all` 的 `callee` | 返回表达式是不是这个调用。当前没有这栏 | 四个直接基类之外，包括 `NetBoxModelViewSet`，记 Unanalyzed。`restrict_queryset` 不在 Hit 闭集 |
+| `auth.drf_queryset_scope_tighten_bypassed` | `bounded_framework_context` | 类基类文本、方法名、`.objects.all` 的 `callee` | 返回表达式是不是这个调用。当前没有这栏 | `NetBoxModelViewSet` 按映射表视为 `ModelViewSet`。未列入的基类记 Unanalyzed。`restrict_queryset` 不在 Hit 闭集 |
 | `data.django_signal_receiver_leak` | `bounded_framework_context` | `callee` 与 `keyword_names` 已能看出 `dispatch_uid` 是否以关键字出现 | `@receiver` 的位置参数信号名不在结构化字段里 | 闭集是模型信号文档里的十个名字。缺少关键字不是重复执行已经发生 |
-| `data.django_field_rename_without_db_column` | `bounded_framework_context` | 字段名、类基类文本，以及另一次调用上的 `keyword_names` | 同一次赋值要把字段名和 `db_column` 配在一起 | 只接受一对一改名。直接基类不是 `Model` 时 Unanalyzed。不读迁移文件 |
+| `data.django_field_rename_without_db_column` | `bounded_framework_context` | 字段名、类基类文本，以及另一次调用上的 `keyword_names` | 同一次赋值要把字段名和 `db_column` 配在一起 | 只接受一对一改名。`NetBoxModel` 按映射表视为 `Model`。未列入的基类 Unanalyzed。不读迁移文件 |
 
 `same_file_ast_kind_missing` 不是 011 的三类之一。它表示触发模式在同一文件的 Python AST 上，但当前保存的节点没有那个子节点种类。不把它并进 `local_diff_ast`，是因为那一类在 011 里要求证据已经在现有节点上，而且其中 8 条检测器已经接入。不把它并进 `bounded_framework_context`，是因为这两条不需要框架名单。
 
-查询集规则如果以后要把 `NetBoxModelViewSet` 或 `restrict_queryset` 收进 Hit，缺的是写明的继承或辅助函数名单，那才属于 `deferred_cross_file_or_policy`。016 没有做这个扩大，也没有为此建 ADR。字段改名规则对 `NetBoxModel` 同样停在 Unanalyzed。
+017 把 `NetBoxModelViewSet` 和 `NetBoxModel` 写进 [已知框架基类映射](known-framework-bases.md)，按最后一段整段相等使用，不沿其他文件展开继承，也不建 ADR。`restrict_queryset` 仍不是 Hit。未列入的项目基类仍是 Unanalyzed。这不把 8 / 10 / 2 重计，也不把六条并进 011 的表。
 
 ```yaml
 task_016_additional_candidates:

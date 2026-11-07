@@ -1,4 +1,4 @@
-# 路由映射变化
+# 规则说明卡片：`api.django_url_pattern_changed`
 
 > 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。
 
@@ -117,18 +117,6 @@ route、view 和 name 的可读文本都没变，只改了无关的格式；调�
 反例：`path("devices/", DeviceView)` 只被重新换行，route 与 view 文本相同。另一个反例：`DeviceView` 的函数体改了，`urls.py` 没有变化。
 
 边界：`path("api/", include("api.urls"))` 的目标模块里删了一条路由。本文件这条 `include` 没有变。不跟随 `api.urls`，也不把本文件记成 Hit。
-
-### 014 比较单位
-
-`lifecycle` 仍是 `draft`。route 文本仍不是 stage04 的结构化字段，所以不接入检测器，也不写成 `registered`。
-
-同一条规则里有三种设计差异，不另设规则 ID：
-
-- 调用在 head 出现、base 没有：路由调用被加上。这不是 `api.drf_public_parameter_added`，也不证明视图函数是新写的。
-- 调用在 base 有、head 没有：路由调用被去掉。
-- 两侧都能读到 route、`name` / `basename` 或 view 表达式，且文本不同：映射被改写。
-
-比较单位是同一文件里、最后一段为 `path`、`re_path` 或 `register` 的调用。`include()` 的目标模块不展开。位置参数字符串读不出、切片被截断，或属性名是 `url` 时，不能记 Hit。没有这种调用时，设计上是缺少路由表面，记 `missing_framework_context`，不是 NotFound。当前没有运行终态。
 
 ## 5. 理论与项目依据
 

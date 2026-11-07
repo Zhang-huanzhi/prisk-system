@@ -1,4 +1,4 @@
-# DRF 权限策略显式降级
+# 规则说明卡片：`auth.drf_permission_policy_downgrade`
 
 > 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。
 
@@ -23,10 +23,10 @@
 | 分析目标层 | `ast_syntax`，`diff_delta` |
 | 证据呈现形态 | `code_slice`，`symbol_pair` |
 | 严重度 | `High` |
-| 一票抬升 | `false` |
-| 一票抬升条件 | `null` |
+| 一票抬升 | `true` |
+| 一票抬升条件 | `同一类或同一函数上的 permission_classes 赋值或 @permission_classes 装饰器，head 侧直接名称或属性最后一段是 AllowAny，或该绑定是空列表或空元组，并且 base 侧不是这两种形态。空列表和空元组是 DRF 文档写明的 AllowAny 同等形态，已经在本卡片的触发面内，不是本任务新扩大的范围。` |
 
-严重度是待验证的设计值，不是权重。
+严重度仍是 `High`，是待验证的设计值，不是权重。一票抬升只由上面的条件打开，不把其他权限变化抬升。没有检测器，运行时评分不读取登记册，因此今天不会执行抬升。
 
 ## 3. 为什么制定
 
@@ -121,17 +121,6 @@ head 仍是 `IsAuthenticated` 或其他非 `AllowAny` 的直接名称；只改�
 反例：`[IsAuthenticated]` 改成 `[IsAdminUser]`。另一个反例：只删除 `@permission_required("dcim.view_device")`，没有写 `AllowAny`。
 
 边界：`permission_classes = [permissions.AllowAny]` 的最后一段是 `AllowAny`，按本卡片可以进入设计 Hit。`permission_classes = [PublicRead]` 不能从名字推出它等于 `AllowAny`，记 Unanalyzed。
-
-### 014 比较单位
-
-`lifecycle` 仍是 `draft`。没有检测器，不写成 `registered`。
-
-- **比较单位**：同一类或同一函数上的 `permission_classes` 赋值，或 `@permission_classes(...)`。
-- **变更后**：列表、元组或单个表达式的最后一段是 `AllowAny`，或者写成空列表、空元组。
-- **变更前**：同一绑定不是这两种形态。base 没有该绑定时，证据写 `absent`，不证明原来的全局默认更严。
-- **排除**：`IsAuthenticated` 换成 `IsAdminUser`；只删除 `@permission_required`，没有留下 `AllowAny` 或空列表，那是装饰器删除规则；`authentication_classes`；用 `&`、`|`、`~` 组合的表达式。
-- **证据位置**：文件、限定名、赋值或装饰器切片、行号、head 形态、base 形态或 `absent`。
-- **设计终态**：别名、星号导入、`get_permissions` 或组合表达式是 `missing_framework_context`。切片截断是 `unsupported_stage04_details`。适用绑定已经看完且没有缺口时，才可以记 NotFound。当前没有运行终态。
 
 ## 5. 理论与项目依据
 
