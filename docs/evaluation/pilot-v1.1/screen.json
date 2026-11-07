@@ -1,7 +1,7 @@
 {
   "schema": "prisk.pilot.v1.1.screen",
   "task_id": "012",
-  "status": "In Progress",
+  "status": "Accepted",
   "pilot_only": true,
   "hit_is_not_a_defect": true,
   "claims_precision_recall": false,

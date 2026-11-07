@@ -2,7 +2,7 @@
 
 | 适用 | 仅 [012](../../tasks/012-pilot-protocol.md) 的先导试点 |
 | --- | --- |
-| 状态 | In Progress |
+| 状态 | Accepted |
 | 抓取日 | 2026-11-07 |
 | 仓库 | `netbox-community/netbox` |
 

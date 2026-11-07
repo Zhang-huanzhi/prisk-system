@@ -2,7 +2,7 @@
 task_id: "012"
 target_version: "v1.1.0"
 title: "真实 PR 先导试点协议"
-status: "In Progress"
+status: "Accepted"
 branch: "docs/012-pilot-protocol"
 date: "2026-11-07"
 ---
@@ -13,7 +13,7 @@ date: "2026-11-07"
 
 冻结一份只用于先导摸底的协议，并在公开的已合并 NetBox PR 上抽 10 到 20 条，记录现有研究规则是否出现、草稿表面能不能对上，以及一轮标注大概要多久。样本与未来 v1.4 正式评估集物理隔离。产出是实现优先级和样本量级。
 
-用户要求开始本任务。状态保持 In Progress。没有用户接受之前不写成 Accepted。评审记录是 [PR #12](https://github.com/Zhang-huanzhi/prisk-system/pull/12)。写下这条记录时该 PR 尚未合并。本提交不合并、不打 tag、不删除分支，也不启动 013。
+用户已接受本任务。状态为 Accepted。分支、本文件和前言 `branch` 仍是 `docs/012-pilot-protocol`。评审记录是 [PR #12](https://github.com/Zhang-huanzhi/prisk-system/pull/12)。写下这条记录时该 PR 尚未合并。本提交不合并、不打 tag、不删除分支，也不启动 013。接受不表示实证结果。
 
 推进大纲里的这条要求见 [开发推进大纲](../standards/development-roadmap.md)。This is a planning document and is not evidence of completion or implemented functionality.
 
@@ -42,7 +42,7 @@ date: "2026-11-07"
 
 ## 验收
 
-- 本文件前言 `status` 为 In Progress，`branch` 与 Git 分支同为 `docs/012-pilot-protocol`。
+- 本文件前言 `status` 为 Accepted，`branch` 与 Git 分支同为 `docs/012-pilot-protocol`。
 - 协议写明抽样框、纳入排除、分层、身份字段、四种判断、耗时记法，以及试点编号永久排除出 v1.4。
 - 清单中的 PR 为 10 到 20 条，每条都能在 GitHub 上对上编号和 URL，且不发明 PR。
 - 每条有研究规则终态、可标注性、估计分钟、零命中和饱和旗标。草稿判断与运行时 Hit 分开。
@@ -60,7 +60,7 @@ date: "2026-11-07"
 
 ## 遗留风险 / Residual risks
 
-下面这些限制写在任务正文里。它们不是 Precision、Recall，也不是经验有效性。状态仍是 In Progress。
+下面这些限制写在任务正文里。它们不是 Precision、Recall，也不是经验有效性。任务状态是 Accepted，这些限制仍然成立。
 
 1. 16 条是目的分层样本，不是随机样本。命中次数不能当成 NetBox 里的发生率。
 2. 筛查比较的是合并提交和它的第一父提交，输入是临时检出的变更文件。这不是完整 NetBox 克隆，也不是相对 merge-base 的三点 diff。22473、19846、21941 落在 `feature`，不是 `main`。
