@@ -17,6 +17,7 @@
 | `docs/standards/` | 文档、任务、分支和开发流程规范 |
 | `docs/standards/development-roadmap.md` | 开发推进规划。This is a planning document and is not evidence of completion or implemented functionality. |
 | `docs/tasks/` | 未完成，或已接受但尚未随版本归档的任务 |
+| `docs/evaluation/pilot-v1.1/` | 012 的先导试点。仅试点，不是 v1.4 正式评估集 |
 | `docs/versions/v1.0.0/` | 已冻结的 v1.0.0 阶段档案 |
 | `docs/versions/README.md` | 各版本的范围、冻结状态和任务索引 |
 | `docs/rules/` | 研究规则卡片和索引 |

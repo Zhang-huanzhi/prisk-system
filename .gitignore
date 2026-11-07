@@ -23,3 +23,8 @@ backend/tests/_runtime/
 # Large derived structure snapshots stay local; use pilot artifacts or regenerate them.
 backend/data/frozen-netbox/stage04-structure-objects.jsonl
 docs/versions/v1.0.0/04-代码结构与变更表示/artifacts/stage04-structure-objects.jsonl
+
+# T012 pilot checkouts and patches stay local. Manifests under docs/evaluation/pilot-v1.1/ stay tracked.
+docs/evaluation/pilot-v1.1/cache/
+docs/evaluation/pilot-v1.1/**/*.patch
+docs/evaluation/pilot-v1.1/**/*.diff

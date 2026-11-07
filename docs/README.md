@@ -14,6 +14,7 @@
 | `standards/development-roadmap.md` | 开发推进规划。This is a planning document and is not evidence of completion or implemented functionality. | 规划；不是完成证据，也不是已实现功能 |
 | `standards/` | 文档结构、任务与分支、开发流程 | 持续更新 |
 | `tasks/` | 未完成，或已接受但尚未随版本归档的任务 | 活动 |
+| `evaluation/pilot-v1.1/` | 012 的先导试点。仅试点，不是正式实证 | 活动；排除出 v1.4 |
 | `versions/v1.0.0/` | v1.0.0 阶段档案、冻结范围和任务索引 | Frozen |
 | `rules/` | 研究规则卡片、索引和卡片框架 | 研究产物；不是代码登记册 |
 | `schemas/` | 研究元数据 schema | 文档契约 |
@@ -35,6 +36,7 @@
 - [开发流程](standards/development-process.md)
 - [规范索引](standards/README.md)
 - [活动任务](tasks/README.md)
+- [v1.1 先导试点](evaluation/pilot-v1.1/README.md)。仅试点，不是 Precision、Recall 或 v1.4 正式评估集
 - [版本索引](versions/README.md)
 - [v1.0.0 基线](versions/v1.0.0/README.md)
 - [研究规则索引](rules/index.md)
