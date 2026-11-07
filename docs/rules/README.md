@@ -18,7 +18,7 @@
 
 ### 与现有登记册的关系
 
-上述清单是知识库整理方案；[JSON 登记册](../../backend/data/rules/rule-registry.json)已完成关注域 ID 迁移。草稿规则的 ID 仍可在入册或实现前调整，已登记规则的改名需要在迭代中记录迁移关系。JSON 登记册仍不是运行时配置。`workflow.test_collaboration_gap` 的检测器在版本化源码中，不从登记册加载。`workflow.large_change_scope` 仍是 `draft`。
+上述清单是知识库整理方案；[JSON 登记册](../../backend/data/rules/rule-registry.json)已完成关注域 ID 迁移。草稿规则的 ID 仍可在入册或实现前调整，已登记规则的改名需要在迭代中记录迁移关系。JSON 登记册仍不是运行时配置。`workflow.test_collaboration_gap` 的检测器在版本化源码中，不从登记册加载。`workflow.large_change_scope` 仍是 `draft`。015 按工程负责人的临时裁决，把这条的卡片和登记册写成严重度 `High`、风险性质 `pr_intrinsic`。011 留下的分类差异由这次临时判断覆盖。后续算法阶段可以修订，这不是终局。015 不实现检测器，也不把 v1.1.0 写成已经完成。
 
 `code.dead_code_after_exit` 暂不纳入本方案；`auth.drf_object_permission_bypass` 和 `auth.django_permission_module_changed` 暂缓，不代表它们已从登记册删除，011 也不给它们写卡片。20 条候选现在各有一张卡片。`draft` 仍表示定义或验证还没有接到检测器，不是实证结论。
 

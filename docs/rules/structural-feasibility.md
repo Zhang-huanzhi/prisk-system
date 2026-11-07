@@ -63,7 +63,7 @@
 
 `data.django_transaction_boundary_changed` 延后，是因为边界是包含关系，不是因为事务不重要。跨函数的 helper 也不内联。
 
-`workflow.large_change_scope` 延后，是因为卡片已经禁止在阈值和模块映射缺失时产生 Finding。行数和文件数虽然局部可见，但不能单独改写成这条规则的 Hit。登记册里这条的严重度是 `High`、风险性质是 `external_impact`；卡片写的是 `Medium` 和 `pr_intrinsic`。011 不覆盖这处手工差异。状态两边都是 `draft`。
+`workflow.large_change_scope` 延后，是因为卡片已经禁止在阈值和模块映射缺失时产生 Finding。行数和文件数虽然局部可见，但不能单独改写成这条规则的 Hit。011 当时记下登记册严重度 `High`、风险性质 `external_impact`，卡片为 `Medium` 和 `pr_intrinsic`，并且不覆盖这处差异。015 按工程负责人的临时裁决把两边写成 `High` / `pr_intrinsic`。后续算法阶段可以修订，这不是终局。状态两边仍是 `draft`。015 不因此实现本规则。
 
 下面三条在登记册里，不在 20 条候选里。011 不给它们写卡片，也不改写登记册里尚未核实的占位依据。
 
