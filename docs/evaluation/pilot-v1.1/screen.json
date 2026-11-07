@@ -1,0 +1,695 @@
+{
+  "schema": "prisk.pilot.v1.1.screen",
+  "task_id": "012",
+  "status": "In Progress",
+  "pilot_only": true,
+  "hit_is_not_a_defect": true,
+  "claims_precision_recall": false,
+  "thresholds": {
+    "zero_hit": "No Hit among the eight research rules.",
+    "saturated_hit": "At least four of the eight research rules are Hit, or those rules produce at least eight findings.",
+    "thresholds_are_not_preregistered_endpoints": true
+  },
+  "count": 16,
+  "zero_hit_count": 9,
+  "saturated_hit_count": 0,
+  "review_minutes_estimate_sum": 135,
+  "pull_requests": [
+    {
+      "number": 23175,
+      "stratum": "api_serializer",
+      "html_url": "https://github.com/netbox-community/netbox/pull/23175",
+      "annotability": "medium",
+      "review_minutes_estimate": 8,
+      "annotability_why": "同一文件能看见 ChoiceField 的 required=True，但类基类写成 RackBaseSerializer / PrimaryModelSerializer，不是卡片要求的直接名称 Serializer。测试与生产一起改，八条研究规则没有 Hit。",
+      "zero_hit": true,
+      "saturated_hit": false,
+      "research_hit_count": 0,
+      "research_finding_count": 0,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "Unanalyzed",
+        "code.global_mutable_state": "NotFound",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [],
+      "draft_judgments": [
+        {
+          "rule_id": "api.drf_public_parameter_added",
+          "judgment": "unanalyzed",
+          "why": "L2VPNSerializer.type 从 required=False 改为 required=True；RackTypeSerializer.form_factor 新增 required=True。类语句的基类文本不是 Serializer，且同一文件能看到 RackBaseSerializer 的基类仍是 PrimaryModelSerializer。按卡片不沿文件外或项目基类猜测，不能记设计 Hit。"
+        },
+        {
+          "rule_id": "api.drf_public_parameter_removed",
+          "judgment": "not_applicable",
+          "why": "方向是把 required 收紧或写明 True，不是删除公有参数。"
+        }
+      ],
+      "historical_structure_hits": [
+        "auth.permission_structure_changed",
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 122.2
+    },
+    {
+      "number": 22473,
+      "stratum": "api_serializer",
+      "html_url": "https://github.com/netbox-community/netbox/pull/22473",
+      "annotability": "easy",
+      "review_minutes_estimate": 6,
+      "annotability_why": "新增只读字段 is_primary，并把它写进 Meta.fields。研究规则只在这个列表上 Hit，形态一眼能丢掉。",
+      "zero_hit": false,
+      "saturated_hit": false,
+      "research_hit_count": 1,
+      "research_finding_count": 1,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "Hit",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [
+        {
+          "rule_id": "code.global_mutable_state",
+          "path": "netbox/dcim/api/serializers_/devices.py",
+          "start_line": 297,
+          "end_line": 301,
+          "judgment": "false_looking_hit",
+          "why": "类体 Meta.fields 是列表字面量，检测器按卡片命中。这是序列化器声明字段名单的惯用写法，不是跨请求共享状态。"
+        }
+      ],
+      "draft_judgments": [
+        {
+          "rule_id": "api.drf_public_parameter_added",
+          "judgment": "not_applicable",
+          "why": "新增的是 read_only=True 的 BooleanField，没有 required=True，也没有无默认值的视图参数。类基类是 PrimaryModelSerializer。"
+        }
+      ],
+      "historical_structure_hits": [
+        "auth.permission_structure_changed",
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 24.2
+    },
+    {
+      "number": 22472,
+      "stratum": "api_serializer",
+      "html_url": "https://github.com/netbox-community/netbox/pull/22472",
+      "annotability": "easy",
+      "review_minutes_estimate": 4,
+      "annotability_why": "嵌套序列化器去掉计数域，测试同步修改。八条研究规则没有 Hit，草稿表面关键词也没有出现。",
+      "zero_hit": true,
+      "saturated_hit": false,
+      "research_hit_count": 0,
+      "research_finding_count": 0,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "NotFound",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [],
+      "draft_judgments": [],
+      "historical_structure_hits": [],
+      "analysis_seconds": 2.3
+    },
+    {
+      "number": 23071,
+      "stratum": "api_serializer",
+      "html_url": "https://github.com/netbox-community/netbox/pull/23071",
+      "annotability": "medium",
+      "review_minutes_estimate": 10,
+      "annotability_why": "行为改动集中在 schema 与一个序列化器字段；测试快照很长。唯一的研究规则 Hit 在测试夹具的字典上。",
+      "zero_hit": false,
+      "saturated_hit": false,
+      "research_hit_count": 1,
+      "research_finding_count": 1,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "Hit",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [
+        {
+          "rule_id": "code.global_mutable_state",
+          "path": "netbox/core/tests/test_openapi_schema.py",
+          "start_line": 208,
+          "end_line": 208,
+          "judgment": "false_looking_hit",
+          "why": "测试类属性 ref 是字典字面量。卡片会命中类体可变容器，复核者不把它当成共享状态缺陷。"
+        }
+      ],
+      "draft_judgments": [],
+      "historical_structure_hits": [
+        "auth.permission_structure_changed"
+      ],
+      "analysis_seconds": 3.3
+    },
+    {
+      "number": 23631,
+      "stratum": "api_endpoint",
+      "html_url": "https://github.com/netbox-community/netbox/pull/23631",
+      "annotability": "medium",
+      "review_minutes_estimate": 8,
+      "annotability_why": "REST 列表预取，测试同步修改。研究规则没有 Hit。新增行里的 ViewSet 是 import，isnull=False 是查询条件，都不是草稿触发。",
+      "zero_hit": true,
+      "saturated_hit": false,
+      "research_hit_count": 0,
+      "research_finding_count": 0,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "NotFound",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [],
+      "draft_judgments": [
+        {
+          "rule_id": "api.drf_viewset_action_changed",
+          "judgment": "not_applicable",
+          "why": "新增行只有 ViewSet 的 import，没有标准动作或 @action 的增减。"
+        },
+        {
+          "rule_id": "data.django_non_null_constraint_tightened",
+          "judgment": "not_applicable",
+          "why": "cable__isnull=False 是查询条件，不是字段 null= 或 AlterField。"
+        }
+      ],
+      "historical_structure_hits": [
+        "auth.permission_structure_changed",
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 99.6
+    },
+    {
+      "number": 19846,
+      "stratum": "api_endpoint",
+      "html_url": "https://github.com/netbox-community/netbox/pull/19846",
+      "annotability": "medium",
+      "review_minutes_estimate": 12,
+      "annotability_why": "把 object-types 端点从 extras 挪到 core，两边都还有 router.register。权限是类属性赋值。研究规则 Hit 在这个列表上。",
+      "zero_hit": false,
+      "saturated_hit": false,
+      "research_hit_count": 1,
+      "research_finding_count": 1,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "Hit",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [
+        {
+          "rule_id": "code.global_mutable_state",
+          "path": "netbox/core/api/views.py",
+          "start_line": 93,
+          "end_line": 93,
+          "judgment": "false_looking_hit",
+          "why": "permission_classes = [IsAuthenticatedOrLoginNotRequired] 是类体列表。检测器命中的是列表，不是权限强弱。"
+        }
+      ],
+      "draft_judgments": [
+        {
+          "rule_id": "api.django_url_pattern_changed",
+          "judgment": "unanalyzed",
+          "why": "core 新增 router.register('object-types', ...)，extras 仍保留一条带删除注释的 register。人能在 diff 里看见 route 文本，但卡片写明 call 节点还没有位置参数里的 route 字符串，因此现在不能记设计 Hit。"
+        },
+        {
+          "rule_id": "api.drf_viewset_action_changed",
+          "judgment": "not_applicable",
+          "why": "ObjectTypeViewSet 的基类文本含 ReadOnlyModelViewSet，但类体没有新增或删除标准动作，也没有 @action。"
+        },
+        {
+          "rule_id": "auth.drf_permission_decorator_removed",
+          "judgment": "not_applicable",
+          "why": "出现的是类属性 permission_classes 赋值，不是装饰器删除。"
+        },
+        {
+          "rule_id": "auth.drf_permission_policy_downgrade",
+          "judgment": "unanalyzed",
+          "why": "列表元素是 IsAuthenticatedOrLoginNotRequired，不是 AllowAny，也不是空列表。卡片对自定义权限类不排序。"
+        }
+      ],
+      "historical_structure_hits": [
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 9.3
+    },
+    {
+      "number": 22777,
+      "stratum": "auth",
+      "html_url": "https://github.com/netbox-community/netbox/pull/22777",
+      "annotability": "hard",
+      "review_minutes_estimate": 15,
+      "annotability_why": "脚本 REST 写权限和路由器改动，测试文件很长。八条研究规则全部 NotFound。字符串检索命中的 @action 在注释里。",
+      "zero_hit": true,
+      "saturated_hit": false,
+      "research_hit_count": 0,
+      "research_finding_count": 0,
+      "research_terminals": {
+        "code.swallowed_exception": "NotFound",
+        "code.bare_exception": "NotFound",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "NotFound",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [],
+      "draft_judgments": [
+        {
+          "rule_id": "api.drf_viewset_action_changed",
+          "judgment": "not_applicable",
+          "why": "新增行里的 @action 出现在注释，不是装饰器表达式变化。"
+        },
+        {
+          "rule_id": "api.django_url_pattern_changed",
+          "judgment": "not_applicable",
+          "why": "router.register 出现在测试夹具，不是产品 urls 的 route 变化。"
+        },
+        {
+          "rule_id": "auth.drf_permission_decorator_removed",
+          "judgment": "not_applicable",
+          "why": "没有闭集装饰器被删除。权限变化在视图逻辑和对象权限测试里。"
+        }
+      ],
+      "historical_structure_hits": [
+        "api.signature_changed",
+        "auth.permission_structure_changed",
+        "code.exception_structure_changed",
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 14.6
+    },
+    {
+      "number": 22469,
+      "stratum": "auth",
+      "html_url": "https://github.com/netbox-community/netbox/pull/22469",
+      "annotability": "medium",
+      "review_minutes_estimate": 8,
+      "annotability_why": "自定义链接的对象权限。研究规则 Hit 在测试类的权限名单列表上。",
+      "zero_hit": false,
+      "saturated_hit": false,
+      "research_hit_count": 1,
+      "research_finding_count": 1,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "Hit",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [
+        {
+          "rule_id": "code.global_mutable_state",
+          "path": "netbox/extras/tests/test_views.py",
+          "start_line": 187,
+          "end_line": 187,
+          "judgment": "false_looking_hit",
+          "why": "user_permissions = [...] 是测试类属性里的列表字面量。"
+        }
+      ],
+      "draft_judgments": [
+        {
+          "rule_id": "auth.drf_permission_decorator_removed",
+          "judgment": "not_applicable",
+          "why": "没有看到闭集装饰器删除。"
+        },
+        {
+          "rule_id": "auth.drf_permission_policy_downgrade",
+          "judgment": "not_applicable",
+          "why": "没有 AllowAny 或空权限列表。"
+        }
+      ],
+      "historical_structure_hits": [
+        "auth.permission_structure_changed",
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 4.6
+    },
+    {
+      "number": 23205,
+      "stratum": "auth",
+      "html_url": "https://github.com/netbox-community/netbox/pull/23205",
+      "annotability": "medium",
+      "review_minutes_estimate": 10,
+      "annotability_why": "避免把明文 API token 写进后台任务结果。改动含文档和较长测试。code.hardcoded_secret 的终态是 NotFound，不是 Hit。本屏不摘录 token 文本。",
+      "zero_hit": true,
+      "saturated_hit": false,
+      "research_hit_count": 0,
+      "research_finding_count": 0,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "NotFound",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [],
+      "draft_judgments": [
+        {
+          "rule_id": "api.drf_viewset_action_changed",
+          "judgment": "not_applicable",
+          "why": "ViewSet 字样出现在文档和测试补丁，不是动作集合变化。"
+        }
+      ],
+      "historical_structure_hits": [
+        "auth.permission_structure_changed",
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 6.9
+    },
+    {
+      "number": 23276,
+      "stratum": "data",
+      "html_url": "https://github.com/netbox-community/netbox/pull/23276",
+      "annotability": "medium",
+      "review_minutes_estimate": 12,
+      "annotability_why": "单文件迁移。RunSQL 在闭集外。operations 列表让 global_mutable 的一个 Finding 跨到两百行以上，复核要顺着列表看完才敢丢掉。 协作规则终态 NotFound：迁移路径是 non_production，没有生产代码变更，所以不构成协作缺口。",
+      "zero_hit": false,
+      "saturated_hit": false,
+      "research_hit_count": 1,
+      "research_finding_count": 1,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "Unanalyzed",
+        "code.global_mutable_state": "Hit",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [
+        {
+          "rule_id": "code.global_mutable_state",
+          "path": "netbox/dcim/migrations/0245_consolidate_unique_constraints.py",
+          "start_line": 48,
+          "end_line": 243,
+          "judgment": "false_looking_hit",
+          "why": "Migration.operations 是框架要求的列表。检测器命中类体可变容器，不表示迁移有共享状态问题。"
+        }
+      ],
+      "draft_judgments": [
+        {
+          "rule_id": "data.django_raw_sql_execution",
+          "judgment": "not_applicable",
+          "why": "新增的是 migrations.RunSQL。卡片闭集只有 RawSQL 直接名称，以及 callee 最后一段 execute、executemany、raw。RunSQL 不是这四项。"
+        },
+        {
+          "rule_id": "data.django_destructive_migration",
+          "judgment": "not_applicable",
+          "why": "操作是 RemoveConstraint 与 AddConstraint，不是 DeleteModel 或 RemoveField。"
+        }
+      ],
+      "historical_structure_hits": [
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 1.5
+    },
+    {
+      "number": 23429,
+      "stratum": "data",
+      "html_url": "https://github.com/netbox-community/netbox/pull/23429",
+      "annotability": "easy",
+      "review_minutes_estimate": 5,
+      "annotability_why": "把 object_id 改成 64 位整数的小迁移，测试同步增加。两个研究规则 Hit 都是迁移类上的列表。",
+      "zero_hit": false,
+      "saturated_hit": false,
+      "research_hit_count": 1,
+      "research_finding_count": 2,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "Unanalyzed",
+        "code.global_mutable_state": "Hit",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [
+        {
+          "rule_id": "code.global_mutable_state",
+          "path": "netbox/extras/migrations/0145_taggeditem_object_id_bigint.py",
+          "start_line": 6,
+          "end_line": 8,
+          "judgment": "false_looking_hit",
+          "why": "dependencies 列表是迁移类的固定形状。"
+        },
+        {
+          "rule_id": "code.global_mutable_state",
+          "path": "netbox/extras/migrations/0145_taggeditem_object_id_bigint.py",
+          "start_line": 10,
+          "end_line": 16,
+          "judgment": "false_looking_hit",
+          "why": "operations 列表同样是迁移类的固定形状。"
+        }
+      ],
+      "draft_judgments": [
+        {
+          "rule_id": "data.django_non_null_constraint_tightened",
+          "judgment": "not_applicable",
+          "why": "AlterField 把字段换成 PositiveBigIntegerField，diff 里没有 null=True 或 null=False 文本。"
+        },
+        {
+          "rule_id": "data.django_destructive_migration",
+          "judgment": "not_applicable",
+          "why": "没有 DeleteModel 或 RemoveField。"
+        }
+      ],
+      "historical_structure_hits": [
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 8.3
+    },
+    {
+      "number": 21901,
+      "stratum": "data",
+      "html_url": "https://github.com/netbox-community/netbox/pull/21901",
+      "annotability": "medium",
+      "review_minutes_estimate": 14,
+      "annotability_why": "系统信息页增加数据库 schema。两处 cursor.execute 是草稿闭集里的形态，旁边各有一个 except ...: pass。静态资源路径让协作规则保持 Unanalyzed。",
+      "zero_hit": false,
+      "saturated_hit": false,
+      "research_hit_count": 1,
+      "research_finding_count": 2,
+      "research_terminals": {
+        "code.swallowed_exception": "Hit",
+        "code.bare_exception": "NotFound",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "NotFound",
+        "workflow.test_collaboration_gap": "Unanalyzed"
+      },
+      "research_hit_judgments": [
+        {
+          "rule_id": "code.swallowed_exception",
+          "path": "netbox/core/utils.py",
+          "start_line": 203,
+          "end_line": 204,
+          "judgment": "hit",
+          "why": "except DatabaseError: pass，处理体只有 pass，与新增行相交。这是卡片要求复核的形态，不是已证实故障。周围是读取系统目录失败后的退回。"
+        },
+        {
+          "rule_id": "code.swallowed_exception",
+          "path": "netbox/core/views.py",
+          "start_line": 703,
+          "end_line": 704,
+          "judgment": "hit",
+          "why": "except (DatabaseError, IndexError): pass，同样只有 pass。需要看它包住的是数据库大小查询。"
+        }
+      ],
+      "draft_judgments": [
+        {
+          "rule_id": "data.django_raw_sql_execution",
+          "judgment": "hit",
+          "why": "core/utils.py 与 core/views.py 的新增行有 cursor.execute(...)。最后一段名称 execute 在卡片闭集里，而且不在迁移文件。这是设计表面对得上，不是注入结论，也不是运行时 Hit。"
+        },
+        {
+          "rule_id": "api.django_url_pattern_changed",
+          "judgment": "unanalyzed",
+          "why": "core/urls.py 新增 path('system/db-schema/', ...)。人能看见 route 文本，卡片仍要求该字符串先成为结构化字段，才允许设计 Hit。"
+        },
+        {
+          "rule_id": "workflow.test_collaboration_gap",
+          "judgment": "unanalyzed",
+          "why": "运行终态 Unanalyzed，原因 path_classification_unavailable。diff 含 css、scss 和 html，协作规则遇到未知路径就不记 NotFound。"
+        }
+      ],
+      "historical_structure_hits": [
+        "code.exception_structure_changed"
+      ],
+      "analysis_seconds": 5.6
+    },
+    {
+      "number": 23509,
+      "stratum": "config",
+      "html_url": "https://github.com/netbox-community/netbox/pull/23509",
+      "annotability": "easy",
+      "review_minutes_estimate": 6,
+      "annotability_why": "升级 DRF 并删除 monkey patch。八条研究规则都是 Unanalyzed：异味规则没有走到可检查节点，协作规则被 requirements 路径挡住。七个敏感设置名没有出现。",
+      "zero_hit": true,
+      "saturated_hit": false,
+      "research_hit_count": 0,
+      "research_finding_count": 0,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "Unanalyzed",
+        "code.hardcoded_secret": "Unanalyzed",
+        "code.unmanaged_open": "Unanalyzed",
+        "code.deep_control_flow": "Unanalyzed",
+        "code.global_mutable_state": "Unanalyzed",
+        "workflow.test_collaboration_gap": "Unanalyzed"
+      },
+      "research_hit_judgments": [],
+      "draft_judgments": [
+        {
+          "rule_id": "config.django_sensitive_settings_changed",
+          "judgment": "not_applicable",
+          "why": "settings.py 只删掉 get_unique_validators 的导入和赋值，没有 SECRET_KEY、DEBUG、ALLOWED_HOSTS、DATABASES、CSRF_COOKIE_SECURE、SESSION_COOKIE_SECURE、SECRET_KEY_FALLBACKS。"
+        },
+        {
+          "rule_id": "workflow.test_collaboration_gap",
+          "judgment": "unanalyzed",
+          "why": "终态 Unanalyzed，原因 path_classification_unavailable。requirements.txt 与 base_requirements.txt 不是协作规则的四类路径。删除的 monkey.py 因此没有被记成协作 Hit，也没有被记成 NotFound。"
+        }
+      ],
+      "historical_structure_hits": [
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 3.3
+    },
+    {
+      "number": 21941,
+      "stratum": "config",
+      "html_url": "https://github.com/netbox-community/netbox/pull/21941",
+      "annotability": "easy",
+      "review_minutes_estimate": 6,
+      "annotability_why": "给 LOGIN_REQUIRED 加弃用警告。历史配置规则 Hit，草稿的七个名字没有命中。settings 在协作分类里不是生产代码。",
+      "zero_hit": true,
+      "saturated_hit": false,
+      "research_hit_count": 0,
+      "research_finding_count": 0,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "Unanalyzed",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [],
+      "draft_judgments": [
+        {
+          "rule_id": "config.django_sensitive_settings_changed",
+          "judgment": "not_applicable",
+          "why": "变化的名字是 LOGIN_REQUIRED、STORAGE_BACKEND、STORAGE_CONFIG 和 Sentry 参数，不在七个闭集里。"
+        },
+        {
+          "rule_id": "auth.drf_permission_decorator_removed",
+          "judgment": "not_applicable",
+          "why": "没有 login_required 装饰器被删除。改的是配置名 LOGIN_REQUIRED。"
+        }
+      ],
+      "historical_structure_hits": [
+        "config.configuration_structure_changed"
+      ],
+      "analysis_seconds": 3.5
+    },
+    {
+      "number": 23606,
+      "stratum": "ordinary",
+      "html_url": "https://github.com/netbox-community/netbox/pull/23606",
+      "annotability": "medium",
+      "review_minutes_estimate": 7,
+      "annotability_why": "模块安装时补变更日志。测试同步修改。八条研究规则没有 Hit，也没有对上草稿闭集。",
+      "zero_hit": true,
+      "saturated_hit": false,
+      "research_hit_count": 0,
+      "research_finding_count": 0,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "NotFound",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [],
+      "draft_judgments": [],
+      "historical_structure_hits": [
+        "auth.permission_structure_changed",
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 13.6
+    },
+    {
+      "number": 23626,
+      "stratum": "ordinary",
+      "html_url": "https://github.com/netbox-community/netbox/pull/23626",
+      "annotability": "easy",
+      "review_minutes_estimate": 4,
+      "annotability_why": "ExportTemplate 查询加上 FETCH_PEERS，测试同步修改。八条研究规则没有 Hit。",
+      "zero_hit": true,
+      "saturated_hit": false,
+      "research_hit_count": 0,
+      "research_finding_count": 0,
+      "research_terminals": {
+        "code.swallowed_exception": "Unanalyzed",
+        "code.bare_exception": "Unanalyzed",
+        "code.dynamic_execution": "NotFound",
+        "code.hardcoded_secret": "NotFound",
+        "code.unmanaged_open": "NotFound",
+        "code.deep_control_flow": "NotFound",
+        "code.global_mutable_state": "NotFound",
+        "workflow.test_collaboration_gap": "NotFound"
+      },
+      "research_hit_judgments": [],
+      "draft_judgments": [],
+      "historical_structure_hits": [
+        "data.transaction_structure_changed"
+      ],
+      "analysis_seconds": 10.2
+    }
+  ]
+}
