@@ -93,6 +93,7 @@ const ruleLabels: Record<string, string> = {
   "code.deep_control_flow": "深层控制流嵌套",
   "code.hardcoded_secret": "硬编码敏感字面量",
   "code.global_mutable_state": "全局可变状态",
+  "data.django_raw_sql_execution": "Django 原生 SQL 执行",
   "workflow.test_collaboration_gap": "生产代码变更未见测试路径变更",
 };
 const outcomeLabels: Record<RuleOutcome["state"], string> = {
@@ -149,6 +150,7 @@ const initialConfig: Config = {
     "code.swallowed_exception": 0, "code.bare_exception": 0, "code.dynamic_execution": 0,
     "code.unmanaged_open": 0, "code.deep_control_flow": 0,
     "code.hardcoded_secret": 0, "code.global_mutable_state": 0,
+    "data.django_raw_sql_execution": 0,
     "workflow.test_collaboration_gap": 1,
   },
   test_collaboration_weight: 1, test_collaboration_enabled: true, thresholds: { medium: 30, high: 65 },

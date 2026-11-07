@@ -1,4 +1,4 @@
-"""Explicit Hit / NotFound / Unanalyzed outcomes for the existing 13 rules."""
+"""Explicit Hit / NotFound / Unanalyzed outcomes for the runtime rules."""
 
 from __future__ import annotations
 
@@ -179,6 +179,7 @@ class RuleOutcomeTests(unittest.TestCase):
             "code.global_mutable_state",
             "api.signature_changed",
             "code.exception_structure_changed",
+            "data.django_raw_sql_execution",
             COLLABORATION_RULE_ID,
         ):
             self.assertEqual(states[rule_id], "NotFound", rule_id)
@@ -227,6 +228,7 @@ class RuleOutcomeTests(unittest.TestCase):
             "code.deep_control_flow",
             "code.hardcoded_secret",
             "code.global_mutable_state",
+            "data.django_raw_sql_execution",
         ):
             self.assertEqual(states[rule_id], "NotFound", rule_id)
         config = normalize_config(None)
@@ -270,6 +272,7 @@ class RuleOutcomeTests(unittest.TestCase):
             "code.exception_structure_changed",
             "auth.permission_structure_changed",
             "data.transaction_structure_changed",
+            "data.django_raw_sql_execution",
         ):
             self.assertEqual(states[rule_id], "Unanalyzed", rule_id)
             reasons = {item["reason"] for item in _outcome(degraded, rule_id)["reasons"]}

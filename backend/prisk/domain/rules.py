@@ -11,6 +11,7 @@ from typing import Any
 
 from .changes import load_records, write_jsonl
 from .code_smells import CODE_SMELL_RULES, collect_code_smell_findings
+from .django_raw_sql import RAW_SQL_RULE, RAW_SQL_RULE_ID, collect_django_raw_sql
 from .test_collaboration import COLLABORATION_RULE_ID, collaboration_terminal, collect_test_collaboration
 
 
@@ -59,6 +60,7 @@ RULE_CATALOG = [
         "limitations": "不判断运行时异常传播或实际错误响应",
     },
     *CODE_SMELL_RULES,
+    RAW_SQL_RULE,
     {
         "rule_id": COLLABORATION_RULE_ID,
         "severity": "medium",
@@ -158,6 +160,44 @@ def validate_rule_catalog() -> None:
 
 
 validate_rule_catalog()
+
+
+def _merge_unanalyzed(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Fold later gaps into the first entry with the same path and reason.
+
+    A call the code-smell pass cannot read is also unreadable for the raw-SQL
+    rule. Keep one summary row, and add only node ids the first row lacked.
+    """
+    merged: list[dict[str, Any]] = []
+    index: dict[tuple[str, str], int] = {}
+    for entry in entries:
+        path = str(entry.get("path") or "")
+        reason = str(entry.get("reason") or "")
+        key = (path, reason)
+        if key not in index:
+            copied = dict(entry)
+            node_ids = copied.get("node_ids")
+            if isinstance(node_ids, list):
+                copied["node_ids"] = list(node_ids)
+            index[key] = len(merged)
+            merged.append(copied)
+            continue
+        extra_ids = entry.get("node_ids")
+        if not isinstance(extra_ids, list):
+            continue
+        current = merged[index[key]]
+        existing = current.get("node_ids")
+        if not isinstance(existing, list):
+            current["node_ids"] = list(extra_ids)
+            continue
+        added = False
+        for node_id in extra_ids:
+            if node_id not in existing:
+                existing.append(node_id)
+                added = True
+        if added:
+            current["node_ids"] = sorted(existing)
+    return merged
 
 
 def _unanalyzed_files(record: dict[str, Any]) -> list[dict[str, str]]:
@@ -333,6 +373,36 @@ def _exception_terminal(files: list[dict[str, Any]]) -> dict[str, Any]:
     return _terminal("code.exception_structure_changed", _TERMINAL_NOT_FOUND)
 
 
+def _raw_sql_terminal(
+    trace: dict[str, Any],
+    parse_failures: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """NotFound only after at least one call was fully classified.
+
+    Framework-boundary calls and unreadable callees block NotFound. A file
+    with no intersecting call stays ``context_not_established``. Parse failures
+    stay Unanalyzed, including when some other call was examined.
+    """
+    info = trace or {"examined": 0, "gaps": []}
+    pairs: list[tuple[str, dict[str, str]]] = []
+    for gap in info.get("gaps") or []:
+        if not isinstance(gap, dict):
+            continue
+        node_id = str(gap.get("node_id") or "") or None
+        pairs.append((str(gap.get("reason") or _REASON_DETAILS), _object(str(gap.get("path") or ""), node_id)))
+    for failure in parse_failures:
+        pairs.append((
+            str(failure.get("reason") or "head_parse_failed"),
+            _object(str(failure.get("path") or "")),
+        ))
+    reasons = _reasons_from_pairs(pairs)
+    if reasons:
+        return _terminal(RAW_SQL_RULE_ID, _TERMINAL_UNANALYZED, reasons)
+    if int(info.get("examined") or 0) > 0:
+        return _terminal(RAW_SQL_RULE_ID, _TERMINAL_NOT_FOUND)
+    return _terminal(RAW_SQL_RULE_ID, _TERMINAL_UNANALYZED, [{"reason": _REASON_CONTEXT, "objects": []}])
+
+
 def _smell_terminal(
     rule_id: str,
     trace: dict[str, dict[str, Any]],
@@ -371,6 +441,7 @@ def _rule_outcomes(
     enabled: set[str],
     findings: list[dict[str, Any]],
     smell_trace: dict[str, dict[str, Any]],
+    raw_sql_trace: dict[str, Any],
     collaboration_finding: dict[str, Any] | None,
     collaboration_gaps: list[dict[str, str]],
     parse_failures: list[dict[str, Any]],
@@ -400,6 +471,8 @@ def _rule_outcomes(
             outcomes.append(_exception_terminal(files))
         elif rule_id in _SMELL_RULE_IDS:
             outcomes.append(_smell_terminal(rule_id, smell_trace, parse_failures))
+        elif rule_id == RAW_SQL_RULE_ID:
+            outcomes.append(_raw_sql_terminal(raw_sql_trace, parse_failures))
         elif rule_id == COLLABORATION_RULE_ID:
             state, reasons = collaboration_terminal(record, collaboration_finding, collaboration_gaps)
             outcomes.append(_terminal(rule_id, state, reasons))
@@ -448,6 +521,8 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             findings.append(_finding(rule, path, changes))
     smell_findings, smell_gaps, smell_trace = collect_code_smell_findings(stage04_record, enabled)
     findings.extend(smell_findings)
+    raw_sql_findings, raw_sql_gaps, raw_sql_trace = collect_django_raw_sql(stage04_record, enabled)
+    findings.extend(raw_sql_findings)
     collaboration_finding, collaboration_gaps = collect_test_collaboration(stage04_record, enabled)
     if collaboration_finding is not None:
         findings.append(collaboration_finding)
@@ -471,6 +546,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             enabled,
             findings,
             smell_trace,
+            raw_sql_trace,
             collaboration_finding,
             collaboration_gaps,
             parse_failures,
@@ -480,7 +556,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             "domains": domains,
             "test_collaboration": _testing_collaboration(collaboration_finding),
             "parse_degraded": degraded,
-            "unanalyzed": [*parse_failures, *smell_gaps, *collaboration_gaps],
+            "unanalyzed": _merge_unanalyzed([*parse_failures, *smell_gaps, *raw_sql_gaps, *collaboration_gaps]),
         },
         "errors": [],
     }

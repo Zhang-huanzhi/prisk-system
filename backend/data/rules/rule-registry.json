@@ -1996,7 +1996,7 @@
       "name": "绕过 ORM 的原生 SQL",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -2021,25 +2021,22 @@
         "why_worth_detecting": "参数是否与 SQL 分开传递、语句位于迁移还是请求路径，会改变复核方式。",
         "expected_consequence": "可能引入难以由 ORM 约束的查询。命中不表示注入已经发生，迁移中的 SQL 也不自动是缺陷。",
         "coverage_gap": "data.transaction_structure_changed 把模型和事务结构变化混在一起，不单列原生 SQL。",
-        "value": "列出候选调用和路径政策缺口，避免在政策冻结前实现检测器。"
+        "value": "用 011 闭集标记原生 SQL 调用形态，供人工复核。路径政策仍不设定。命中不是注入已经发生。"
       },
       "definition": {
-        "target": "拟定：与新增行相交的原生 SQL 调用。属性链名单和迁移路径政策尚未冻结。",
-        "trigger": "拟定：sql_callee 命中冻结名单，调用与新增行相交，且 path_policy 已配置。详见规则卡片。",
+        "target": "与新增行相交的调用。闭集是 direct_callee_name 为 RawSQL，或 callee 最后一段为 execute、executemany、raw。",
+        "trigger": "调用节点与新增行相交，且名字落在 011 闭集。每个调用一条 Finding。证据写完整 callee 和路径。不读取 SQL 文本判断安全。详见规则卡片。",
         "trigger_features": [
           {
             "name": "sql_callee",
-            "source": "调用属性名或 RawSQL 直接名称，属于冻结后的名单",
+            "source": "direct_callee_name 为 RawSQL，或 callee 最后一段属于闭集",
             "value_type": "string",
             "operator": "contains",
             "threshold": [
+              "RawSQL",
               "execute",
               "executemany",
-              "callproc",
-              "cursor",
-              "raw",
-              "RawSQL",
-              "extra"
+              "raw"
             ],
             "required": true
           },
@@ -2050,30 +2047,18 @@
             "operator": "eq",
             "threshold": true,
             "required": true
-          },
-          {
-            "name": "path_policy",
-            "source": "迁移路径配置存在并已套用",
-            "value_type": "enum",
-            "operator": "contains",
-            "threshold": [
-              "included",
-              "excluded"
-            ],
-            "required": true
           }
         ],
-        "non_trigger": "ORM filter/exclude/update、只在字符串中出现 SQL、未改动调用。路径政策缺失时不记为通过，也不默认排除迁移。",
+        "non_trigger": "ORM filter/exclude/update、只在字符串中出现 SQL、未改动调用、migrations.RunSQL。extra、callproc，以及 callee 含 schema_editor 时记 missing_framework_context，不是 Hit，也不是 NotFound。空 callee 或无法确认最后一段时记 unsupported_stage04_details。路径不作为纳入或排除条件。",
         "inputs": [
-          "head Python AST",
-          "三点 Diff 新增行",
-          "尚未提供的迁移路径政策"
+          "head Python AST call 节点",
+          "三点 Diff 新增行"
         ],
-        "finding": "data.django_raw_sql_execution 设计 Finding。本迭代不生成运行时 Finding。",
+        "finding": "data.django_raw_sql_execution Finding。复核线索，不是注入结论。",
         "evidence_location": [
           "file path",
           "call node",
-          "matched callee"
+          "full callee"
         ],
         "context_slice": "展示调用表达式，不凭 SQL 文本判断安全性。",
         "impact_type": "pr_intrinsic_risk"
@@ -2097,19 +2082,20 @@
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "名单和迁移路径政策冻结后编写构造样例，再用 NetBox PR 人工标注。",
-        "dataset": "NetBox 冻结数据集仍待圈定。当前没有运行结果。",
-        "oracle": "人工标注。",
+        "method": "013 的构造正例、反例和边界。不跑 NetBox 实证，不报告 Precision 或 Recall。",
+        "dataset": "013 构造样例。NetBox 实证数据集未在本任务使用。",
+        "oracle": "规则卡片中的 011 闭集。卡片仍不是经验有效性的 Ground Truth。",
         "metrics": [
-          "命中频次",
-          "Precision",
-          "Recall"
+          "构造样例通过率",
+          "证据完整率"
         ],
-        "acceptance_criteria": "待验证设计确定；当前不预填结果。",
+        "acceptance_criteria": "构造样例按 011 闭集命中；不预填 Precision、Recall 或注入结论。",
         "unresolved_questions": [
-          "调用名单未冻结",
-          "迁移目录政策未冻结",
-          "没有检测器"
+          "接收者没有类型，report.execute 也会命中",
+          "迁移目录政策仍未设定，路径只留在证据里",
+          "别名和 helper 不跟随",
+          "RunSQL 不在 Hit 闭集",
+          "经验有效性尚未验证"
         ]
       }
     },
