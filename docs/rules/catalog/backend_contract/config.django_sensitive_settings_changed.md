@@ -118,6 +118,12 @@ stage04 的 field 节点记录名字和值指纹。字符串值会进入 `litera
 
 边界：`DATABASES["default"]["PASSWORD"] = "..."` 这种下标赋值不是直接名称赋值。当前字段节点不覆盖下标目标，记 Unanalyzed，不把它漏当成已经检查过的 `DATABASES` 整体。若变化的是 `DATABASES = {...}` 这个直接名称，则按名单命中。
 
+### 014 比较单位
+
+`lifecycle` 仍是 `draft`。没有检测器，不写成 `registered`。
+
+比较单位是模块级直接名称赋值。变更前和变更后比的是同一个名字的值指纹：两侧指纹不同，或一侧没有这条赋值。函数体内的同名局部变量不比较。闭集就是上面七个设置名。闭集外的名字记 `missing_framework_context`，不记 Hit，也不把整条规则记成 NotFound。下标赋值和截断切片是 `unsupported_stage04_details`。`config.configuration_structure_changed` 仍是运行时的粗路径规则。本规则不抑制它，也还没有 Finding。
+
 ## 5. 理论与项目依据
 
 - [Django 部署检查清单](https://docs.djangoproject.com/en/stable/howto/deployment/checklist/) 把 `SECRET_KEY` 和 `DEBUG` 列为关键设置，并要求密钥不要提交进源码。同一页把 `ALLOWED_HOSTS`、`DATABASES` 的密码、`CSRF_COOKIE_SECURE` 和 `SESSION_COOKIE_SECURE` 列为部署时要核对的设置。`SECRET_KEY_FALLBACKS` 出现在该页的密钥轮换示例里。

@@ -116,6 +116,20 @@ base 与 head 上、与删除行或新增行相交的类体字段节点，以及
 
 边界：`ModelSerializer` 子类的类体里没有写 `name`，模型字段 `name` 仍由框架生成。本地 AST 看不到这条隐式字段，不能记成删除，也不能记成 NotFound。
 
+### 014 比较单位
+
+卡片表格和登记册的 `lifecycle` 都是 `draft`。本节不把它改成 `registered`。设计终态不是运行记录。上文「009 只覆盖当前 13 条」写于 011；013 起运行时目录是 14 条。本规则仍不在其中。
+
+- **比较单位**：同一个类限定名上的字段名，或同一个函数限定名上的参数名。这个类或函数在 head 仍然存在。
+- **变更前**：base 上与删除行相交的适用字段或参数有这个名字。
+- **变更后**：head 的同一表面没有这个名字。
+- **身份**：最后一段标识符等于 `Serializer`，且没有基类的最后一段等于 `ModelSerializer` 时，类体字段可以比较消失。最后一段等于 `ModelSerializer` 时，只比较类体里写出来的字段。`PrimaryModelSerializer` 的最后一段两个名字都不是，不因为字符串里含有 `Serializer` 或 `ModelSerializer` 而进入闭集，记 `missing_framework_context`。
+- **排除**：整个类或函数从 head 消失；名字还在，只改 `help_text` 或 `required`；没有 `@api_view` / `@action` 的普通函数少了一个参数。改名留下的新名字交给 `api.drf_public_parameter_added`，两条规则不把两个不同名字自动判成同一次改名。
+- **证据位置**：文件、限定名、消失的名字、相交的删除行、base 侧切片。切片截断到不能确认目标名时，是 `unsupported_stage04_details`。
+- **设计终态**：基类最后一段在同一 diff 里也变了，是 `missing_framework_context`。适用名字已经对完且没有缺口时，才可以记 NotFound。当前没有检测器。
+
+不支持的例子：`class DeviceSerializer(PrimaryModelSerializer)` 去掉类体里的 `asset_tag`；整个视图函数被删除。
+
 ## 5. 理论与项目依据
 
 - [DRF Serializer](https://www.django-rest-framework.org/api-guide/serializers/) 说明序列化器如何声明字段。隐式模型字段不写在类体里。

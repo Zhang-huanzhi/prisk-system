@@ -77,12 +77,32 @@ def export(self, queryset, output="json"):
 
 人工复核需要路由登记、序列化器继承链、`partial` 更新路径，以及发布说明是否把该字段标成不兼容变更。
 
+## 014 比较单位
+
+与 005 冲突时仍以 011 的同一文件表面和写明的 `required=True` 为准。本节只补 011 没有单独写出的比较范围。卡片表格里的生命周期仍是 `draft`，登记册 `lifecycle` 也是 `draft`。没有检测器，没有构造测试，不写成 `registered`。下面的 Hit / NotFound / Unanalyzed 是设计预期，本规则不在运行时目录里。
+
+- **比较单位**：同一个类限定名上的字段名，或同一个函数限定名上的参数名。这个类或函数在 base 和 head 都要出现。
+- **变更前**：该名字在 base 的这一表面上没有。
+- **变更后**：该名字在 head 出现，并且下面的必填语法成立。
+- **必填语法**：字段调用写出 `required=True`，且没有 `default=`；或者函数装饰器文本含有 `@api_view` 或 `@action`，新增参数的 `has_default` 为假。省略 `required` 不是这条设计触发。
+- **身份**：基类表达式按点号拆开后的最后一段等于 `Serializer`，并且同一个类没有任何基类的最后一段等于 `ModelSerializer`。不相等的例子包括 `PrimaryModelSerializer` 和 `RackBaseSerializer`。子串和后缀都不算直接名称。这些类记 `missing_framework_context`。014 不把它们写进闭集。
+- **路由边界**：沿用 011，不把已路由写成检测前提。其他文件的 `router.register` 或 `include()` 不是表面证据。同一文件能看到最后一段为 `Serializer` 且不是 `ModelSerializer` 的基类，或 `@api_view` / `@action` 时，才讨论必填新增。看不到该表面时记 `missing_framework_context`。看到该表面也不证明 URL 已经登记。
+- **排除**：只在 head 出现的整份类或函数；已有名字上把 `required=False` 改成 `required=True`；只改 `help_text`；没有 `@api_view` / `@action` 的普通函数。必填性改写没有另一条目录规则。新的 URL 或新的 ViewSet 动作也不是本规则。`api.signature_changed` 仍单独报告路径上的粗签名变化，本规则不抑制它。
+- **证据位置**：文件、类或函数限定名、参数名、`required=True` 或 `has_default: false`、相交的新增行、head 侧切片。
+- **设计终态**：身份对不上或看不到同一文件表面时，是 `missing_framework_context`，不是 NotFound。切片截断、读不出 `required=True` 时，是 `unsupported_stage04_details`。适用表面已经逐项分完且没有缺口时，才可以记 NotFound。当前没有运行终态。
+
+构造正例：base 与 head 都有 `class DeviceSerializer(serializers.Serializer)`，head 新增 `asset_tag = serializers.CharField(required=True)`。
+
+构造反例：同一类上 `required=False`；或 `def export(self, queryset, output="json")` 没有 `@api_view` / `@action`。
+
+不支持：整类是新建的；基类最后一段是 `PrimaryModelSerializer`；`ModelSerializer` 上省略 `required`；调用切片被截断。
+
 ## 未冻结、因此保持 draft 的部分
 
-- 011 不再把“先有一张跨文件路由表”写成实现前提。同一文件没有表面证据时直接 Unanalyzed。项目自己的公有基类名单仍然没有，也不在本任务补。
+- 011 不再把“先有一张跨文件路由表”写成实现前提。同一文件没有表面证据时直接 Unanalyzed。项目自己的公有基类名单仍然没有。014 仍不把 `PrimaryModelSerializer` 写进名单。
 - 省略 `required` 时的字段默认表仍不冻结。上面只接受源码里写明的 `required=True`。
 - `partial=True`、`extra_kwargs` 和父类字段覆盖还不能从现有 stage04 节点可靠读出。
-- 没有检测器，所以不把生命周期写成 `registered`。现有约定里，`registered` 表示卡片已登记且检测器未接入；本卡片的必填证据和表面证据仍依赖尚未接入的切片读取，验证也还没有构造测试。
+- 没有检测器，也没有构造测试，所以不把生命周期写成 `registered`。014 补了比较单位，切片读取仍然没有接入。知识库里 `registered` 表示卡片已登记且检测器未接入；011 要求在切片和构造测试还缺的时候保持 `draft`。
 
 ## 有效性计划
 

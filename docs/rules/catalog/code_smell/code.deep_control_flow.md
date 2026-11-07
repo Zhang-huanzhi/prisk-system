@@ -67,6 +67,12 @@ def elif_chain():
 
 人工复核时应看超限节点的切片、它的 `control_kind` 和深度，以及这次新增行是落在深层语句上还是只碰到外层条件。
 
+## 014 登记字段
+
+登记册和卡片表格的 `lifecycle` 都是 `implemented`。005 已接入检测器，并用构造样例检查过。这不是 `validated`。014 不改深度阈值 4，也不改这个字段。
+
+比较单位是 head 上与新增行相交、`nesting_depth` 大于 4 的控制流节点。深度小于等于 4 的已检查节点不是 Hit。产生 Finding 时运行终态是 Hit。适用节点已经看完、没有证据缺口、也没有解析失败时，终态是 NotFound。没有控制流节点是 `context_not_established`。切片不能判断深度时是 `unsupported_stage04_details`。这些终态不是另一个生命周期字段。
+
 ## 有效性计划
 
 `literature_inherited`：迭代 005 已用构造样例检查深度 5、深度 4、`elif`、`else` 体内的 `if`、`try` 不把 `except` 再算一层、函数重置、`match`、推导式、三元表达式、只改外层行、未改动深层块和删除。阈值 4 没有用 NetBox 校准。Precision、Recall 和“多深才影响缺陷”都还没有结果，不能在本卡片里填写。

@@ -123,5 +123,116 @@ class RuleRegistryTests(unittest.TestCase):
                     self.assertIn(f"`{rule['classification'][key]}`", content)
 
 
+def _lifecycle_tokens(text: str) -> set[str]:
+    row = re.findall(r"^\|\s*生命周期\s*\|\s*`([a-z]+)`\s*\|", text, re.MULTILINE)
+    combined = re.findall(r"`v\d+`\s*/\s*`[a-z_]+`\s*/\s*`([a-z]+)`", text)
+    return set(row + combined)
+
+
+class LifecycleFieldConsistencyTests(unittest.TestCase):
+    """Card tables and the registry share schema lifecycle. No second status field."""
+
+    def setUp(self) -> None:
+        self.registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8-sig"))
+        self.schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8-sig"))
+        self.allowed = set(self.schema["$defs"]["rule"]["properties"]["lifecycle"]["enum"])
+
+    def test_schema_lifecycle_enum_is_unchanged(self) -> None:
+        self.assertEqual(
+            self.schema["$defs"]["rule"]["properties"]["lifecycle"]["enum"],
+            ["draft", "registered", "implemented", "validated", "deprecated"],
+        )
+
+    def test_every_card_lifecycle_matches_registry_and_stays_in_enum(self) -> None:
+        by_id = {rule["rule_id"]: rule for rule in self.registry["rules"]}
+        seen: set[str] = set()
+        card_root = KNOWLEDGE_BASE / "catalog"
+        for path in card_root.rglob("*.md"):
+            if path.name == "README.md":
+                continue
+            text = path.read_text(encoding="utf-8")
+            match = re.search(r"^\|\s*规则 ID\s*\|\s*`([^`]+)`\s*\|", text, re.MULTILINE)
+            self.assertIsNotNone(match, path)
+            rule_id = match.group(1)
+            self.assertIn(rule_id, by_id, path)
+            tokens = _lifecycle_tokens(text)
+            self.assertEqual(tokens, {by_id[rule_id]["lifecycle"]}, path)
+            self.assertTrue(tokens <= self.allowed, path)
+            seen.add(rule_id)
+        self.assertGreaterEqual(len(seen), 20)
+        self.assertTrue(seen <= set(by_id))
+
+    def test_readiness_scope_is_current_twenty_cards(self) -> None:
+        """014 audits the 20 task-011 candidates. Later cards are not forbidden."""
+        page = (KNOWLEDGE_BASE / "v1.1-card-readiness.md").read_text(encoding="utf-8")
+        self.assertIn("20 条候选", page)
+        self.assertIn("不是登记册里全部 23 条", page)
+        for rule_id in (
+            "code.dead_code_after_exit",
+            "auth.drf_object_permission_bypass",
+            "auth.django_permission_module_changed",
+        ):
+            self.assertIn(rule_id, page)
+        self.assertIn("不是禁止以后的任务为它们写卡片", page)
+        self.assertIn("不表示分类元数据的其余栏已经一致", page)
+        self.assertIn("不声称分类元数据已经对齐", page)
+
+    def test_knowledge_base_badges_use_registry_lifecycle(self) -> None:
+        index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
+        for rule in self.registry["rules"]:
+            rule_id = rule["rule_id"]
+            lifecycle = rule["lifecycle"]
+            badge = re.search(rf"\[`{re.escape(rule_id)}`\]\(([^)]+)\) · `([a-z]+)`", index)
+            if badge is None:
+                continue
+            self.assertEqual(badge.group(2), lifecycle, rule_id)
+            content = (KNOWLEDGE_BASE / badge.group(1)).read_text(encoding="utf-8")
+            self.assertEqual(_lifecycle_tokens(content), {lifecycle}, rule_id)
+
+
+class DraftContractConsistencyTests(unittest.TestCase):
+    """Registry prose stays on the approved 011 boundaries for two drafts."""
+
+    def setUp(self) -> None:
+        self.registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8-sig"))
+
+    def _rule(self, rule_id: str) -> dict:
+        return next(rule for rule in self.registry["rules"] if rule["rule_id"] == rule_id)
+
+    def test_parameter_added_target_is_same_file_surface(self) -> None:
+        rule = self._rule("api.drf_public_parameter_added")
+        self.assertEqual(rule["lifecycle"], "draft")
+        target = rule["definition"]["target"]
+        self.assertNotIn("已路由 DRF", target)
+        self.assertNotIn("已路由 APIView", target)
+        self.assertIn("同一文件", target)
+        self.assertIn("Serializer", target)
+        self.assertIn("@api_view", target)
+        self.assertIn("不是表面证据", target)
+        self.assertNotIn("已路由", rule["rationale"]["observed_problem"])
+        card = (
+            KNOWLEDGE_BASE / "catalog/backend_contract/api.drf_public_parameter_added.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("不把已路由写成检测前提", card)
+        self.assertIn("router.register", card)
+        self.assertIn("也不证明 URL 已经登记", card)
+
+    def test_decorator_removed_suppression_is_same_file(self) -> None:
+        rule = self._rule("auth.drf_permission_decorator_removed")
+        self.assertEqual(rule["lifecycle"], "draft")
+        trigger = rule["definition"]["trigger"]
+        self.assertIn("同一文件的 head 出现 permission_classes 赋值", trigger)
+        self.assertIn("无关类", trigger)
+        self.assertIn("未决提议", trigger)
+        card = (
+            KNOWLEDGE_BASE / "catalog/backend_contract/auth.drf_permission_decorator_removed.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class OtherView(APIView):", card)
+        self.assertIn("permission_classes = [IsAuthenticated]", card)
+        self.assertIn("设计终态是 Unanalyzed，不是 Hit", card)
+        self.assertIn("收窄到同一个函数或同一个类，是未决提议", card)
+        self.assertNotIn("同一所有者的 head 上出现", card)
+
+
 if __name__ == "__main__":
     unittest.main()
