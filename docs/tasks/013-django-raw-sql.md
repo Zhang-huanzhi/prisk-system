@@ -2,7 +2,7 @@
 task_id: "013"
 target_version: "v1.2.0"
 title: "Django 原生 SQL 执行"
-status: "In Progress"
+status: "Accepted"
 branch: "feat/013-django-raw-sql"
 date: "2026-11-07"
 ---
@@ -20,7 +20,7 @@ date: "2026-11-07"
 
 调用必须与新增行相交，沿用其他 AST 检测器的交集。每个匹配调用一条 Finding。证据写完整 `callee` 和路径。判定不截取 SQL 字符串。
 
-本任务保持 In Progress。交付分支是 `feat/013-django-raw-sql`。评审记录是 [PR #13](https://github.com/Zhang-huanzhi/prisk-system/pull/13)。写下这条记录时该 PR 尚未合并。协调者接受之前不写成 Accepted，不合并，不删除分支，也不开始 014。
+协调者已接受本任务。状态为 Accepted。交付分支仍是 `feat/013-django-raw-sql`。评审记录是 [PR #13](https://github.com/Zhang-huanzhi/prisk-system/pull/13)。写下这条记录时该 PR 尚未合并。本提交只把状态改为 Accepted，不改检测器、权重或闭集，不合并，不打 tag，不删除分支，也不开始 014。
 
 ## 编号核对
 
