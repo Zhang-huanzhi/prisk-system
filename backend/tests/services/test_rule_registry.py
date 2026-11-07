@@ -159,48 +159,23 @@ class LifecycleFieldConsistencyTests(unittest.TestCase):
             self.assertEqual(tokens, {by_id[rule_id]["lifecycle"]}, path)
             self.assertTrue(tokens <= self.allowed, path)
             seen.add(rule_id)
-        self.assertEqual(
-            seen,
-            {rule_id for rule_id, rule in by_id.items() if rule["lifecycle"] != "draft"}
-            | {
-                "api.drf_public_parameter_added",
-                "api.drf_public_parameter_removed",
-                "api.django_url_pattern_changed",
-                "api.drf_viewset_action_changed",
-                "auth.drf_permission_decorator_removed",
-                "auth.drf_permission_policy_downgrade",
-                "config.django_sensitive_settings_changed",
-                "data.django_destructive_migration",
-                "data.django_non_null_constraint_tightened",
-                "data.django_transaction_boundary_changed",
-                "workflow.large_change_scope",
-            },
-        )
+        self.assertGreaterEqual(len(seen), 20)
+        self.assertTrue(seen <= set(by_id))
 
-    def test_excluded_drafts_have_no_card_and_no_promoted_lifecycle(self) -> None:
-        excluded = {
+    def test_readiness_scope_is_current_twenty_cards(self) -> None:
+        """014 audits the 20 task-011 candidates. Later cards are not forbidden."""
+        page = (KNOWLEDGE_BASE / "v1.1-card-readiness.md").read_text(encoding="utf-8")
+        self.assertIn("20 条候选", page)
+        self.assertIn("不是登记册里全部 23 条", page)
+        for rule_id in (
             "code.dead_code_after_exit",
             "auth.drf_object_permission_bypass",
             "auth.django_permission_module_changed",
-        }
-        by_id = {rule["rule_id"]: rule for rule in self.registry["rules"]}
-        for rule_id in excluded:
-            self.assertEqual(by_id[rule_id]["lifecycle"], "draft")
-        counts = {name: 0 for name in self.allowed}
-        for rule in self.registry["rules"]:
-            self.assertIn(rule["lifecycle"], self.allowed)
-            counts[rule["lifecycle"]] += 1
-        self.assertEqual(counts["draft"], 14)
-        self.assertEqual(counts["implemented"], 9)
-        self.assertEqual(counts["registered"], 0)
-        self.assertEqual(counts["validated"], 0)
-        self.assertEqual(counts["deprecated"], 0)
-        for path in (KNOWLEDGE_BASE / "catalog").rglob("*.md"):
-            if path.name == "README.md":
-                continue
-            text = path.read_text(encoding="utf-8")
-            for rule_id in excluded:
-                self.assertNotIn(f"| 规则 ID | `{rule_id}` |", text)
+        ):
+            self.assertIn(rule_id, page)
+        self.assertIn("不是禁止以后的任务为它们写卡片", page)
+        self.assertIn("不表示分类元数据的其余栏已经一致", page)
+        self.assertIn("不声称分类元数据已经对齐", page)
 
     def test_knowledge_base_badges_use_registry_lifecycle(self) -> None:
         index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
@@ -213,6 +188,50 @@ class LifecycleFieldConsistencyTests(unittest.TestCase):
             self.assertEqual(badge.group(2), lifecycle, rule_id)
             content = (KNOWLEDGE_BASE / badge.group(1)).read_text(encoding="utf-8")
             self.assertEqual(_lifecycle_tokens(content), {lifecycle}, rule_id)
+
+
+class DraftContractConsistencyTests(unittest.TestCase):
+    """Registry prose stays on the approved 011 boundaries for two drafts."""
+
+    def setUp(self) -> None:
+        self.registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8-sig"))
+
+    def _rule(self, rule_id: str) -> dict:
+        return next(rule for rule in self.registry["rules"] if rule["rule_id"] == rule_id)
+
+    def test_parameter_added_target_is_same_file_surface(self) -> None:
+        rule = self._rule("api.drf_public_parameter_added")
+        self.assertEqual(rule["lifecycle"], "draft")
+        target = rule["definition"]["target"]
+        self.assertNotIn("已路由 DRF", target)
+        self.assertNotIn("已路由 APIView", target)
+        self.assertIn("同一文件", target)
+        self.assertIn("Serializer", target)
+        self.assertIn("@api_view", target)
+        self.assertIn("不是表面证据", target)
+        self.assertNotIn("已路由", rule["rationale"]["observed_problem"])
+        card = (
+            KNOWLEDGE_BASE / "catalog/backend_contract/api.drf_public_parameter_added.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("不把已路由写成检测前提", card)
+        self.assertIn("router.register", card)
+        self.assertIn("也不证明 URL 已经登记", card)
+
+    def test_decorator_removed_suppression_is_same_file(self) -> None:
+        rule = self._rule("auth.drf_permission_decorator_removed")
+        self.assertEqual(rule["lifecycle"], "draft")
+        trigger = rule["definition"]["trigger"]
+        self.assertIn("同一文件的 head 出现 permission_classes 赋值", trigger)
+        self.assertIn("无关类", trigger)
+        self.assertIn("未决提议", trigger)
+        card = (
+            KNOWLEDGE_BASE / "catalog/backend_contract/auth.drf_permission_decorator_removed.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("class OtherView(APIView):", card)
+        self.assertIn("permission_classes = [IsAuthenticated]", card)
+        self.assertIn("设计终态是 Unanalyzed，不是 Hit", card)
+        self.assertIn("收窄到同一个函数或同一个类，是未决提议", card)
+        self.assertNotIn("同一所有者的 head 上出现", card)
 
 
 if __name__ == "__main__":

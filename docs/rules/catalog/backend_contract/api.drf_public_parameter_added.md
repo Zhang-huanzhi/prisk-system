@@ -86,6 +86,7 @@ def export(self, queryset, output="json"):
 - **变更后**：该名字在 head 出现，并且下面的必填语法成立。
 - **必填语法**：字段调用写出 `required=True`，且没有 `default=`；或者函数装饰器文本含有 `@api_view` 或 `@action`，新增参数的 `has_default` 为假。省略 `required` 不是这条设计触发。
 - **身份**：基类表达式按点号拆开后的最后一段等于 `Serializer`，并且同一个类没有任何基类的最后一段等于 `ModelSerializer`。不相等的例子包括 `PrimaryModelSerializer` 和 `RackBaseSerializer`。子串和后缀都不算直接名称。这些类记 `missing_framework_context`。014 不把它们写进闭集。
+- **路由边界**：沿用 011，不把已路由写成检测前提。其他文件的 `router.register` 或 `include()` 不是表面证据。同一文件能看到最后一段为 `Serializer` 且不是 `ModelSerializer` 的基类，或 `@api_view` / `@action` 时，才讨论必填新增。看不到该表面时记 `missing_framework_context`。看到该表面也不证明 URL 已经登记。
 - **排除**：只在 head 出现的整份类或函数；已有名字上把 `required=False` 改成 `required=True`；只改 `help_text`；没有 `@api_view` / `@action` 的普通函数。必填性改写没有另一条目录规则。新的 URL 或新的 ViewSet 动作也不是本规则。`api.signature_changed` 仍单独报告路径上的粗签名变化，本规则不抑制它。
 - **证据位置**：文件、类或函数限定名、参数名、`required=True` 或 `has_default: false`、相交的新增行、head 侧切片。
 - **设计终态**：身份对不上或看不到同一文件表面时，是 `missing_framework_context`，不是 NotFound。切片截断、读不出 `required=True` 时，是 `unsupported_stage04_details`。适用表面已经逐项分完且没有缺口时，才可以记 NotFound。当前没有运行终态。

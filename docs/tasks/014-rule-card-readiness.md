@@ -23,7 +23,7 @@ date: "2026-11-07"
 
 ## 范围
 
-- 按 schema 里的 `lifecycle` 核对 23 条登记册记录和 20 张候选卡片。允许值只使用已有的 `draft`、`registered`、`implemented`、`validated`、`deprecated`。
+- 卡片正文只覆盖 011 的 20 条候选。登记册另有 3 条排除项，本轮不给它们写卡片，也不把这件事写成永久禁止。`lifecycle` 允许值只使用已有的 `draft`、`registered`、`implemented`、`validated`、`deprecated`。
 - 给接口和权限卡片补比较单位。已有表面上的必填新增、名字删除、路由调用变化、ViewSet 动作变化、装饰器删除和显式降级仍用原来的规则 ID。
 - 写明「直接名称」按最后一段标识符相等。`PrimaryModelSerializer` 不进入闭集。
 - 给已实现卡片补一句登记字段和运行终态的对应，不改命中条件。
@@ -52,7 +52,7 @@ date: "2026-11-07"
 ## 兼容性
 
 - 运行时目录仍是 14 条。`evaluate_rules` 的命中条件不变。
-- 登记册仍不是运行时配置。改动的是草稿规则的 `definition` 文字，使它不再要求跨文件 `public_route`，并与卡片上的同一文件表面一致。`lifecycle` 字节意义不变，值仍是原来的 `draft` 或 `implemented`。
+- 登记册仍不是运行时配置。`api.drf_public_parameter_added` 的 `definition.target` 改为 011 的同一文件表面，不再写「已路由」作为已经证明的对象。跨文件 `router.register` 与 `include()` 仍不是表面证据；看不到该表面时仍是 Unanalyzed。`auth.drf_permission_decorator_removed` 的抑制保持同一文件，不收窄到同一所有者。`lifecycle` 的值没有改。
 - 已保存 demo 的 Finding 和分数不重算。
 - 先导 16 条仍排除出 v1.4。本任务不新增筛查结果。
 
@@ -70,7 +70,7 @@ date: "2026-11-07"
 
 在 `backend/` 下：
 
-- `python3 -m unittest discover -s tests -t .`：114 项全部通过，退出码 0。其中 `tests.services.test_rule_registry` 核对卡片表格里的生命周期与登记册 `lifecycle` 一致，允许值仍是 schema 的五个词，`registered`、`validated`、`deprecated` 都是 0。运行时目录测试仍期待 14 条。
+- `python3 -m unittest discover -s tests -t .`：116 项全部通过，退出码 0。其中 `tests.services.test_rule_registry` 核对卡片表格里的生命周期与登记册 `lifecycle` 一致。同一文件还检查 `api.drf_public_parameter_added` 的 `definition.target` 不再把「已路由」写成已经证明的对象，以及装饰器删除在同一文件出现无关类的 `permission_classes` 时保持 Unanalyzed。核对页写明范围是 011 的 20 条候选，不是登记册 23 条，也不禁止以后写卡片。运行时目录测试仍期待 14 条。`lifecycle` 的值没有改。
 
 新增和改写的活动 Markdown 相对链接已检查，没有断链。`git diff --check` 在提交前通过。这些测试不是先导试点，也不是 Precision 或 Recall。
 
@@ -80,7 +80,9 @@ date: "2026-11-07"
 - 已有字段只改 `required` 时，新增规则和删除规则都不覆盖。目录里没有另一条规则。
 - 「新增端点」没有规则 ID。路由卡片和 ViewSet 卡片各管自己的局部差异，而且都还是 `draft`。
 - `api.django_url_pattern_changed` 的 route 文本仍不是结构化字段。
-- `workflow.large_change_scope` 的严重度和风险性质仍与登记册不一致。`lifecycle` 两边都是 `draft`。
+- `workflow.large_change_scope` 的严重度与风险性质仍和登记册不一致。这是 011 留下的分类例外，不是生命周期差异，014 不改，也不声称分类元数据已经一致。
+- `api.drf_public_parameter_added` 不证明 URL 已经登记。同一文件没有 011 表面时仍是 Unanalyzed。
+- 权限装饰器删除的抑制是同一文件里的 `permission_classes` 赋值，无关类也包括在内。收窄到同一所有者是未决提议。
 - 先导 16 条是目的样本。014 没有重跑。013 的原生 SQL 检测器没有出现在那次筛查里。
 - 构造样例写在卡片上，不表示先导有效，也不表示 `validated`。
 - v1.1.0 没有冻结目录。三条大纲是否算完成，本任务不代为宣布。

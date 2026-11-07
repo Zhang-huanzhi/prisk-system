@@ -944,14 +944,14 @@
         "gatekeeper_condition": null
       },
       "rationale": {
-        "observed_problem": "DRF 公有序列化器或已路由视图可能新增没有默认值的输入。",
+        "observed_problem": "同一文件里符合 011 表面的序列化器字段或视图参数，可能新增没有默认值的输入。",
         "why_worth_detecting": "旧客户端在缺少新必填字段时会失败；NetBox 的接口场景以 REST serializer 和 API view 为主。",
-        "expected_consequence": "可能形成不兼容的请求合同。没有路由和字段默认值表时不能确认。",
+        "expected_consequence": "可能形成不兼容的请求合同。同一文件没有 011 表面时不能记 Hit。跨文件路由不在本规则里被证明。字段默认值表仍未冻结。",
         "coverage_gap": "api.signature_changed 不区分必填新增。api.drf_public_parameter_removed 方向相反。",
-        "value": "把拟定特征写清楚，并标明路由映射和 DRF 字段默认值尚未冻结。"
+        "value": "比较单位与 011 的同一文件表面一致。跨文件 router.register 或 include() 不是表面证据，缺少该表面时仍是 Unanalyzed。"
       },
       "definition": {
-        "target": "拟定：已路由 DRF 序列化器字段，或已路由 APIView/ViewSet 动作上没有默认值的新参数。GraphQL 不在范围内。",
+        "target": "同一文件内：基类最后一段为 Serializer 且不是 ModelSerializer 的类体字段，或装饰器含 @api_view / @action 的函数参数。不把已路由写成已经证明。跨文件 router.register 与 include() 不是表面证据。GraphQL 不在范围内。",
         "trigger": "设计：同一限定名的类或函数在 base 与 head 都在；名字在 base 没有、在 head 有；必填由源码写明 required=True 且无 default=，或视图参数 has_default 为假。整份新表面、必填性改写和新增端点都不是本规则。没有检测器。详见规则卡片。",
         "trigger_features": [
           {
@@ -1025,6 +1025,7 @@
           "项目基类如 PrimaryModelSerializer 不在闭集，014 不按后缀并入",
           "省略 required 不按默认必填",
           "已有名字的必填性改写没有单独规则 ID",
+          "跨文件路由登记仍然看不见。011 不把它当成 Hit 前提，也不把它的缺失写成已经证明未公开",
           "没有检测器，也没有构造测试"
         ]
       }
@@ -1400,7 +1401,7 @@
       },
       "definition": {
         "target": "同一函数或类上的装饰器。设计闭集的最后一段是 permission_classes、authentication_classes、login_required、permission_required、user_passes_test。仍不是运行配置。",
-        "trigger": "设计：闭集装饰器在 base 有、head 没有，且与删除行相交。同一所有者 head 上出现 permission_classes 赋值时不记 Hit。没有检测器。详见规则卡片。",
+        "trigger": "设计：闭集装饰器在 base 有、head 没有，且与删除行相交。同一文件的 head 出现 permission_classes 赋值时不记 Hit，也不记 NotFound，包括赋在无关类上。收窄到同一所有者仍是未决提议。没有检测器。详见规则卡片。",
         "trigger_features": [
           {
             "name": "decorator_name",
@@ -1425,7 +1426,7 @@
             "required": true
           }
         ],
-        "non_trigger": "装饰器仍在、新增装饰器、名单外装饰器、类属性 permission_classes 的变化。装饰器列表读不出时不记为通过。",
+        "non_trigger": "装饰器仍在、新增装饰器、名单外装饰器。同一文件出现 permission_classes 赋值时不记 Hit，也不记 NotFound。装饰器列表读不出时不记为通过。",
         "inputs": [
           "base/head decorator nodes",
           "三点 Diff"
@@ -1468,7 +1469,7 @@
         "acceptance_criteria": "待验证设计确定；当前不预填结果。",
         "unresolved_questions": [
           "五段闭集已写在卡片上，尚未接入检测器",
-          "类属性出现时记 Unanalyzed，不判断两边等价",
+          "抑制按同一文件的 permission_classes 赋值。收窄到同一所有者是未决提议，014 不采用",
           "没有检测器，也没有构造测试"
         ]
       }
