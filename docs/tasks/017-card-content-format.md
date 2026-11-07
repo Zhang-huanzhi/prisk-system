@@ -2,7 +2,7 @@
 task_id: "017"
 target_version: "v1.1.0"
 title: "规则卡片内容与模板格式"
-status: "In Progress"
+status: "Accepted"
 branch: "docs/017-card-content-format"
 date: "2026-11-07"
 ---
@@ -13,7 +13,7 @@ date: "2026-11-07"
 
 在已合并的 `a914091`（016）之上，修正所有者指出的卡片语义矛盾，并把 `docs/rules/catalog/` 下每张活动规则卡片对齐到 [规则说明卡片模板](../rules/rule-card-template.md)。本任务只改文档、卡片和登记册里与这些合同对应的文字。不实现检测器，不标记 v1.1.0 完成，不开始 v1.2。
 
-任务状态保持 In Progress。工程负责人以后再 Accept。接受前不把前言写成 Accepted。评审记录是 [PR #17](https://github.com/Zhang-huanzhi/prisk-system/pull/17)。写下这条记录时该 PR 尚未合并。
+工程负责人已接受本任务。状态为 Accepted。交付分支仍是 `docs/017-card-content-format`。评审记录是 [PR #17](https://github.com/Zhang-huanzhi/prisk-system/pull/17)。写下这条记录时该 PR 尚未合并。本提交只把任务状态改为 Accepted，并同步活动索引、v1.1 入口和分支规范。不改规则卡片，不改登记册，不扩大 [已知框架基类映射](../rules/known-framework-bases.md) 之外的 NetBox Hit，不改检测器，不合并，不打 tag，不删除分支，也不开始 018。接受不表示 v1.1.0 已经完成。裸 `except`、`Path.open`、映射表、`Meta.fields`、非空 `default=`、敏感配置方向和一票抬升的检测器后续任务仍开放。
 
 ## 编号核对
 
@@ -48,7 +48,7 @@ date: "2026-11-07"
 - 不把 `RackBaseSerializer`、`restrict_queryset` 或未列入的自定义基类写进 Hit。
 - 不建 ADR，不改 `docs/blueprint.md` 的产品目标。蓝图仍把 NetBox 写成主实证对象；映射表说明哪些最后一段按原生基类对待，哪些仍然不能。
 - 不重计 011 的 8 / 10 / 2，不重跑先导 16 条，不填写 Precision 或 Recall。
-- 不标记 v1.1.0 完成，不建立 `docs/versions/v1.1/` 或 `docs/versions/v1.1.0/`，不把本任务写成 Accepted。
+- 不标记 v1.1.0 完成，不建立 `docs/versions/v1.1/` 或 `docs/versions/v1.1.0/`。本提交只把任务状态改为 Accepted，并同步活动索引、v1.1 入口和分支规范。不改卡片，不改登记册，不扩大已知框架基类映射，不实现检测器，不合并，不删除分支，不开始 018。检测器后续任务仍开放。
 - 不改 001–016 的任务结论。那些文件里的「不扩大 NetBox 继承上的 Hit」是当时的事实。
 
 ## 实际验证
@@ -60,9 +60,13 @@ date: "2026-11-07"
 - `python3 -m unittest discover -s tests -t .`：121 项全部通过，退出码 0。016 记录的是 118 项。多出的 3 项核对一票抬升条件、已知框架基类映射，以及 `code.bare_exception` / `code.unmanaged_open` 的检测器差异仍写在卡片上。登记册仍是 29 条。运行时目录仍是 14 条。`draft` 仍是 20，`implemented` 仍是 9。
 - `git diff --check` 在提交前通过。
 
-这些测试不是先导试点，也不是 Precision 或 Recall。任务状态保持 In Progress。
+这些测试不是先导试点，也不是 Precision 或 Recall。
+
+本状态提交只把任务改为 Accepted，并同步活动索引、v1.1 入口和分支规范里的任务状态。没有改卡片、登记册或任何 `rules[].lifecycle`。没有扩大已知框架基类映射之外的 NetBox Hit，没有改检测器，没有因此重跑后端 unittest，也没有跑前端 lint、typecheck 或 build。`git diff --check` 在这次提交前通过。PR #17 仍打开，不合并，不删除分支。
 
 ## 遗留（检测器后续任务）
+
+接受不关闭下面这些后续任务。本提交不改对应卡片，不改登记册，也不改检测器。
 
 - `code.bare_exception`：卡片合同已把 `except Exception:` 移出 Hit。`BROAD_HANDLER_NAMES` 仍包含 `Exception`。构造测试仍按旧行为期望 Finding。
 - `code.unmanaged_open`：卡片合同已纳入 `Path.open`。检测器仍声明不含属性调用 `Path.open`。
