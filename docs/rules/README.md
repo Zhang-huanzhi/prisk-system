@@ -22,4 +22,4 @@
 
 `code.dead_code_after_exit` 暂不纳入本方案；`auth.drf_object_permission_bypass` 和 `auth.django_permission_module_changed` 暂缓，不代表它们已从登记册删除，011 也不给它们写卡片。20 条候选现在各有一张卡片。`draft` 仍表示定义或验证还没有接到检测器，不是实证结论。
 
-014 的 [就绪核对](v1.1-card-readiness.md) 只引用登记册 `lifecycle`。它没有把任何 `draft` 改成 `registered` 或 `implemented`，也没有 `validated`。任务 In Progress 不表示 v1.1.0 已经完成。
+014 的 [就绪核对](v1.1-card-readiness.md) 只引用登记册 `lifecycle`。它没有把任何 `draft` 改成 `registered` 或 `implemented`，也没有 `validated`。任务 Accepted 不表示 v1.1.0 已经完成。

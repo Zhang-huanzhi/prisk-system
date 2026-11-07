@@ -2,7 +2,7 @@
 task_id: "014"
 target_version: "v1.1.0"
 title: "v1.1 规则卡片就绪核对"
-status: "In Progress"
+status: "Accepted"
 branch: "feat/014-rule-card-readiness"
 date: "2026-11-07"
 ---
@@ -15,7 +15,7 @@ date: "2026-11-07"
 
 起始提交是 `98d145cd3dbb7d790dd3094b5faa0c61b4c87630`。核对页是 [v1.1 卡片就绪核对](../rules/v1.1-card-readiness.md)。
 
-本任务保持 In Progress，留给工程负责人评审。不合并，不打 tag，不把状态写成 Accepted。
+工程负责人已接受本任务。状态为 Accepted。交付分支仍是 `feat/014-rule-card-readiness`。评审记录是 [PR #14](https://github.com/Zhang-huanzhi/prisk-system/pull/14)。写下这条记录时该 PR 尚未合并。本提交只把任务状态改为 Accepted，并同步活动索引。不改规则卡片合同，不改任何 `rules[].lifecycle`，不合并，不打 tag，不删除分支，也不开始 015。接受不表示 v1.1.0 已经完成，也不裁决仍未决的身份、抑制范围、排除项是否以后写卡片，或 `workflow.large_change_scope` 的严重度差异。
 
 ## 编号核对
 
@@ -39,7 +39,7 @@ date: "2026-11-07"
 - 不改 `docs/blueprint.md`，不改推进大纲正文，不改冻结的 v1.0.0。
 - 不覆盖 `workflow.large_change_scope` 登记册里与卡片不一致的严重度和风险性质。
 - 不给三条排除项写卡片。
-- 不合并，不打 tag，不把本任务写成 Accepted。
+- 本提交只把任务状态改为 Accepted，并同步活动索引。不改卡片合同、登记册 `lifecycle` 或检测器。不合并，不打 tag，不删除分支，不开始 015。不宣布 v1.1.0 完成。
 
 ## 技术方案
 
@@ -58,7 +58,7 @@ date: "2026-11-07"
 
 ## 验收
 
-- 前言 `status` 为 In Progress，`branch` 与 Git 分支同为 `feat/014-rule-card-readiness`。
+- 前言 `status` 为 Accepted，`branch` 与 Git 分支同为 `feat/014-rule-card-readiness`。
 - 有卡片的规则，卡片生命周期与登记册 `lifecycle` 一致，且值属于 schema 枚举。
 - 没有新的规则 ID，运行时目录仍是 14 条，默认可得权重仍是 10。
 - 核对页写明大纲三条的现有证据，以及尚未接受为版本完成的部分。
@@ -73,6 +73,8 @@ date: "2026-11-07"
 - `python3 -m unittest discover -s tests -t .`：116 项全部通过，退出码 0。其中 `tests.services.test_rule_registry` 核对卡片表格里的生命周期与登记册 `lifecycle` 一致。同一文件还检查 `api.drf_public_parameter_added` 的 `definition.target` 不再把「已路由」写成已经证明的对象，以及装饰器删除在同一文件出现无关类的 `permission_classes` 时保持 Unanalyzed。核对页写明范围是 011 的 20 条候选，不是登记册 23 条，也不禁止以后写卡片。运行时目录测试仍期待 14 条。`lifecycle` 的值没有改。
 
 新增和改写的活动 Markdown 相对链接已检查，没有断链。`git diff --check` 在提交前通过。这些测试不是先导试点，也不是 Precision 或 Recall。
+
+本状态提交只把任务改为 Accepted，并同步活动索引。没有改卡片合同、登记册或 `lifecycle`。没有因此重跑后端 unittest，也没有跑前端 lint、typecheck 或 build。`git diff --check` 在这次提交前通过。
 
 ## 遗留风险
 
