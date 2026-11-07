@@ -4,7 +4,7 @@
 
 每次新增规则先依据[卡片模板](rule-card-template.md)编写卡片，再同步登记册中 ID、名称、版本、阵营、生命周期和分类标签。登记册中其他内容若与卡片不一致，以卡片为设计依据；禁止覆盖手工维护的登记册。引用只能说明设计依据，工程验证和实证责任见[责任矩阵](rule-responsibility-matrix.md)。
 
-研究入口和卡片框架见 [索引](index.md)。20 条候选的结构可行性见 [结构可行性筛选](structural-feasibility.md)。那是设计复核，不是测试结果。卡片、本状态看板和 JSON 登记册都是研究记录。它们不是运行时规则目录，也不是代码登记册。运行时目录现为 14 条：原有 13 条，加上 013 的 `data.django_raw_sql_execution`。研究候选仍是 20 条，不与运行时目录混计。
+研究入口和卡片框架见 [索引](index.md)。20 条候选的结构可行性见 [结构可行性筛选](structural-feasibility.md)。那是设计复核，不是测试结果。卡片、本状态看板和 JSON 登记册都是研究记录。它们不是运行时规则目录，也不是代码登记册。运行时目录现为 14 条：原有 13 条，加上 013 的 `data.django_raw_sql_execution`。011 整理的研究候选仍是 20 条，不与运行时目录混计。016 在这 20 条之外新增 6 条草稿候选，不重写这 20 条，也不接入运行时。
 
 ## 规则规划
 
@@ -22,4 +22,19 @@
 
 `code.dead_code_after_exit` 暂不纳入本方案；`auth.drf_object_permission_bypass` 和 `auth.django_permission_module_changed` 暂缓，不代表它们已从登记册删除，011 也不给它们写卡片。20 条候选现在各有一张卡片。`draft` 仍表示定义或验证还没有接到检测器，不是实证结论。
 
-014 的 [就绪核对](v1.1-card-readiness.md) 只引用登记册 `lifecycle`。它没有把任何 `draft` 改成 `registered` 或 `implemented`，也没有 `validated`。任务 Accepted 不表示 v1.1.0 已经完成。
+014 的 [就绪核对](v1.1-card-readiness.md) 只引用登记册 `lifecycle`。它没有把任何 `draft` 改成 `registered` 或 `implemented`，也没有 `validated`。任务 Accepted 不表示 v1.1.0 已经完成。016 不改写上面这张 20 条表，也不把 014 的核对范围改成登记册里的全部条目。
+
+## 016 新增的草稿
+
+下面 6 条是 011 那 20 条之外的新候选。它们不替换 `code.dead_code_after_exit`、`auth.drf_object_permission_bypass`、`auth.django_permission_module_changed`。这 3 条仍然没有卡片。6 条的生命周期都是 `draft`。没有检测器。登记册没有权重字段；概念上的默认权重是 0，评分不因此变化。严重度和风险性质是临时判断，不是终局。文档写完不把它们改成 `registered`。
+
+| 规则 | 阵营 |
+| --- | --- |
+| [`code.mutable_default_argument`](catalog/code_smell/code.mutable_default_argument.md) · `draft` | `code_smell`。补 `code.global_mutable_state` 明确留给以后的函数默认参数。 |
+| [`code.assert_in_production`](catalog/code_smell/code.assert_in_production.md) · `draft` | `code_smell`。生产路径上的 `assert` 语句。路径类沿用已有的 `default_source_and_test_directories`。 |
+| [`auth.django_csrf_exempt_added`](catalog/backend_contract/auth.django_csrf_exempt_added.md) · `draft` | `backend_contract`。新增 `@csrf_exempt` 或 `method_decorator(csrf_exempt)`。 |
+| [`auth.drf_queryset_scope_tighten_bypassed`](catalog/backend_contract/auth.drf_queryset_scope_tighten_bypassed.md) · `draft` | `backend_contract`。闭集 ViewSet 的 `get_queryset` 改为未过滤的 `objects.all()`。项目基类不在 Hit 里。 |
+| [`data.django_signal_receiver_leak`](catalog/backend_contract/data.django_signal_receiver_leak.md) · `draft` | `backend_contract`。闭集信号的 `connect` / `@receiver` 没有 `dispatch_uid`。ID 里的 leak 指重复登记。 |
+| [`data.django_field_rename_without_db_column`](catalog/breaking_impact/data.django_field_rename_without_db_column.md) · `draft` | `breaking_impact`。非迁移文件里一对字段改名且没有 `db_column`。不运行 `makemigrations`。 |
+
+结构可行性仍把 011 的 20 条记成局部 Diff/AST 8、有界框架上下文 10、延后 2。016 的六条写在筛选页末尾，不重计这三类。

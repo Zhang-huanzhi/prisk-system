@@ -20,14 +20,14 @@ class RuleRegistryTests(unittest.TestCase):
     def test_registry_has_expected_families(self) -> None:
         self.assertEqual(self.registry["schema_version"], "rule-registry.v1")
         rules = self.registry["rules"]
-        self.assertEqual(len(rules), 23)
+        self.assertEqual(len(rules), 29)
         self.assertEqual(
             {rule["rule_family"] for rule in rules},
             {"code_smell", "backend_contract", "breaking_impact"},
         )
-        self.assertEqual(sum(rule["rule_family"] == "code_smell" for rule in rules), 8)
-        self.assertEqual(sum(rule["rule_family"] == "backend_contract" for rule in rules), 10)
-        self.assertEqual(sum(rule["rule_family"] == "breaking_impact" for rule in rules), 5)
+        self.assertEqual(sum(rule["rule_family"] == "code_smell" for rule in rules), 10)
+        self.assertEqual(sum(rule["rule_family"] == "backend_contract" for rule in rules), 13)
+        self.assertEqual(sum(rule["rule_family"] == "breaking_impact" for rule in rules), 6)
 
     def test_every_rule_contains_paper_ready_sections(self) -> None:
         required = {
@@ -187,7 +187,8 @@ class LifecycleFieldConsistencyTests(unittest.TestCase):
         self.assertIsNone(rule["classification"]["gatekeeper_condition"])
         self.assertEqual(rule["definition"]["impact_type"], "pr_intrinsic_risk")
         lifecycles = [item["lifecycle"] for item in self.registry["rules"]]
-        self.assertEqual(lifecycles.count("draft"), 14)
+        # 015 left 14 drafts. 016 appends six draft cards and does not change earlier lifecycles.
+        self.assertEqual(lifecycles.count("draft"), 20)
         self.assertEqual(lifecycles.count("implemented"), 9)
         self.assertEqual(lifecycles.count("registered"), 0)
         self.assertEqual(lifecycles.count("validated"), 0)
@@ -221,6 +222,58 @@ class LifecycleFieldConsistencyTests(unittest.TestCase):
             self.assertEqual(badge.group(2), lifecycle, rule_id)
             content = (KNOWLEDGE_BASE / badge.group(1)).read_text(encoding="utf-8")
             self.assertEqual(_lifecycle_tokens(content), {lifecycle}, rule_id)
+
+
+class Task016DraftCardTests(unittest.TestCase):
+    """Six additional draft cards stay out of the runtime catalog and the 011 counts."""
+
+    def setUp(self) -> None:
+        self.registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8-sig"))
+        self.by_id = {rule["rule_id"]: rule for rule in self.registry["rules"]}
+
+    def test_six_new_cards_are_draft_and_not_runtime_rules(self) -> None:
+        from prisk.domain.rules import RULE_CATALOG
+
+        expected = {
+            "code.mutable_default_argument": ("code_smell", "Medium", "pr_intrinsic", "language"),
+            "code.assert_in_production": ("code_smell", "Medium", "pr_intrinsic", "language"),
+            "auth.django_csrf_exempt_added": ("backend_contract", "High", "external_impact", "framework"),
+            "auth.drf_queryset_scope_tighten_bypassed": ("backend_contract", "High", "external_impact", "framework"),
+            "data.django_signal_receiver_leak": ("backend_contract", "Medium", "pr_intrinsic", "framework"),
+            "data.django_field_rename_without_db_column": ("breaking_impact", "High", "external_impact", "database"),
+        }
+        catalog_ids = {item["rule_id"] for item in RULE_CATALOG}
+        self.assertTrue(set(expected).isdisjoint(catalog_ids))
+        index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
+        self.assertIn("011 整理的研究候选仍是 20 条", index)
+        self.assertIn("016 在这 20 条之外新增 6 条草稿候选", index)
+        screen = (KNOWLEDGE_BASE / "structural-feasibility.md").read_text(encoding="utf-8")
+        self.assertIn("8 + 10 + 2 = 20", screen)
+        self.assertIn("task_016_additional_candidates:", screen)
+        self.assertIn("不把 8 / 10 / 2 重计", screen)
+        readiness = (KNOWLEDGE_BASE / "v1.1-card-readiness.md").read_text(encoding="utf-8")
+        self.assertIn("不是登记册里全部 23 条", readiness)
+        for rule_id, (family, severity, risk, level) in expected.items():
+            rule = self.by_id[rule_id]
+            self.assertEqual(rule["lifecycle"], "draft", rule_id)
+            self.assertEqual(rule["rule_family"], family, rule_id)
+            self.assertEqual(rule["classification"]["severity"], severity, rule_id)
+            self.assertEqual(rule["classification"]["risk_nature"], risk, rule_id)
+            self.assertEqual(rule["classification"]["dependency_level"], level, rule_id)
+            self.assertFalse(rule["classification"]["gatekeeper"], rule_id)
+            self.assertIsNone(rule["classification"]["gatekeeper_condition"], rule_id)
+            badge = re.search(rf"\[`{re.escape(rule_id)}`\]\(([^)]+)\) · `draft`", index)
+            self.assertIsNotNone(badge, rule_id)
+            card = (KNOWLEDGE_BASE / badge.group(1)).read_text(encoding="utf-8")
+            self.assertEqual(_lifecycle_tokens(card), {"draft"}, rule_id)
+            self.assertIn("没有检测器", card, rule_id)
+            self.assertNotIn("NetBox 试点结果", card.replace("也没有 NetBox 试点结果", ""))
+        mutable = (KNOWLEDGE_BASE / "catalog/code_smell/code.global_mutable_state.md").read_text(encoding="utf-8")
+        self.assertIn("code.mutable_default_argument.md", mutable)
+        self.assertEqual(_lifecycle_tokens(mutable), {"implemented"})
+        gap = self.by_id["code.global_mutable_state"]["rationale"]["coverage_gap"]
+        self.assertIn("code.mutable_default_argument", gap)
+        self.assertEqual(self.by_id["code.global_mutable_state"]["lifecycle"], "implemented")
 
 
 class DraftContractConsistencyTests(unittest.TestCase):

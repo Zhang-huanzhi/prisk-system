@@ -42,7 +42,7 @@
 
 ### 现有规则为什么不能覆盖
 
-`data.transaction_structure_changed` 把模型、迁移和事务调用收成一条粗线索。`data.django_non_null_constraint_tightened` 只看非空收紧。`data.django_raw_sql_execution` 看原生 SQL 调用，不看迁移操作类名。
+`data.transaction_structure_changed` 把模型、迁移和事务调用收成一条粗线索。`data.django_non_null_constraint_tightened` 只看非空收紧。`data.django_raw_sql_execution` 看原生 SQL 调用，不看迁移操作类名。[`data.django_field_rename_without_db_column`](data.django_field_rename_without_db_column.md) 只看非迁移文件里、直接基类为 `Model` 的一对字段改名，且新字段没有 `db_column`。本规则仍只看 `DeleteModel` 和 `RemoveField`，生命周期不变。
 
 ### 研究或工程价值
 
