@@ -126,6 +126,12 @@ Django 写明 `null` 的默认值是 `False`，并且 `AlterField` 的 `preserve
 
 边界：`AlterField` 的 `field=` 参数里字段构造跨了超过源码切片上限的行。截断后读不全 `null=`，记 Unanalyzed。
 
+### 014 比较单位
+
+`lifecycle` 仍是 `draft`。`null=` 的布尔值还不是结构化字段，不写成 `registered`。
+
+比较单位是同一字段构造，或同一 `AlterField` / `AddField` 上的 `null=` 文本。变更前是可读的 `null=True`，变更后不再有 `null=True`，或写成 `null=False`。已有模型上的 `AddField` 在表达式里没有 `null=True` 时，按文档默认不可空，这是上面已经写明的另一条设计触发。全新 `CreateModel` 里的默认不可空字段不触发。只改 `blank` 不触发。字段类「最后一段以 `Field` 结尾」只用于本卡片的字段构造表面，不用于识别序列化器基类。切片截断是 `unsupported_stage04_details`。当前没有运行终态。
+
 ## 5. 理论与项目依据
 
 - [Django 字段 `null`](https://docs.djangoproject.com/en/stable/ref/models/fields/#null) 说明默认 `False`，并区分数据库存储和表单。同页 [`blank`](https://docs.djangoproject.com/en/stable/ref/models/fields/#blank) 说明它只影响校验。

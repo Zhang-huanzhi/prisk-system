@@ -51,6 +51,12 @@ except ValueError:
 
 进程边界记录后重新抛出等做法可能合理；名称被局部遮蔽会导致误报。别名、自定义异常继承、动态类型和解析失败可能漏报。裸捕获与 `Exception` 捕获后果不同，Finding 必须显示实际捕获形式。规则不判定异常被吞掉或业务受损，需人工核查处理体、异常类型来源和执行边界；异常组及 `except*` 的支持待设计。
 
+## 014 登记字段
+
+登记册和卡片表格的 `lifecycle` 都是 `implemented`。004 已接入检测器，并用构造样例检查过。这不是 `validated`。014 不改命中条件，也不改这个字段。
+
+比较单位是 head 上与新增行相交的普通 `ExceptHandler`，类型为空，或直接名称是 `Exception` / `BaseException`。产生 Finding 时运行终态是 Hit。适用处理分支已经看完、没有本规则的证据缺口、也没有解析失败时，终态是 NotFound。没有这种节点是 `context_not_established`。这些终态不是另一个生命周期字段。
+
 ## 有效性计划
 
 `literature_inherited`：迭代 004 已按本卡片检查裸捕获、`Exception`、`BaseException`、元组、嵌套元组、具体异常、名称遮蔽和新增行边界等构造样例。这些测试只证明检测器按定义工作，不提供 Precision 或 Recall。覆盖范围、实证数据集和验收阈值仍待确定。`except*` 仍待设计。

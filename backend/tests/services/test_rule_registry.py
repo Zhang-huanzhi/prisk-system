@@ -123,5 +123,97 @@ class RuleRegistryTests(unittest.TestCase):
                     self.assertIn(f"`{rule['classification'][key]}`", content)
 
 
+def _lifecycle_tokens(text: str) -> set[str]:
+    row = re.findall(r"^\|\s*生命周期\s*\|\s*`([a-z]+)`\s*\|", text, re.MULTILINE)
+    combined = re.findall(r"`v\d+`\s*/\s*`[a-z_]+`\s*/\s*`([a-z]+)`", text)
+    return set(row + combined)
+
+
+class LifecycleFieldConsistencyTests(unittest.TestCase):
+    """Card tables and the registry share schema lifecycle. No second status field."""
+
+    def setUp(self) -> None:
+        self.registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8-sig"))
+        self.schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8-sig"))
+        self.allowed = set(self.schema["$defs"]["rule"]["properties"]["lifecycle"]["enum"])
+
+    def test_schema_lifecycle_enum_is_unchanged(self) -> None:
+        self.assertEqual(
+            self.schema["$defs"]["rule"]["properties"]["lifecycle"]["enum"],
+            ["draft", "registered", "implemented", "validated", "deprecated"],
+        )
+
+    def test_every_card_lifecycle_matches_registry_and_stays_in_enum(self) -> None:
+        by_id = {rule["rule_id"]: rule for rule in self.registry["rules"]}
+        seen: set[str] = set()
+        card_root = KNOWLEDGE_BASE / "catalog"
+        for path in card_root.rglob("*.md"):
+            if path.name == "README.md":
+                continue
+            text = path.read_text(encoding="utf-8")
+            match = re.search(r"^\|\s*规则 ID\s*\|\s*`([^`]+)`\s*\|", text, re.MULTILINE)
+            self.assertIsNotNone(match, path)
+            rule_id = match.group(1)
+            self.assertIn(rule_id, by_id, path)
+            tokens = _lifecycle_tokens(text)
+            self.assertEqual(tokens, {by_id[rule_id]["lifecycle"]}, path)
+            self.assertTrue(tokens <= self.allowed, path)
+            seen.add(rule_id)
+        self.assertEqual(
+            seen,
+            {rule_id for rule_id, rule in by_id.items() if rule["lifecycle"] != "draft"}
+            | {
+                "api.drf_public_parameter_added",
+                "api.drf_public_parameter_removed",
+                "api.django_url_pattern_changed",
+                "api.drf_viewset_action_changed",
+                "auth.drf_permission_decorator_removed",
+                "auth.drf_permission_policy_downgrade",
+                "config.django_sensitive_settings_changed",
+                "data.django_destructive_migration",
+                "data.django_non_null_constraint_tightened",
+                "data.django_transaction_boundary_changed",
+                "workflow.large_change_scope",
+            },
+        )
+
+    def test_excluded_drafts_have_no_card_and_no_promoted_lifecycle(self) -> None:
+        excluded = {
+            "code.dead_code_after_exit",
+            "auth.drf_object_permission_bypass",
+            "auth.django_permission_module_changed",
+        }
+        by_id = {rule["rule_id"]: rule for rule in self.registry["rules"]}
+        for rule_id in excluded:
+            self.assertEqual(by_id[rule_id]["lifecycle"], "draft")
+        counts = {name: 0 for name in self.allowed}
+        for rule in self.registry["rules"]:
+            self.assertIn(rule["lifecycle"], self.allowed)
+            counts[rule["lifecycle"]] += 1
+        self.assertEqual(counts["draft"], 14)
+        self.assertEqual(counts["implemented"], 9)
+        self.assertEqual(counts["registered"], 0)
+        self.assertEqual(counts["validated"], 0)
+        self.assertEqual(counts["deprecated"], 0)
+        for path in (KNOWLEDGE_BASE / "catalog").rglob("*.md"):
+            if path.name == "README.md":
+                continue
+            text = path.read_text(encoding="utf-8")
+            for rule_id in excluded:
+                self.assertNotIn(f"| 规则 ID | `{rule_id}` |", text)
+
+    def test_knowledge_base_badges_use_registry_lifecycle(self) -> None:
+        index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
+        for rule in self.registry["rules"]:
+            rule_id = rule["rule_id"]
+            lifecycle = rule["lifecycle"]
+            badge = re.search(rf"\[`{re.escape(rule_id)}`\]\(([^)]+)\) · `([a-z]+)`", index)
+            if badge is None:
+                continue
+            self.assertEqual(badge.group(2), lifecycle, rule_id)
+            content = (KNOWLEDGE_BASE / badge.group(1)).read_text(encoding="utf-8")
+            self.assertEqual(_lifecycle_tokens(content), {lifecycle}, rule_id)
+
+
 if __name__ == "__main__":
     unittest.main()

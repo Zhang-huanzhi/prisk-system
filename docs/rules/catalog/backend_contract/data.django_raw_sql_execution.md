@@ -93,6 +93,10 @@ note = "SELECT * FROM dcim_device"
 - 别名 `run = cursor.execute` 之后的 `run(...)` 仍然漏报。不为此做数据流。
 - 限定名 `expressions.RawSQL` 的 `direct_callee_name` 不是 `RawSQL`，最后一段也不是闭集里的三个名字，因此不命中。
 
+## 014 登记字段
+
+登记册和卡片表格的 `lifecycle` 都是 `implemented`。013 的构造测试只说明检测器按闭集工作。schema 里的 `validated` 没有使用。014 不改闭集，不改权重，也不改这个字段。上文的 Hit、NotFound 和 Unanalyzed 是这条运行时规则已经接入的终态，不是另一套生命周期。
+
 ## 有效性计划
 
 `empirical_required`。013 用构造样例检查了新增行上的 `cursor.execute`、ORM `filter`、`QuerySet.extra` 的 Unanalyzed，以及迁移路径上的 `execute` 仍按同一闭集命中。这些测试只说明检测器按闭集工作。Django 安全文档只提供动机。本任务不报告 Precision、Recall、NetBox 经验有效性或注入是否发生。

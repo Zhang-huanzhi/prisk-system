@@ -122,6 +122,17 @@ head 仍是 `IsAuthenticated` 或其他非 `AllowAny` 的直接名称；只改�
 
 边界：`permission_classes = [permissions.AllowAny]` 的最后一段是 `AllowAny`，按本卡片可以进入设计 Hit。`permission_classes = [PublicRead]` 不能从名字推出它等于 `AllowAny`，记 Unanalyzed。
 
+### 014 比较单位
+
+`lifecycle` 仍是 `draft`。没有检测器，不写成 `registered`。
+
+- **比较单位**：同一类或同一函数上的 `permission_classes` 赋值，或 `@permission_classes(...)`。
+- **变更后**：列表、元组或单个表达式的最后一段是 `AllowAny`，或者写成空列表、空元组。
+- **变更前**：同一绑定不是这两种形态。base 没有该绑定时，证据写 `absent`，不证明原来的全局默认更严。
+- **排除**：`IsAuthenticated` 换成 `IsAdminUser`；只删除 `@permission_required`，没有留下 `AllowAny` 或空列表，那是装饰器删除规则；`authentication_classes`；用 `&`、`|`、`~` 组合的表达式。
+- **证据位置**：文件、限定名、赋值或装饰器切片、行号、head 形态、base 形态或 `absent`。
+- **设计终态**：别名、星号导入、`get_permissions` 或组合表达式是 `missing_framework_context`。切片截断是 `unsupported_stage04_details`。适用绑定已经看完且没有缺口时，才可以记 NotFound。当前没有运行终态。
+
 ## 5. 理论与项目依据
 
 - [DRF：设置权限策略](https://www.django-rest-framework.org/api-guide/permissions/#setting-the-permission-policy) 说明默认值、类属性和 `@permission_classes`，以及类属性会忽略设置文件中的默认列表。

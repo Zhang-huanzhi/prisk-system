@@ -55,6 +55,12 @@ io.open(path)
 
 手动 `close()`、`try/finally`、`contextlib.closing` 和 `ExitStack.enter_context` 会命中，需要人工看关闭路径。名称遮蔽成另一个 `open` 也会命中。`io.open`、`builtins.open`、赋值后再调用，以及反射得到的打开函数会漏报。规则不追踪变量，不执行代码，不判断描述符是否仍然打开。
 
+## 014 登记字段
+
+登记册和卡片表格的 `lifecycle` 都是 `implemented`。005 已接入检测器，并用构造样例检查过。这不是 `validated`。014 不改命中条件，也不改这个字段。
+
+比较单位是 head 上与新增行相交、直接名称是 `open`、且不是 `with` / `async with` 上下文表达式的调用。产生 Finding 时运行终态是 Hit。适用调用已经分类、没有证据缺口、也没有解析失败时，终态是 NotFound。旧节点缺少 `used_as_with_context` 时是 `unsupported_stage04_details`，不是 NotFound。这些终态不是另一个生命周期字段。
+
 ## 有效性计划
 
 `literature_inherited`：迭代 005 已按本卡片检查直接 `open`、`with` / `async with`、属性调用、遮蔽、内层 `open`、条件上下文、删除行和缺失 `used_as_with_context` 的旧节点。这些构造测试只证明检测器按定义工作。NetBox 人工标注、Precision 和 Recall 都还没有做，本卡片不填写这些结果。

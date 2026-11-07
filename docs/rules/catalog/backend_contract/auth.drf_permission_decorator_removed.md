@@ -68,12 +68,26 @@ NetBox 或项目自己的包装装饰器不在闭集里。见到未列入的名�
 
 人工复核要看装饰器是否换成类属性、全局默认权限，以及该视图是否真的挂在 URL 上。
 
+## 014 比较单位
+
+卡片表格和登记册的 `lifecycle` 都是 `draft`。五段名字是设计闭集，不是运行配置。没有构造测试，不写成 `registered`。下面是设计预期。
+
+- **比较单位**：同一函数或同一类上的一条装饰器。表达式最后一段属于 `permission_classes`、`authentication_classes`、`login_required`、`permission_required`、`user_passes_test`。
+- **变更前**：base 有这条装饰器。
+- **变更后**：head 没有这条装饰器，并且删除行与它相交。函数或类本身还在。
+- **排除**：装饰器还在；新增装饰器；`@action`；名单外的项目包装。同一所有者的 head 上出现 `permission_classes = ...` 时，记 `missing_framework_context`，不是 Hit，也不是 NotFound。空列表和 `AllowAny` 只属于 `auth.drf_permission_policy_downgrade`。
+- **证据位置**：文件、函数或类限定名、被移除的表达式、相交的删除行、base 侧切片。
+- **重叠**：运行时的 `auth.permission_structure_changed` 仍可能因路径或权限文本出现。本规则不抑制它。那条规则只报告粗结构变化；本规则只讨论闭集装饰器消失，而且目前没有 Finding。
+- **设计终态**：表达式截断、工厂调用或别名，记 `unsupported_stage04_details`。适用装饰器已经看完且没有缺口时，才可以记 NotFound。
+
+构造正例：`@permission_classes([IsAuthenticated])` 整行删除，函数还在，且没有新的 `permission_classes` 赋值。构造反例：删除 `@action(detail=True)`。不支持：装饰器改成别名后再删掉别名。
+
 ## 未冻结、因此保持 draft 的部分
 
 - 011 给出了五段直接名称，供以后的实现评审使用。NetBox 封装仍不在里面。名单还没有写进运行时代码。
 - 同一文件出现 `permission_classes` 赋值时记 Unanalyzed，不声称两边等价。
 - 空列表和 `AllowAny` 仍不在本规则里。
-- 不因为 stage04 已经能表示 `decorator_removed`，就把本卡片改成 `registered`。抑制条件和闭集都还没有构造测试。
+- 不因为 stage04 已经能表示 `decorator_removed`，也不因为 014 写了比较单位，就把本卡片改成 `registered`。抑制条件还没有构造测试。
 
 ## 有效性计划
 

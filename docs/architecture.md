@@ -1,6 +1,6 @@
 # Prisk-System 架构
 
-本文件描述当前实现。目标系统写在 [核心蓝图](blueprint.md)。蓝图是目标规格。机器学习、权重调优、动态配置和 NetBox 实证验证不是本文件已经落地的行为。009 起，新鲜分析为运行时目录中的每条已启用规则记录显式终态。013 起该目录为 14 条，其中包括 `data.django_raw_sql_execution`。上下文不能成立时不记 NotFound，已保存历史也不补写。
+本文件描述当前实现。目标系统写在 [核心蓝图](blueprint.md)。蓝图是目标规格。机器学习、权重调优、动态配置和 NetBox 实证验证不是本文件已经落地的行为。009 起，新鲜分析为运行时目录中的每条已启用规则记录显式终态。013 起该目录为 14 条，其中包括 `data.django_raw_sql_execution`。014 只核对规则卡片，不增加运行时规则。上下文不能成立时不记 NotFound，已保存历史也不补写。
 
 ## 运行链路
 
@@ -16,7 +16,7 @@
 
 分析只读取已提交快照，不执行 checkout、fetch、merge、pull，不纳入未提交工作区。
 
-v1.1 的代码异味规则读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。004 接入 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution`。005 在同一管道接入 `code.unmanaged_open` 和 `code.deep_control_flow`。006 在同一管道接入 `code.hardcoded_secret` 和 `code.global_mutable_state`。它们不替换既有五条结构规则，也不表示秘密、漏洞或可变状态串扰已经发生。007 的 `workflow.test_collaboration_gap` 不读 AST，只读三点 Diff 留下的文件状态和新增/删除行数，并使用源码中的默认路径分类。证据不足时写入既有的 `summary.unanalyzed`。它的默认权重仍是原来的测试协同权重 1，不另加一分，默认可得权重仍是 10。013 的 `data.django_raw_sql_execution` 读取与新增行相交的 call 节点，闭集是 `RawSQL` 直接名称，或 `callee` 最后一段 `execute`、`executemany`、`raw`。默认权重是 0，不提高默认可得权重。命中是复核线索，不是注入结论。`extra`、`callproc` 和含 `schema_editor` 的调用记为无法分析。路径不作为纳入或排除条件。JSON 登记册仍不是运行时配置。
+v1.1 的代码异味规则读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。004 接入 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution`。005 在同一管道接入 `code.unmanaged_open` 和 `code.deep_control_flow`。006 在同一管道接入 `code.hardcoded_secret` 和 `code.global_mutable_state`。它们不替换既有五条结构规则，也不表示秘密、漏洞或可变状态串扰已经发生。007 的 `workflow.test_collaboration_gap` 不读 AST，只读三点 Diff 留下的文件状态和新增/删除行数，并使用源码中的默认路径分类。证据不足时写入既有的 `summary.unanalyzed`。它的默认权重仍是原来的测试协同权重 1，不另加一分，默认可得权重仍是 10。013 的 `data.django_raw_sql_execution` 读取与新增行相交的 call 节点，闭集是 `RawSQL` 直接名称，或 `callee` 最后一段 `execute`、`executemany`、`raw`。默认权重是 0，不提高默认可得权重。命中是复核线索，不是注入结论。`extra`、`callproc` 和含 `schema_editor` 的调用记为无法分析。路径不作为纳入或排除条件。014 没有把草稿卡片接入这条管道。JSON 登记册仍不是运行时配置。
 
 ## 规则终态
 

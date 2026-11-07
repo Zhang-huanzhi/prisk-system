@@ -64,6 +64,12 @@ def closure():
 
 人工复核应看绑定是否跨请求或跨测试共享、谁负责清空，以及这次变更是新增容器还是只新增 `global` 声明。
 
+## 014 登记字段
+
+登记册和卡片表格的 `lifecycle` 都是 `implemented`。006 已接入检测器，并用构造样例检查过。这不是 `validated`。014 不改命中条件，也不改这个字段。
+
+比较单位是 head 上与新增行相交的函数内 `global`，或模块体、类体里的列表、字典、集合绑定。产生 Finding 时运行终态是 Hit。适用节点已经分类、没有证据缺口、也没有解析失败时，终态是 NotFound。没有这类节点是 `context_not_established`。切片不能判断时是 `unsupported_stage04_details`。这些终态不是另一个生命周期字段。命中仍不是串扰已经发生。
+
 ## 有效性计划
 
 `literature_inherited`：迭代 006 已按本卡片检查两种形式、模块级 `if`、嵌套类、函数内列表、元组、`nonlocal`、`defaultdict`、带参数的 `list`、`builtins.list`、函数默认参数里的列表、只删除、新增行和旧切片。这些构造测试只证明检测器按定义工作。NetBox 上是否常见、是否造成串扰，留到实证迭代，现在不写结论。

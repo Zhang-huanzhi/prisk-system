@@ -120,6 +120,12 @@
 
 边界：`migrations.RunSQL("DROP TABLE dcim_device")` 看起来像删除，但本规则不解析 SQL，记 Unanalyzed。
 
+### 014 比较单位
+
+`lifecycle` 仍是 `draft`。没有检测器，不写成 `registered`。
+
+比较单位是路径段含有 `migrations` 的文件里、与新增行相交的一次调用。变更后要看到的是调用最后一段等于 `DeleteModel` 或 `RemoveField`。这是调用形态出现，不是 base/head 成对的参数名。`AddField` 不触发。`RunSQL` 与 `RunPython` 记 `missing_framework_context`，不是 Hit，也不是 NotFound。路径段不是 `migrations` 时同样是 `missing_framework_context`。`data.django_raw_sql_execution` 的 `lifecycle` 是 `implemented`，闭集是另一组调用名；两条规则互不替代。本规则当前没有运行终态。
+
 ## 5. 理论与项目依据
 
 - [迁移操作参考](https://docs.djangoproject.com/en/stable/ref/migration-operations/) 是本卡片的操作类来源。

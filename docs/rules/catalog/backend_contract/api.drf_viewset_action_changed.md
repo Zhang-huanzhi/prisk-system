@@ -121,6 +121,17 @@ DRF 写明的标准动作是 `list`、`create`、`retrieve`、`update`、`partia
 
 边界：`class DeviceViewSet(BaseDeviceViewSet)`，`BaseDeviceViewSet` 定义在别的文件并继承 `ModelViewSet`。本文件基类文本对不上四个名字，记 Unanalyzed，不沿文件外的基类查找。
 
+### 014 比较单位
+
+`lifecycle` 仍是 `draft`。没有检测器，不写成 `registered`。
+
+- **比较单位**：同一个类限定名上的标准动作名，或同一个 `@action` 函数。该类在 base 和 head 都存在。
+- **变更前 / 变更后**：标准动作或 `@action` 的有无不同；或者同一个 `@action` 的 `detail=` 或 `methods=` 源码文本不同。
+- **身份**：基类表达式的最后一段等于 `ViewSet`、`GenericViewSet`、`ModelViewSet`、`ReadOnlyModelViewSet` 之一。`NetBoxModelViewSet` 的最后一段不是这四个，不因为后缀含有 `ModelViewSet` 而记 Hit。这与上面的跨文件基类边界是同一种读法。
+- **排除**：只在 head 出现的新类。不把该类上的每个标准方法记成动作被加上，因为 router 可能在别的文件。只改函数体、`detail` / `methods` 文本相同，不触发。这不是参数新增或删除，也不是「已经多了一个 URL」的证明。`api.django_url_pattern_changed` 看本文件的 `path` / `register`。
+- **证据位置**：类限定名、基类最后一段、函数名、装饰器表达式、相交行号。
+- **设计终态**：四个名字都对不上时是 `missing_framework_context`，不是 NotFound。装饰器截断、读不出 `detail` 或 `methods` 时是 `unsupported_stage04_details`。只改 `http_method_names` 时同样是 `missing_framework_context`。当前没有运行终态。
+
 ## 5. 理论与项目依据
 
 - [DRF ViewSet 动作](https://www.django-rest-framework.org/api-guide/viewsets/#viewset-actions) 列出六个标准方法名。

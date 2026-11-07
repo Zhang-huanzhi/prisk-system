@@ -21,3 +21,5 @@
 上述清单是知识库整理方案；[JSON 登记册](../../backend/data/rules/rule-registry.json)已完成关注域 ID 迁移。草稿规则的 ID 仍可在入册或实现前调整，已登记规则的改名需要在迭代中记录迁移关系。JSON 登记册仍不是运行时配置。`workflow.test_collaboration_gap` 的检测器在版本化源码中，不从登记册加载。`workflow.large_change_scope` 仍是 `draft`。
 
 `code.dead_code_after_exit` 暂不纳入本方案；`auth.drf_object_permission_bypass` 和 `auth.django_permission_module_changed` 暂缓，不代表它们已从登记册删除，011 也不给它们写卡片。20 条候选现在各有一张卡片。`draft` 仍表示定义或验证还没有接到检测器，不是实证结论。
+
+014 的 [就绪核对](v1.1-card-readiness.md) 只引用登记册 `lifecycle`。它没有把任何 `draft` 改成 `registered` 或 `implemented`，也没有 `validated`。任务 In Progress 不表示 v1.1.0 已经完成。

@@ -127,6 +127,12 @@
 
 反例方向：`device.save()` 的参数文本变了，但两边都写在同一个 `atomic` 块里。这不是本规则要的边界变化；当前节点同样不能证明“仍在块内”。
 
+### 014 比较单位
+
+`lifecycle` 仍是 `draft`。包含关系还不是节点字段，没有可执行的 Hit，不写成 `registered`。
+
+比较单位本应是同一条语句是否仍在同一个 `atomic` 块内。现在做不到这一对比较。设计预期全部是 Unanalyzed，不能把「文件里没有 `atomic`」记成 NotFound。上文「009 只覆盖现有 13 条」写于 011。013 起运行时目录是 14 条。本规则仍不在运行时目录里，所以上面的预期仍不是 `rule_outcomes`。
+
 ## 5. 理论与项目依据
 
 - [Django 事务](https://docs.djangoproject.com/en/stable/topics/db/transactions/#django.db.transaction.atomic) 说明默认自动提交、`atomic` 装饰器和上下文管理器，以及嵌套块仍可能被外层回滚。
