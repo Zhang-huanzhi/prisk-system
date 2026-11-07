@@ -13,7 +13,7 @@ date: "2026-11-07"
 
 冻结一份只用于先导摸底的协议，并在公开的已合并 NetBox PR 上抽 10 到 20 条，记录现有研究规则是否出现、草稿表面能不能对上，以及一轮标注大概要多久。样本与未来 v1.4 正式评估集物理隔离。产出是实现优先级和样本量级。
 
-用户要求开始本任务。状态保持 In Progress。没有用户接受之前不写成 Accepted。本提交不合并、不打 tag、不删除分支，也不启动 013。
+用户要求开始本任务。状态保持 In Progress。没有用户接受之前不写成 Accepted。评审记录是 [PR #12](https://github.com/Zhang-huanzhi/prisk-system/pull/12)。写下这条记录时该 PR 尚未合并。本提交不合并、不打 tag、不删除分支，也不启动 013。
 
 推进大纲里的这条要求见 [开发推进大纲](../standards/development-roadmap.md)。This is a planning document and is not evidence of completion or implemented functionality.
 
