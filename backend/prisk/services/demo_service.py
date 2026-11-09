@@ -10,6 +10,7 @@ from typing import Any
 from ..domain.changes import load_records
 from ..domain.rules import RULE_CATALOG, rule_domain
 from ..domain.test_collaboration import COLLABORATION_RULE_ID
+from ..domain.gatekeeper import apply_gatekeeper_lift
 
 
 DEFAULT_CONFIG: dict[str, Any] = {
@@ -42,9 +43,9 @@ RULE_SCOPES = {
     "config.configuration_structure_changed": "settings 和 configuration 文件",
     "code.exception_structure_changed": "异常处理节点",
     "code.swallowed_exception": "Python 异常处理分支的处理体只有 pass",
-    "code.bare_exception": "Python 裸 except，或直接名称 Exception / BaseException",
+    "code.bare_exception": "Python 裸 except，或直接名称 BaseException（不含 except Exception）",
     "code.dynamic_execution": "Python 直接名称 eval 或 exec 调用，不含 compile",
-    "code.unmanaged_open": "Python 直接名称 open 调用，且不是 with 或 async with 的上下文表达式",
+    "code.unmanaged_open": "Python 直接名称 open 或 Path(...).open，且不是 with / async with 的上下文表达式",
     "code.deep_control_flow": "Python if、for、while、with、try 的嵌套深度大于固定阈值 4",
     "code.hardcoded_secret": "Python 凭据名字上长度不少于 8 且不在占位符表中的 str 字面量",
     "code.global_mutable_state": "Python 函数体内的 global，或模块与类体中的列表、字典、集合绑定",
@@ -91,6 +92,11 @@ class DemoData:
         score = round(100 * earned / max_points) if max_points else 0
         thresholds = config_value["thresholds"]
         level = "high" if score >= thresholds["high"] else "medium" if score >= thresholds["medium"] else "low"
+        level, gatekeeper_basis = apply_gatekeeper_lift(
+            risk_level=level,
+            findings=selected,
+            stage_record=stage04 if isinstance(stage04, dict) else {},
+        )
 
         nodes = {
             node.get("node_id"): node
@@ -149,6 +155,7 @@ class DemoData:
                 "matched_rule_ids": sorted(found_rule_ids),
                 "test_collaboration": collaboration,
                 "configuration": config_value,
+                **gatekeeper_basis,
             },
             "summary": {
                 "finding_count": len(enriched_findings),

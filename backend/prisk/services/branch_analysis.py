@@ -10,6 +10,7 @@ from .project_service import ProjectError
 from ..domain.rules import evaluate_rules, rule_domain
 from ..domain.structure import extract_changed_structures
 from .demo_service import collaboration_points, normalize_config, summed_rule_points
+from ..domain.gatekeeper import apply_gatekeeper_lift
 
 
 def _resolve_ref(repo: Path, ref: str) -> str:
@@ -26,9 +27,15 @@ def _resolve_ref(repo: Path, ref: str) -> str:
     return result.stdout.strip()
 
 
-def _score(rule_record: dict[str, Any], config: dict[str, Any]) -> tuple[int, str, dict[str, Any]]:
+def _score(
+    rule_record: dict[str, Any],
+    config: dict[str, Any],
+    *,
+    stage_record: dict[str, Any] | None = None,
+) -> tuple[int, str, dict[str, Any]]:
     enabled = set(config["enabled_rules"])
-    matched = {item.get("rule_id") for item in rule_record.get("findings", []) if item.get("rule_id") in enabled}
+    findings = [item for item in rule_record.get("findings", []) if item.get("rule_id") in enabled]
+    matched = {item.get("rule_id") for item in findings}
     maximum = summed_rule_points(enabled, config["rule_weights"])
     earned = summed_rule_points(matched, config["rule_weights"])
     collaboration = bool(rule_record.get("summary", {}).get("test_collaboration"))
@@ -37,12 +44,18 @@ def _score(rule_record: dict[str, Any], config: dict[str, Any]) -> tuple[int, st
     earned += collaboration_earned
     score = round(100 * earned / maximum) if maximum else 0
     level = "high" if score >= config["thresholds"]["high"] else "medium" if score >= config["thresholds"]["medium"] else "low"
+    level, gatekeeper_basis = apply_gatekeeper_lift(
+        risk_level=level,
+        findings=findings,
+        stage_record=stage_record or rule_record,
+    )
     return score, level, {
         "earned_points": earned,
         "maximum_points": maximum,
         "matched_rule_ids": sorted(matched),
         "test_collaboration": collaboration,
         "configuration": config,
+        **gatekeeper_basis,
     }
 
 
@@ -85,7 +98,7 @@ def analyze_branches(
     structure = extract_changed_structures(change, repo)
     rules = evaluate_rules(structure)
     config_value = normalize_config(config)
-    score, level, score_basis = _score(rules, config_value)
+    score, level, score_basis = _score(rules, config_value, stage_record=structure)
     nodes = {node.get("node_id"): node for item in structure.get("files", []) for node in item.get("nodes", []) if node.get("node_id")}
     findings = []
     for finding in rules.get("findings", []):

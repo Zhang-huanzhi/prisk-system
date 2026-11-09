@@ -16,7 +16,8 @@
 
 - **001–018**：已全部评定为 Accepted，并已随里程碑归档移入 [docs/versions/v1.1.0/tasks/](../versions/v1.1.0/tasks/)。
 - **019**：用于 v1.1 阶段里程碑收工归档与文档对齐精简，分支为 `docs/019-v11-milestone-closure`，状态为 Accepted。
-- **下一个未使用的任务编号为 020**。
+- **020**：v1.2 首切片残余检测器与合同对齐，分支为 `feat/020-residual-detector-alignment`，状态为 Accepted；PR 仍开时不宣布 v1.2.0。
+- **下一个未使用的任务编号为 021**。
 
 任务状态只使用 `Proposed`、`In Progress`、`Accepted`。任务不使用 `Archived` 作为其内部状态值。没有明确验收时保持 `In Progress` 或 `Proposed`。
 

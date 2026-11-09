@@ -79,7 +79,7 @@ with Path(path).open() as handle:
 io.open(path)
 ```
 
-运行时差异：检测器仍只认直接名称 `open`，并在说明里把 `Path.open` 写成不在范围内。017 不改 `backend/prisk/domain/code_smells.py`。因此 `Path(path).open()` 今天不会产生本规则 Finding。
+运行时对齐（Task 020）：检测器覆盖直接名称 open 与接收者为 Path(...) / pathlib.Path(...) 调用的属性 open。with Path(...).open() 不触发；名字形式 path.open() 记 missing_framework_context。
 
 适用调用已经按本卡片分类、没有证据缺口、也没有解析失败时，终态是 NotFound。这些终态不是另一个生命周期字段。
 
@@ -102,9 +102,9 @@ io.open(path)
 | 字段 | 内容 |
 | --- | --- |
 | 验证义务 | `literature_inherited` |
-| 验证方法 | 迭代 005 的构造样例检查了直接 `open`、`with` / `async with`、属性调用和缺失 `used_as_with_context` 的旧节点。017 之后要为 `Path(...).open(...)` 及其 `with` 形式补构造样例 |
+| 验证方法 | 迭代 005 构造样例已由 Task 020 补齐 Path(...).open(...) 及其 with 形式 |
 | 数据集 | 迭代 005 构造样例；NetBox 实证数据集待确定 |
-| 判定依据 | 本卡片的设计合同。检测器跟上之前，运行时结果不是 `Path.open` 这条的 Ground Truth |
+| 判定依据 | 本卡片的设计合同；Task 020 后 Path.open 运行时与合同一致 |
 | 指标 | 构造样例通过率、证据完整率。不预填 Precision、Recall 或泄漏结论 |
-| 验收标准 | 未作为 with 上下文的直接 `open` 和 `Path(...).open(...)` 都产生 Finding，`with` 形式不产生。当前只做到直接名称 |
-| 未解决问题 | 运行时仍排除属性调用 `Path.open`。名字形式的 `path.open()` 仍是 Unanalyzed，因为没有类型。实证数据范围待补齐 |
+| 验收标准 | 未作为 with 上下文的直接 open 和 Path(...).open(...) 都产生 Finding，with 形式不产生。Task 020 已做到 |
+| 未解决问题 | 名字形式的 path.open() 仍是 Unanalyzed，因为没有类型。实证数据范围待补齐 |

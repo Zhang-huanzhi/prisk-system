@@ -106,9 +106,9 @@ except ValueError:
 | 字段 | 内容 |
 | --- | --- |
 | 验证义务 | `literature_inherited` |
-| 验证方法 | 迭代 004 的构造样例覆盖了裸捕获、`Exception`、`BaseException`、元组和具体异常。那些测试证明的是当时的检测器。017 之后要以本卡片重写样例：`except Exception:` 不得再作为本规则的正例 |
+| 验证方法 | 迭代 004 构造样例已由 Task 020 按本卡片改写：except Exception: 不再作为本规则正例 |
 | 数据集 | 迭代 004 构造样例；项目实证数据集待确定 |
-| 判定依据 | 本卡片的设计合同。运行时行为在检测器跟上之前不是这张合同的 Ground Truth |
+| 判定依据 | 本卡片的设计合同；Task 020 后运行时与合同一致 |
 | 指标 | 构造样例通过率、证据完整率。不预填 Precision 或 Recall |
-| 验收标准 | 检测器只对裸 `except:` 和 `BaseException` 产生本规则 Finding，并且构造测试按这个合同通过。当前还没有做到 |
-| 未解决问题 | 运行时仍把 `except Exception:` 与裸 `except:` 放在同一条 Finding 里。`except*` 仍待设计。实证数据范围待补齐。生命周期保持 `implemented`，不把这个差异写成 `validated` |
+| 验收标准 | 检测器只对裸 except: 和 BaseException 产生本规则 Finding，并且构造测试按这个合同通过。Task 020 已做到 |
+| 未解决问题 | except* 仍待设计。实证数据范围待补齐。生命周期保持 implemented，不是 alidated |

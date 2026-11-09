@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any, TypedDict
 
 from .changes import load_records, write_jsonl
+from .framework_bases import resolve_class_bases
+from .sensitive_settings import SENSITIVE_SETTING_NAMES
 
 
 STRUCTURE_SCHEMA_VERSION = "stage04.v1"
@@ -293,6 +295,8 @@ class _StructureVisitor(ast.NodeVisitor):
         decorators = self._decorators(node, qualified_name)
         for decorator in node.decorator_list:
             self.visit(decorator)
+        base_expressions = [_expr_text(self.source, base) for base in node.bases]
+        base_resolution = resolve_class_bases(base_expressions)
         self._add_node(
             "class",
             node,
@@ -300,8 +304,9 @@ class _StructureVisitor(ast.NodeVisitor):
             qualified_name,
             f"class:{qualified_name}",
             {
-                "bases": [_expr_text(self.source, base) for base in node.bases],
+                "bases": base_expressions,
                 "decorators": decorators,
+                **base_resolution,
             },
         )
         for base in node.bases:
@@ -389,6 +394,44 @@ class _StructureVisitor(ast.NodeVisitor):
                 result.extend(item for item in target.elts if isinstance(item, ast.Name))
         return result
 
+    def _meta_list_members(self, value: ast.AST | None) -> dict[str, Any]:
+        if isinstance(value, ast.Constant) and value.value == "__all__":
+            return {"meta_list_kind": "all", "meta_list_members": None, "meta_list_readable": True}
+        if isinstance(value, (ast.List, ast.Tuple)):
+            members: list[str] = []
+            for element in value.elts:
+                if isinstance(element, ast.Constant) and isinstance(element.value, str):
+                    members.append(element.value)
+                else:
+                    return {"meta_list_kind": "list", "meta_list_members": None, "meta_list_readable": False}
+            return {"meta_list_kind": "list", "meta_list_members": members, "meta_list_readable": True}
+        return {"meta_list_kind": "other", "meta_list_members": None, "meta_list_readable": False}
+
+    def _call_keyword_presence(self, value: ast.AST | None) -> dict[str, Any]:
+        if not isinstance(value, ast.Call):
+            return {}
+        keyword_names = [item.arg for item in value.keywords if isinstance(item.arg, str)]
+        has_default = "default" in keyword_names
+        has_null = "null" in keyword_names
+        default_facts = None
+        null_literal = None
+        for item in value.keywords:
+            if item.arg == "default":
+                default_facts = _literal_facts(item.value, _expr_text(self.source, item.value))
+                default_facts = {**default_facts, "default_present": True}
+            if item.arg == "null":
+                if isinstance(item.value, ast.Constant) and isinstance(item.value.value, bool):
+                    null_literal = item.value.value
+                else:
+                    null_literal = "unreadable"
+        return {
+            "value_keyword_names": keyword_names,
+            "has_default_keyword": has_default,
+            "has_null_keyword": has_null,
+            "default_literal": default_facts,
+            "null_literal": null_literal,
+        }
+
     def _visit_field(self, node: ast.Assign | ast.AnnAssign) -> None:
         if self.function_depth == 0 and (not self.scope or self.scope):
             scope = ".".join(self.scope) or "<module>"
@@ -397,6 +440,7 @@ class _StructureVisitor(ast.NodeVisitor):
                 value_form = "no_value"
             else:
                 value_form = _container_kind(value) or "not_mutable"
+            nested_meta = len(self.scope) >= 1 and self.scope[-1] == "Meta"
             for target in self._field_targets(node):
                 qualified_name = f"{scope}.{target.id}"
                 details = {
@@ -405,6 +449,12 @@ class _StructureVisitor(ast.NodeVisitor):
                     "value_fingerprint": _fingerprint(value) if value is not None else None,
                     "value_form": value_form,
                 }
+                details.update(self._call_keyword_presence(value))
+                if nested_meta and target.id in {"fields", "exclude"}:
+                    details["meta_option"] = target.id
+                    details.update(self._meta_list_members(value))
+                if len(self.scope) == 0 and target.id in SENSITIVE_SETTING_NAMES:
+                    details["sensitive_setting_name"] = target.id
                 self._add_node("field", node, target.id, qualified_name, f"field:{qualified_name}", details)
 
     def visit_Assign(self, node: ast.Assign) -> None:
@@ -505,6 +555,32 @@ class _StructureVisitor(ast.NodeVisitor):
     def visit_Call(self, node: ast.Call) -> None:
         callee = _expr_text(self.source, node.func) or ""
         direct_name = node.func.id if isinstance(node.func, ast.Name) else None
+        attribute_name = node.func.attr if isinstance(node.func, ast.Attribute) else None
+        receiver_last_segment = None
+        path_open = False
+        if isinstance(node.func, ast.Attribute) and node.func.attr == "open":
+            receiver = node.func.value
+            if isinstance(receiver, ast.Call):
+                if isinstance(receiver.func, ast.Name):
+                    receiver_last_segment = receiver.func.id
+                elif isinstance(receiver.func, ast.Attribute):
+                    receiver_last_segment = receiver.func.attr
+                path_open = receiver_last_segment == "Path"
+            elif isinstance(receiver, ast.Name):
+                receiver_last_segment = receiver.id
+        keyword_names = [item.arg for item in node.keywords if isinstance(item.arg, str)]
+        has_default = "default" in keyword_names
+        has_null = "null" in keyword_names
+        default_literal = None
+        null_literal = None
+        for item in node.keywords:
+            if item.arg == "default":
+                default_literal = _literal_facts(item.value, _expr_text(self.source, item.value))
+            if item.arg == "null":
+                if isinstance(item.value, ast.Constant) and isinstance(item.value.value, bool):
+                    null_literal = item.value.value
+                else:
+                    null_literal = "unreadable"
         qualified_name = self._qualified_name()
         match_key = f"call:{qualified_name}:{callee}"
         self._add_node(
@@ -516,8 +592,15 @@ class _StructureVisitor(ast.NodeVisitor):
             {
                 "callee": callee,
                 "direct_callee_name": direct_name,
+                "attribute_callee_name": attribute_name,
+                "receiver_last_segment": receiver_last_segment,
+                "is_path_open": path_open,
                 "args_count": len(node.args),
-                "keyword_names": [item.arg for item in node.keywords],
+                "keyword_names": keyword_names,
+                "has_default_keyword": has_default,
+                "has_null_keyword": has_null,
+                "default_literal": default_literal,
+                "null_literal": null_literal,
                 "used_as_with_context": id(node) in self._with_context_call_ids,
             },
         )

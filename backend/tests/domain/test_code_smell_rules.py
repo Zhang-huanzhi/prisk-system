@@ -237,27 +237,30 @@ class CodeSmellRuleTests(unittest.TestCase):
         bare = findings_for("code.bare_exception", result)
         dynamic = findings_for("code.dynamic_execution", result)
         self.assertEqual(len(swallowed), 3)
-        self.assertEqual(len(bare), 10)
+        self.assertEqual(len(bare), 5)
         self.assertEqual(len(dynamic), 3)
         self.assertEqual(
             sorted(item["evidence"][0]["capture_form"] for item in bare),
-            ["BaseException", "BaseException", "Exception", "Exception", "Exception", "Exception", "Exception", "Exception,BaseException", "bare", "bare"],
+            ["BaseException", "BaseException", "BaseException", "bare", "bare"],
         )
         self.assertEqual(sorted(item["evidence"][0]["callee_name"] for item in dynamic), ["eval", "eval", "exec"])
         self.assertTrue(all(item["evidence"][0]["callee_name"] != "compile" for item in dynamic))
         self.assertTrue(all("literal_eval" not in item["message"] for item in dynamic))
-        both = next(item for item in bare if item["evidence"][0]["capture_form"] == "Exception,BaseException")
-        self.assertEqual(len(both["evidence"]), 1)
-        self.assertIn("后果并不相同", both["message"])
+        forms = [item["evidence"][0]["capture_form"] for item in bare]
+        self.assertTrue(all(token != "Exception" for form in forms for token in form.split(",")))
 
-    def test_bare_and_exception_messages_stay_distinct(self) -> None:
+    def test_bare_and_baseexception_messages_stay_distinct(self) -> None:
         result = evaluate_rules(stage04_from_source(SAMPLE))
         messages = {item["evidence"][0]["capture_form"]: item["message"] for item in findings_for("code.bare_exception", result)}
         self.assertIn("会捕获 KeyboardInterrupt", messages["bare"])
-        self.assertIn("不会捕获 KeyboardInterrupt", messages["Exception"])
         self.assertIn("会捕获 KeyboardInterrupt", messages["BaseException"])
-        self.assertNotEqual(messages["bare"], messages["Exception"])
-        self.assertNotEqual(messages["Exception"], messages["BaseException"])
+        self.assertNotEqual(messages["bare"], messages["BaseException"])
+        self.assertEqual(
+            findings_for("code.bare_exception", evaluate_rules(stage04_from_source(
+                "def f():\n    try:\n        run()\n    except Exception:\n        raise\n"
+            ))),
+            [],
+        )
         swallowed = findings_for("code.swallowed_exception", result)[0]
         self.assertIn("只有 pass", swallowed["message"])
         self.assertNotEqual(swallowed["message"], messages["bare"])
@@ -430,7 +433,7 @@ class CodeSmellRuleTests(unittest.TestCase):
             shutil.rmtree(root, ignore_errors=True)
         self.assertEqual(len(findings_for("code.swallowed_exception", result)), 1)
         bare = findings_for("code.bare_exception", result)
-        self.assertEqual([item["evidence"][0]["capture_form"] for item in bare], ["Exception"])
+        self.assertEqual(bare, [])
         dynamic = findings_for("code.dynamic_execution", result)
         self.assertEqual([item["evidence"][0]["callee_name"] for item in dynamic], ["eval"])
         raw = dynamic[0]["evidence"][0]
@@ -641,6 +644,7 @@ class CodeSmellRuleTests(unittest.TestCase):
 
 OPEN_SAMPLE = """
 import io
+import pathlib
 from pathlib import Path
 
 def unmanaged(path):
@@ -661,7 +665,11 @@ async def managed_async(path):
         return 1
 
 def attribute_calls(path):
-    return Path(path).open(), io.open(path), path.open(), builtins.open(path)
+    return Path(path).open(), pathlib.Path(path).open(), io.open(path), path.open(), builtins.open(path)
+
+def managed_path(path):
+    with Path(path).open() as handle:
+        return handle.read()
 
 def shadowed(path):
     open = custom_open
@@ -821,10 +829,11 @@ class SecondBatchCodeSmellTests(unittest.TestCase):
     def test_open_positive_negative_and_boundary_patterns(self) -> None:
         result = evaluate_rules(stage04_from_source(OPEN_SAMPLE))
         opened = findings_for("code.unmanaged_open", result)
-        self.assertEqual(len(opened), 8)
+        self.assertEqual(len(opened), 10)
         self.assertTrue(all(item["confidence"] == "structural" for item in opened))
         self.assertTrue(all(item["evidence"][0]["callee_name"] == "open" for item in opened))
         self.assertTrue(all(item["evidence"][0]["used_as_with_context"] is False for item in opened))
+        self.assertTrue(any(item["evidence"][0].get("open_form") == "path_open" for item in opened))
         self.assertIn("不判断泄漏", opened[0]["message"])
         self.assertEqual(
             [item["evidence"][0]["callee_name"] for item in findings_for("code.dynamic_execution", result)],
@@ -833,10 +842,16 @@ class SecondBatchCodeSmellTests(unittest.TestCase):
         parsed = parse_python_source(OPEN_SAMPLE, "netbox/sample.py", "head")
         managed = [
             node for node in parsed["nodes"]
-            if node["kind"] == "call" and node["details"]["direct_callee_name"] == "open" and node["details"]["used_as_with_context"]
+            if node["kind"] == "call"
+            and node["details"].get("used_as_with_context")
+            and (
+                node["details"].get("direct_callee_name") == "open"
+                or node["details"].get("is_path_open")
+            )
         ]
-        self.assertGreaterEqual(len(managed), 4)
-        self.assertEqual(result["summary"]["unanalyzed"], [])
+        self.assertGreaterEqual(len(managed), 5)
+        unanalyzed_reasons = {item["reason"] for item in result["summary"]["unanalyzed"]}
+        self.assertEqual(unanalyzed_reasons, {"missing_framework_context"})
 
     def test_recorded_depth_threshold_is_fixed_at_four(self) -> None:
         result = evaluate_rules(stage04_from_source(DEEP_SAMPLE))

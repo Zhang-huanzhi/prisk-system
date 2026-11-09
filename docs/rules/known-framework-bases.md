@@ -1,6 +1,6 @@
 # 已知框架基类映射
 
-本页是设计身份表。它回答「最后一段标识符按哪个原生基类理解」。它不是运行时继承解析，也没有检测器读取它。
+本页是设计身份表。它回答「最后一段标识符按哪个原生基类理解」。它不是运行时继承解析或 MRO 展开。自 Task 020 起，`backend/prisk/domain/framework_bases.py` 按本表做最后一段整段相等解析，并写入结构节点；表外名字仍按 Unanalyzed 处理，不扩大 Hit。
 
 [核心蓝图](../blueprint.md) 把 NetBox 写成主实证对象，框架语义优先是 Django / DRF。014 起，若干卡片只把最后一段与原生名字整段相等当作身份，于是 `PrimaryModelSerializer`、`NetBoxModelViewSet`、`NetBoxModel` 落在 Unanalyzed。017 用本表写明哪些已经点名的项目基类按原生基类对待。表外的名字仍然 Unanalyzed。这不是静默放宽，也不是把后缀「像不像」算进去。
 
@@ -31,4 +31,4 @@
 
 设计 Hit 仍然要满足各卡片自己的触发条件。映射只解决「这个类算不算那条规则的适用表面」。例如 `PrimaryModelSerializer` 上省略 `required` 仍然 Unanalyzed；写出 `required=True` 且没有 `default=` 才进入新增必填规则的设计 Hit。`NetBoxModelViewSet` 上的 `get_queryset` 只有在返回未过滤 `objects.all()` 时才进入查询集规则的设计 Hit。
 
-这些规则的 `lifecycle` 仍是 `draft`。运行时目录不读取本表，今天不会因为本表产生 Finding。
+这些规则的 `lifecycle` 仍是 `draft`。运行时已能解析本表身份，但对应 draft 检测器尚未产出 Finding；解析本身不产生 Hit。
