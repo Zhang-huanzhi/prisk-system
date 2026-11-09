@@ -17,7 +17,7 @@ from typing import Any
 from .structure import _container_kind, _exception_type_names, _expr_text, _literal_facts
 
 
-BROAD_HANDLER_NAMES = ("bare", "Exception", "BaseException")
+BROAD_HANDLER_NAMES = ("bare", "BaseException")
 DYNAMIC_CALLEES = ("eval", "exec")
 OPEN_CALLEE = "open"
 CONTROL_FLOW_DEPTH_THRESHOLD = 4
@@ -91,10 +91,10 @@ CODE_SMELL_RULES: list[dict[str, str]] = [
     {
         "rule_id": "code.bare_exception",
         "severity": "medium",
-        "trigger": "新增行与异常处理分支相交，且类型为空或直接名称包含 Exception 或 BaseException",
+        "trigger": "新增行与异常处理分支相交，且类型为空或直接名称包含 BaseException（不含 except Exception）",
         "evidence_type": "code_slice",
-        "suggested_action": "复核捕获范围、处理体和执行边界；裸 except 与 except Exception 的后果不同",
-        "limitations": "按源码直接名称匹配，不解析别名、继承或遮蔽；不覆盖 except*；不判断缺陷",
+        "suggested_action": "复核捕获范围、处理体和执行边界；裸 except 与 BaseException 会捕获 KeyboardInterrupt 和 SystemExit",
+        "limitations": "按源码直接名称匹配，不解析别名、继承或遮蔽；except Exception 不是本规则 Hit；不覆盖 except*；不判断缺陷",
     },
     {
         "rule_id": "code.dynamic_execution",
@@ -107,10 +107,10 @@ CODE_SMELL_RULES: list[dict[str, str]] = [
     {
         "rule_id": "code.unmanaged_open",
         "severity": "medium",
-        "trigger": "新增行与直接名称 open 调用相交，且该调用不是 with 或 async with 的上下文表达式",
+        "trigger": "新增行与直接名称 open 或 Path(...).open / pathlib.Path(...).open 相交，且该调用不是 with 或 async with 的上下文表达式",
         "evidence_type": "code_slice",
         "suggested_action": "复核该 open 是否应由 with 关闭，或是否已有明确的关闭路径",
-        "limitations": "只表示直接名称 open 未作为 with 上下文表达式；不判断文件是否泄漏；不含 Path.open 等属性调用",
+        "limitations": "覆盖直接名称 open 与接收者为 Path(...) 调用的属性 open；不判断泄漏；io.open / builtins.open / 名字形式 path.open() 不在 Hit 内",
     },
     {
         "rule_id": "code.deep_control_flow",
@@ -177,8 +177,8 @@ def _bare_message(broad: list[str]) -> str:
     shown = "、".join(broad)
     return (
         f"捕获形式包含 {shown}。"
-        "同一异常分支只生成一条线索；裸 except、Exception 与 BaseException 的后果并不相同。"
-        "此线索只要求复核，不判断缺陷。"
+        "同一异常分支只生成一条线索；裸 except 与 BaseException 会捕获 KeyboardInterrupt 和 SystemExit。"
+        "except Exception 不是本规则的 Hit。此线索只要求复核，不判断缺陷。"
     )
 
 
@@ -190,11 +190,15 @@ def _dynamic_message(name: str) -> str:
     )
 
 
-def _open_message() -> str:
+def _open_message(*, form: str = "direct_open") -> str:
+    if form == "path_open":
+        lead = "调用 Path(...).open，且该调用不是 with 或 async with 的上下文表达式。"
+    else:
+        lead = "直接调用 open，且该调用不是 with 或 async with 的上下文表达式。"
     return (
-        "直接调用 open，且该调用不是 with 或 async with 的上下文表达式。"
-        "此线索只要求复核资源关闭路径，不判断泄漏已经发生。"
-        "Path.open、io.open 和其他属性调用不在本规则范围内。"
+        lead
+        + "此线索只要求复核资源关闭路径，不判断泄漏已经发生。"
+        + "io.open、builtins.open 以及接收者不是 Path(...) 调用的属性 open 不在本规则 Hit 内。"
     )
 
 
@@ -431,6 +435,79 @@ def _resolve_with_context(node: dict[str, Any]) -> tuple[bool | None, bool]:
     return None, False
 
 
+def _path_open_from_segment(segment: str) -> bool | None:
+    """True when segment is Path(...).open(...) or pathlib.Path(...).open(...)."""
+    try:
+        tree = ast.parse(textwrap.dedent(segment).strip())
+    except SyntaxError:
+        return None
+    calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)]
+    if len(calls) != 1:
+        return None
+    func = calls[0].func
+    if not isinstance(func, ast.Attribute) or func.attr != "open":
+        return False
+    receiver = func.value
+    if not isinstance(receiver, ast.Call):
+        return False
+    if isinstance(receiver.func, ast.Name):
+        return receiver.func.id == "Path"
+    if isinstance(receiver.func, ast.Attribute):
+        return receiver.func.attr == "Path"
+    return False
+
+
+_OUT_OF_SCOPE_OPEN_RECEIVERS = frozenset({"io", "builtins"})
+
+
+def _resolve_open_form(node: dict[str, Any]) -> tuple[str | None, bool, str | None]:
+    """Return (form, evaluable, gap_reason).
+
+    form is "direct_open", "path_open", or None when not an open this rule covers as Hit.
+    gap_reason is set when a name-receiver attribute open cannot prove Path.
+    io.open / builtins.open stay out of scope without a framework gap.
+    """
+    details = node.get("details") or {}
+    if details.get("is_path_open") is True or (
+        details.get("attribute_callee_name") == "open" and details.get("receiver_last_segment") == "Path"
+    ):
+        return "path_open", True, None
+    if details.get("attribute_callee_name") == "open":
+        receiver = details.get("receiver_last_segment")
+        if receiver in _OUT_OF_SCOPE_OPEN_RECEIVERS:
+            return None, True, None
+        return None, True, "missing_framework_context"
+    if "direct_callee_name" in details:
+        name = details.get("direct_callee_name")
+        if name == OPEN_CALLEE:
+            return "direct_open", True, None
+        return None, True, None
+    name, evaluable = _resolve_direct_callee(node)
+    if not evaluable:
+        if node.get("source_segment_truncated"):
+            return None, False, None
+        segment = node.get("source_segment")
+        if isinstance(segment, str) and segment.strip():
+            path_open = _path_open_from_segment(segment)
+            if path_open is True:
+                return "path_open", True, None
+            if path_open is False:
+                try:
+                    tree = ast.parse(textwrap.dedent(segment).strip())
+                    calls = [item for item in ast.walk(tree) if isinstance(item, ast.Call)]
+                    if len(calls) == 1 and isinstance(calls[0].func, ast.Attribute) and calls[0].func.attr == "open":
+                        receiver = calls[0].func.value
+                        if isinstance(receiver, ast.Name) and receiver.id in _OUT_OF_SCOPE_OPEN_RECEIVERS:
+                            return None, True, None
+                        return None, True, "missing_framework_context"
+                except SyntaxError:
+                    return None, False, None
+        return None, False, None
+    if name == OPEN_CALLEE:
+        return "direct_open", True, None
+    return None, True, None
+
+
 def _resolve_control_flow(node: dict[str, Any]) -> tuple[str | None, int | None, str | None, bool]:
     details = node.get("details") or {}
     kind = details.get("control_kind")
@@ -550,44 +627,53 @@ def _call_findings(
     file_item: dict[str, Any],
     node: dict[str, Any],
     enabled: set[str],
-) -> tuple[list[dict[str, Any]], bool]:
+) -> tuple[list[dict[str, Any]], bool, str | None]:
     if node.get("kind") != "call":
-        return [], True
+        return [], True, None
     want_dynamic = "code.dynamic_execution" in enabled
     want_open = "code.unmanaged_open" in enabled
     if not want_dynamic and not want_open:
-        return [], True
-    name, evaluable = _resolve_direct_callee(node)
-    if not evaluable:
-        return [], False
+        return [], True, None
     findings: list[dict[str, Any]] = []
-    if want_dynamic and name in DYNAMIC_CALLEES:
-        findings.append(
-            _finding(
-                "code.dynamic_execution",
-                _dynamic_message(str(name)),
-                _evidence(path, file_item, node, callee_name=name),
-            )
-        )
-    if want_open and name == OPEN_CALLEE:
-        used_as_with_context, context_known = _resolve_with_context(node)
-        if not context_known:
-            return [], False
-        if used_as_with_context is False:
+    open_gap: str | None = None
+    if want_open:
+        form, open_evaluable, gap_reason = _resolve_open_form(node)
+        if not open_evaluable:
+            return [], False, None
+        if gap_reason:
+            open_gap = gap_reason
+        elif form in {"direct_open", "path_open"}:
+            used_as_with_context, context_known = _resolve_with_context(node)
+            if not context_known:
+                return [], False, None
+            if used_as_with_context is False:
+                findings.append(
+                    _finding(
+                        "code.unmanaged_open",
+                        _open_message(form=form),
+                        _evidence(
+                            path,
+                            file_item,
+                            node,
+                            callee_name=OPEN_CALLEE,
+                            open_form=form,
+                            used_as_with_context=False,
+                        ),
+                    )
+                )
+    if want_dynamic:
+        name, evaluable = _resolve_direct_callee(node)
+        if not evaluable:
+            return findings, False, open_gap
+        if name in DYNAMIC_CALLEES:
             findings.append(
                 _finding(
-                    "code.unmanaged_open",
-                    _open_message(),
-                    _evidence(
-                        path,
-                        file_item,
-                        node,
-                        callee_name=OPEN_CALLEE,
-                        used_as_with_context=False,
-                    ),
+                    "code.dynamic_execution",
+                    _dynamic_message(str(name)),
+                    _evidence(path, file_item, node, callee_name=name),
                 )
             )
-    return findings, True
+    return findings, True, open_gap
 
 
 def _control_findings(
@@ -1171,7 +1257,7 @@ def collect_code_smell_findings(
     if not enabled.intersection(_RULES_BY_ID):
         return [], [], {}
     findings: list[dict[str, Any]] = []
-    gaps: dict[str, list[str]] = {}
+    gaps: dict[str, list[tuple[str, str] | str]] = {}
     trace: dict[str, dict[str, Any]] = {
         rule_id: {"examined": 0, "gaps": []}
         for rule_id in _RULES_BY_ID
@@ -1202,7 +1288,7 @@ def collect_code_smell_findings(
             field_findings, field_gaps = _legacy_mutable_field_index(path, file_item)
         for node in head_nodes:
             handler_findings, handler_ok = _handler_findings(path, file_item, node, enabled)
-            call_findings, call_ok = _call_findings(path, file_item, node, enabled)
+            call_findings, call_ok, open_gap = _call_findings(path, file_item, node, enabled)
             control_findings, control_ok = _control_findings(path, file_item, node, enabled)
             secret_findings, secret_ok, secret_considered = _secret_findings(
                 path,
@@ -1225,17 +1311,21 @@ def collect_code_smell_findings(
                 for rule_id in ("code.swallowed_exception", "code.bare_exception"):
                     note(rule_id, handler_ok, True, handler_findings, all_ok, path, node_id)
             if node.get("kind") == "call" and ({"code.dynamic_execution", "code.unmanaged_open"} & enabled):
-                callee_name, callee_known = _resolve_direct_callee(node)
-                if not callee_known:
+                form, open_evaluable, gap_reason = _resolve_open_form(node)
+                name, callee_known = _resolve_direct_callee(node)
+                if not callee_known and form is None and not gap_reason:
                     for rule_id in ("code.dynamic_execution", "code.unmanaged_open"):
                         if rule_id in trace:
                             mark_gap(rule_id, path, node_id)
                 else:
-                    note("code.dynamic_execution", True, "code.dynamic_execution" in trace, call_findings, all_ok, path, node_id)
+                    note("code.dynamic_execution", callee_known, "code.dynamic_execution" in trace, call_findings, all_ok, path, node_id)
                     if "code.unmanaged_open" in trace:
-                        if callee_name == OPEN_CALLEE:
+                        if gap_reason or open_gap:
+                            mark_gap("code.unmanaged_open", path, node_id)
+                            gaps.setdefault(path, []).append((node_id, open_gap or gap_reason or "missing_framework_context"))
+                        elif form in {"direct_open", "path_open"}:
                             _used_as_with, with_known = _resolve_with_context(node)
-                            note("code.unmanaged_open", with_known, True, call_findings, all_ok, path, node_id)
+                            note("code.unmanaged_open", with_known and open_evaluable, True, call_findings, all_ok, path, node_id)
                         else:
                             note("code.unmanaged_open", True, True, call_findings, all_ok, path, node_id)
             if node.get("kind") == "control_flow":
@@ -1249,7 +1339,7 @@ def collect_code_smell_findings(
                 findings.extend(secret_findings)
                 findings.extend(mutable_node_findings)
                 continue
-            gaps.setdefault(path, []).append(node_id)
+            gaps.setdefault(path, []).append((node_id, "unsupported_stage04_details"))
     findings = _dedupe_findings(findings)
     findings.sort(
         key=lambda item: (
@@ -1259,8 +1349,19 @@ def collect_code_smell_findings(
             item["evidence"][0].get("node_id") or "",
         )
     )
-    unanalyzed = [
-        {"path": path, "reason": "unsupported_stage04_details", "node_ids": sorted(set(node_ids))}
-        for path, node_ids in sorted(gaps.items())
-    ]
+    unanalyzed = []
+    for path, entries in sorted(gaps.items()):
+        by_reason: dict[str, list[str]] = {}
+        for entry in entries:
+            if isinstance(entry, tuple):
+                node_id, reason = entry
+            else:
+                node_id, reason = entry, "unsupported_stage04_details"
+            by_reason.setdefault(reason, []).append(node_id)
+        for reason, node_ids in sorted(by_reason.items()):
+            unanalyzed.append({
+                "path": path,
+                "reason": reason,
+                "node_ids": sorted(set(node_ids)),
+            })
     return findings, unanalyzed, trace

@@ -27,7 +27,7 @@ DETECTION_SOURCE = """
 def view(payload):
     try:
         payload.load()
-    except Exception:
+    except:
         pass
     eval(payload.raw)
 """
@@ -95,10 +95,10 @@ def _handler_change() -> dict:
     node = {
         "kind": "except_handler",
         "node_id": "head:except:view:1",
-        "name": "Exception",
+        "name": None,
         "qualified_name": "view",
         "changed_lines": [4],
-        "details": {"exception_type": "Exception"},
+        "details": {"exception_type": None},
     }
     return {
         "type": "exception_handler_changed",
