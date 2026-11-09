@@ -2,7 +2,7 @@
 task_id: "021"
 target_version: "v1.2.0"
 title: "高价值草稿检测器批次（v1.2 第二切片）"
-status: "In Progress"
+status: "Accepted"
 branch: "feat/021-high-value-draft-detectors"
 date: "2026-11-09"
 ---
@@ -28,7 +28,7 @@ date: "2026-11-09"
 
 - 其余草稿（参数增删、URL pattern、decorator_removed、queryset bypass、signal leak、field rename、mutable_default、assert_in_production、deferred transaction/large_change、exclusions）。
 - 不宣布 v1.2.0，不建 `docs/versions/v1.2*`，不打 Tag。
-- 不合并、不 Accepted、不删远程分支、不开 022。
+- 合并与删分支由 Engineering Lead；不开 022。
 - 不扩大 known-framework-bases Hit 映射；不改 gatekeeper 条件超出卡片。
 
 ## 设计
@@ -70,4 +70,4 @@ date: "2026-11-09"
 
 ## 验收说明
 
-任务状态保持 In Progress。PR 开出后由 Engineering Lead 审查；不合并、不 Accepted、不删分支、不开 022、不宣布 v1.2.0。
+所有者已验收 Task 021。任务状态为 Accepted；PR 仍开，合并与删分支由 Engineering Lead 执行。不宣布 v1.2.0，不开 022，不建 `docs/versions/v1.2*`。
