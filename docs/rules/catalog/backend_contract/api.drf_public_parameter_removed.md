@@ -150,4 +150,4 @@ base 与 head 上、与删除行或新增行相交的类体字段节点，以及
 | 判定依据 | 将来以人工标注对照本卡片。当前卡片还不是检测器的 Ground Truth |
 | 指标 | 命中频次、Precision、Recall 都待验证设计确定，不预填 |
 | 验收标准 | 022 以构造样例验收。当前 022 已接入检测器 |
-| 未解决问题 | 路由图未建。`Meta.fields` / `Meta.exclude` 的设计 Hit 已写明，当前结构对象读不出嵌套列表时必须 Unanalyzed。映射表不由运行时执行。022 已接入检测器 |
+| 未解决问题 | 路由图未建。`Meta.fields` / `Meta.exclude` 的设计 Hit 已写明，当前结构对象读不出嵌套列表时必须 Unanalyzed。022 的检测器经 `resolve_class_bases` 按最后一段整段相等读取这张表。022 已接入检测器 |
