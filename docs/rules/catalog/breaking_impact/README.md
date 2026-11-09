@@ -7,4 +7,4 @@
 - [`data.django_transaction_boundary_changed`](data.django_transaction_boundary_changed.md)：当前节点不能配对语句和 `atomic` 块。
 - [`workflow.large_change_scope`](workflow.large_change_scope.md)：阈值和模块映射仍未指定。
 - [`workflow.test_collaboration_gap`](workflow.test_collaboration_gap.md)：已实现的路径分类复核。不在本任务改写。
-- [`data.django_field_rename_without_db_column`](data.django_field_rename_without_db_column.md)：非迁移文件里一对字段改名且没有 `db_column`。016 的草稿，没有检测器。
+- [`data.django_field_rename_without_db_column`](data.django_field_rename_without_db_column.md)：非迁移文件里一对字段改名且没有 `db_column`。022 起 `implemented`。

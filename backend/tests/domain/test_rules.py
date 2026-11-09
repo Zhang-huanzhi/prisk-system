@@ -30,7 +30,7 @@ def stage04(files: list[dict], **summary: bool) -> dict:
 
 class RuleTests(unittest.TestCase):
     def test_catalog_has_structural_and_code_smell_rules(self) -> None:
-        self.assertEqual(len(RULE_CATALOG), 20)
+        self.assertEqual(len(RULE_CATALOG), 26)
         self.assertEqual(
             {item["rule_id"] for item in RULE_CATALOG},
             {
@@ -54,6 +54,12 @@ class RuleTests(unittest.TestCase):
                 "auth.drf_permission_policy_downgrade",
                 "config.django_sensitive_settings_changed",
                 "data.django_non_null_constraint_tightened",
+                "auth.drf_permission_decorator_removed",
+                "auth.drf_queryset_scope_tighten_bypassed",
+                "data.django_signal_receiver_leak",
+                "data.django_field_rename_without_db_column",
+                "api.drf_public_parameter_added",
+                "api.drf_public_parameter_removed",
             },
         )
         self.assertTrue(all("scene" not in item for item in RULE_CATALOG))

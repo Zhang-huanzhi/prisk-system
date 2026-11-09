@@ -1,6 +1,6 @@
 # 规则说明卡片：`auth.drf_queryset_scope_tighten_bypassed`
 
-> 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。严重度与风险性质是工程负责人的临时判断，不是终局。登记册没有权重字段；概念上的默认权重是 0，本任务不接入评分。
+> 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期是 `implemented`（022 接入检测器与构造测试）；默认权重 0，不是 `validated`，也没有真实 PR 实证。
 
 ## 1. 基础信息
 
@@ -10,7 +10,7 @@
 | 规则名称 | DRF 查询集收紧被绕过 |
 | 版本 | `v1` |
 | 规则阵营 | `backend_contract` |
-| 生命周期 | `draft` |
+| 生命周期 | `implemented` |
 | 负责人 | `Prisk-System` |
 
 ## 2. 分类标签
@@ -98,7 +98,7 @@ DRF 写明 `get_queryset` 同时供给列表和详情查找。返回值若变成
 
 ### Finding
 
-设计线索：规则 ID、类限定名、`return_form`、`base_method` 是表达式摘要或 `absent`、可选的 `super_removed`、设计标签 `external_impact`。不证明行已经对外可见。本任务不生成 Finding。
+设计线索：规则 ID、类限定名、`return_form`、`base_method` 是表达式摘要或 `absent`、可选的 `super_removed`、设计标签 `external_impact`。不证明行已经对外可见。022 生成运行时 Finding；默认权重 0。
 
 ### 证据位置
 
@@ -158,5 +158,5 @@ DRF 写明 `get_queryset` 同时供给列表和详情查找。返回值若变成
 | 数据集 | 未圈定 |
 | 判定依据 | 将来的人工标注。DRF 文档不提供项目辅助函数的强弱顺序 |
 | 指标 | 不预填 |
-| 验收标准 | 返回表达式可读并且构造测试按本卡片工作之前，不能写成 `implemented`。文档写完也不是 `registered` |
-| 未解决问题 | `NetBoxModelViewSet` 已写入映射表，检测器还不读这张表。`restrict_queryset` 仍不是 Hit。返回表达式还不是结构化字段；没有检测器，没有实证 |
+| 验收标准 | 022 以构造样例验收。当前 022 已接入检测器 |
+| 未解决问题 | `NetBoxModelViewSet` 已写入映射表，检测器还不读这张表。`restrict_queryset` 仍不是 Hit。返回表达式还不是结构化字段；022 已接入检测器；没有实证 |
