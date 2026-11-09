@@ -1,6 +1,11 @@
 # Prisk-System 架构
 
-本文件描述当前实现。目标系统写在 [核心蓝图](blueprint.md)。蓝图是目标规格。机器学习、权重调优、动态配置和 NetBox 实证验证不是本文件已经落地的行为。009 起，新鲜分析为运行时目录中的每条已启用规则记录显式终态。013 起该目录为 14 条，其中包括 `data.django_raw_sql_execution`。014 只核对规则卡片，不增加运行时规则。016 只登记六张草稿卡片，不增加运行时规则。017 只改规则卡片和登记册文字，不增加运行时规则。`code.bare_exception` 的检测器仍把 `except Exception` 与裸 `except` 放在同一条 Finding 里。`code.unmanaged_open` 的检测器仍不覆盖 `Path.open`。上下文不能成立时不记 NotFound，已保存历史也不补写。
+本文件描述当前系统的工程实现。目标系统规格见 [核心蓝图](blueprint.md)。
+
+- **当前实现与目标边界**：蓝图中的机器学习、权重调优、动态配置和 NetBox 生产实证属于远期目标，非当前已落地功能。
+- **运行时规则目录**：当前由代码静态维护 14 条规则（5 条历史结构规则、7 条代码异味、1 条测试协同、1 条 Django 原生 SQL）。研究登记册（29 条）与规则卡片（26 张）为设计与验证资产，未接入运行时配置。
+- **三态执行**：新鲜分析为运行时全部 14 条规则记录显式终态（`Hit` / `NotFound` / `Unanalyzed`）。上下文不成立时不记 NotFound，已保存历史不补写终态。
+- **已知合同差异（Carve-outs）**：`code.bare_exception` 检测器当前仍将 `except Exception` 包含在同一条 Finding 内（拆分留待 v1.2）；`code.unmanaged_open` 检测器当前仅检查直接名称 `open`（`Path.open` 扩展留待 v1.2）。
 
 ## 运行链路
 
@@ -16,11 +21,11 @@
 
 分析只读取已提交快照，不执行 checkout、fetch、merge、pull，不纳入未提交工作区。
 
-v1.1 的代码异味规则读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。004 接入 `code.swallowed_exception`、`code.bare_exception` 和 `code.dynamic_execution`。005 在同一管道接入 `code.unmanaged_open` 和 `code.deep_control_flow`。006 在同一管道接入 `code.hardcoded_secret` 和 `code.global_mutable_state`。它们不替换既有五条结构规则，也不表示秘密、漏洞或可变状态串扰已经发生。007 的 `workflow.test_collaboration_gap` 不读 AST，只读三点 Diff 留下的文件状态和新增/删除行数，并使用源码中的默认路径分类。证据不足时写入既有的 `summary.unanalyzed`。它的默认权重仍是原来的测试协同权重 1，不另加一分，默认可得权重仍是 10。013 的 `data.django_raw_sql_execution` 读取与新增行相交的 call 节点，闭集是 `RawSQL` 直接名称，或 `callee` 最后一段 `execute`、`executemany`、`raw`。默认权重是 0，不提高默认可得权重。命中是复核线索，不是注入结论。`extra`、`callproc` 和含 `schema_editor` 的调用记为无法分析。路径不作为纳入或排除条件。014 没有把草稿卡片接入这条管道。016 的六张新卡片也没有接入。JSON 登记册仍不是运行时配置。
+v1.1 的代码异味规则读取 head AST 中与新增行相交的节点，并进入同一 Finding 管道。已接入规则包含 `code.swallowed_exception`、`code.bare_exception`、`code.dynamic_execution`、`code.unmanaged_open`、`code.deep_control_flow`、`code.hardcoded_secret` 和 `code.global_mutable_state`。它们不替换既有五条结构规则，命中仅作为复核线索，不代表漏洞必然发生。`workflow.test_collaboration_gap` 依据三点 Diff 留下的文件状态和增删行数判定，证据不足时记入 `summary.unanalyzed`，默认权重为 1。`data.django_raw_sql_execution` 读取与新增行相交的调用节点（闭集为 `RawSQL` 直接名称，或 `callee` 尾段 `execute`、`executemany`、`raw`），默认权重为 0。
 
 ## 规则终态
 
-新鲜的 `evaluate_rules` 在原有 Finding 之外写入 `rule_outcomes`。schema 仍是 `stage05.v2`。每个已启用规则恰好一条，状态只为 `Hit`、`NotFound` 或 `Unanalyzed`。
+新鲜的 `evaluate_rules` 在原有 Finding 之外写入 `rule_outcomes`。schema 为 `stage05.v2`。每个已启用规则恰好一条，状态只为 `Hit`、`NotFound` 或 `Unanalyzed`。
 
 - `Hit`：现有检测器产出了该规则的 Finding。只有这个状态产生 Finding。命中不表示其余对象都已查完；`summary.unanalyzed` 仍保留解析或证据缺口。
 - `NotFound`：该规则的上下文适用，并且该上下文已经完整执行，没有 Finding。零条 Finding 本身不是 NotFound。

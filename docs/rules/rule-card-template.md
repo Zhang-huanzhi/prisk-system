@@ -46,19 +46,64 @@
 
 ## 4. 检测定义
 
-- **检测对象**：具体 AST 节点、Diff 变化、路径、调用关系或过程字段；
-- **触发条件**：可执行、可复核的判定条件；
-- **触发特征**：机器可计算的结构化字段。每个字段至少写明 `name`、`source`、`value_type`、`operator`，可选 `threshold` 和 `required`。例如 `files_changed`、`derived.module_count`、`test_collaboration_gap`；不能只写“改动较大”这类自然语言；
-- **不触发条件**：明确排除的情况；
-- **输入**：所需的阶段数据和字段；
-- **Finding**：生成的规则 ID、消息、严重度和影响类型；
-- **证据位置**：文件、节点、行号或变更片段；
-- **上下文切片**：人工复核时需要展示的上下文；
-- **影响类型**：接口、权限、数据、配置、可维护性或过程协同等。
+> 推荐采用如下标准化子节进行规范定义。
 
-触发条件应足够具体。例如：
+### 比较单位
 
-> 当 DRF ViewSet 的权限策略从显式限制策略变为 `AllowAny` 或空权限列表，且变化出现在 PR Diff 中时，生成权限降级 Finding。
+说明单次判定的物理或语法比较粒度（例如：一个 Python 文件里的一条 `ast.Assert` 语句，或一个函数签名上的一个参数）。
+
+### 适用性
+
+说明该规则生效的上下文边界、路径策略或类库范围（如框架 ViewSet、迁移文件、或特定路径分类）。
+
+### 闭集
+
+明确进入检测范围的具体标识符、类名、方法名或节点种类的穷举闭集；排除表外名称，不做模糊子串推测。
+
+### 触发条件
+
+可执行、可复核的判定条件（例如：比较单位属于闭集，且其 AST 节点范围与新增行相交）。
+
+### 触发特征
+
+机器可计算的结构化字段。每个字段至少写明 `name`、`source`、`value_type`、`operator`，可选 `threshold` 和 `required`。例如：
+- `statement_kind`：`source` 为节点种类；`value_type` 为 `string`；`operator` 为 `eq`；`threshold` 为目标节点名；`required` 为 true。
+- `changed_overlap`：`source` 为与新增行交集；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true。
+
+### 不触发条件
+
+明确排除的情况与反例（如测试文件、注释、非相交行、已有安全默认值等）。
+
+### 输入
+
+所需的阶段数据和字段（例如同一文件的 head Python AST、三点 Diff 新增行等）。
+
+### Finding
+
+生成的规则 ID、消息描述、严重度和影响类型；说明是否为复核线索或已确认问题。
+
+### 证据位置
+
+文件路径、节点限定名、调用切片、行号等。
+
+### 上下文切片
+
+人工复核时需要呈现给审查者的代码上下文。
+
+### 影响类型
+
+接口、权限、数据、配置、可维护性或过程协同等。
+
+### 规则终态
+
+说明该规则在三态引擎中的判定边界：
+- **Hit**：明确命中触发条件并生成 Finding；
+- **NotFound**：上下文适用且完整检查后无风险特征；
+- **Unanalyzed**：缺少必要上下文、证据截断或语法降级时的原因（如 `missing_framework_context`、`unsupported_stage04_details`、`context_not_established`）。
+
+### 构造样例
+
+给出构造正例、构造反例与边界样例。
 
 ## 5. 理论与项目依据
 
@@ -76,7 +121,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 验证义务 | `literature_inherited` / `empirical_required` |
+| 验证义务 | `literature_inherited` / `empirical_required` / `implementation_only` |
 | 验证方法 | 构造样例、真实 PR、人工标注、已知案例或组合方法 |
 | 数据集 | 数据来源、范围和版本 |
 | 判定依据 | 谁或什么作为 Ground Truth |

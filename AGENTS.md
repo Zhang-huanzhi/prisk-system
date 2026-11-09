@@ -1,41 +1,47 @@
 # Prisk-System 工程协作规范
 
-## 仓库边界
+## 1. 仓库边界
 
-- `Prisk-System/` 是独立 Git 仓库根目录。
-- 上一级 `Prisk/` 是笔记工作区；`Prisk-Note/`、`EiheiZone-experience/` 和其他相邻目录不属于本仓库。
-- `backend/` 是唯一 Python 工作区，包含 `prisk/`、`tests/`、`pyproject.toml` 和 `uv.lock`。
-- `frontend/` 是独立的 Next.js 工作区。
-- `docs/` 保存当前工程文档、规范、任务、ADR 和冻结版本记录。
+- `Prisk-System/` 为独立 Git 仓库根目录。
+- 上一级 `Prisk/` 笔记工作区以及同级目录不属于本仓库，不进行读写。
+- `backend/` 为 Python 工作区，包含 `prisk/`、`tests/`、`pyproject.toml` 和 `uv.lock`。
+- `frontend/` 为 Next.js 工作区。
+- `docs/` 保存工程规范、技术蓝图、任务记录、规则资产与阶段归档。
 
-## 本地环境
+## 2. 文档职责分工
 
-- Python 虚拟环境只使用 `backend/.venv`。
-- 不在仓库根目录创建第二个 `.venv`。
-- 使用 `uv sync --project backend --locked` 安装后端依赖，或直接使用 `backend/.venv/Scripts/python.exe`。
-- `frontend/node_modules`、`.next`、缓存、覆盖率和测试临时产物只保留在本机，不进入 Git。
+- `docs/blueprint.md`：目标系统技术规格原文，定义系统原语与长远边界。
+- `docs/architecture.md`：当前工程实现状态与链路说明。
+- `docs/standards/`：开发流程、任务与分支规范、推进大纲与文档结构。
+- `docs/rules/`：规则知识库中心，包含卡片模板（`rule-card-template.md`）、规则卡片与基类映射表。
+- `docs/schemas/`：规则元数据 JSON Schema（`rule-metadata.schema.json`）。
+- `docs/evaluation/`：实验与摸底资产（先导集与正式集物理隔离）。
+- `docs/tasks/`：当前活动任务与阶段入口文档。
+- `docs/versions/`：已冻结的阶段归档记录（如 `v1.0.0/`、`v1.1.0/`），冻结后不回写新行为。
 
-## 常用检查
+## 3. 开发与任务工作流
 
-从仓库根目录运行：
+- 任何变更均须对应一条任务记录，文件格式为 `docs/tasks/NNN-short-name.md`。
+- 任务须包含 YAML 前言字段：`task_id`、`target_version`、`title`、`status`、`branch`、`date`。
+- 分支与任务一对一绑定，命名形式为 `<type>/<三位任务编号>-<短英文名>`（类型限 `feat`, `fix`, `docs`, `refactor`, `chore`, `exp`）。
+- 规则卡片编写须遵循 `docs/rules/rule-card-template.md` 标准结构，字段及枚举须与 `docs/schemas/rule-metadata.schema.json` 保持一致。
+- 文档记录以事实陈述为主，避免跨任务嵌套递归的免责语句。
+- 阶段里程碑收工时，已完成任务文档迁入 `docs/versions/<version>/tasks/`。
+
+## 4. 本地环境与执行命令
+
+- Python 环境仅使用 `backend/.venv`，不在仓库根目录创建虚拟环境。
+- 本地执行优先使用 `backend/.venv/Scripts/python.exe`。
+- 变更完成后须运行以下检查：
 
 ```powershell
-uv run --project backend python -m unittest discover -s backend/tests -t backend
+backend/.venv/Scripts/python.exe -m unittest discover -s backend/tests -t backend
 npm --prefix frontend run lint
 npm --prefix frontend run typecheck
-npm --prefix frontend run build
+git diff --check
 ```
 
-## 修改原则
+## 5. 交付边界
 
-- 代码、测试和当前文档保持 `backend/`、`frontend/`、`docs/` 的边界。
-- 任何变更，不论规模，都必须对应一条任务。不存在可以不建任务的小改动例外。
-- 分支只使用 `feat/`、`fix/`、`docs/`、`refactor/`、`exp/`、`chore/`，形式为 `<type>/<三位任务编号>-<短英文名>`，并与该任务一对一。规范见 `docs/standards/branching-and-tasks.md`。
-- 冻结版本文档中的历史路径只用于记录基线，不作为当前入口。
-- 不修改上一级笔记工作区，不复制阶段数据、实验仓库、凭证或本地秘密。
-- 不自动提交、推送、合并或创建版本标签。
-
-## 版本发布边界
-
-- 当前工作区按待发布的 v1.0.0 基线维护；发布后新增工作进入 `docs/tasks/`，不回写 `docs/versions/v1.0.0/`。
-- 发布前必须完成后端测试、前端 lint/typecheck/build、`git diff --check` 和敏感信息检查；提交、推送和创建 tag 由用户执行。
+- 不自动执行 `git commit`、`git push`、合并 PR 或创建 Git Tag。
+- 提交、推送、合并与打标签均由用户在本地确认并执行。

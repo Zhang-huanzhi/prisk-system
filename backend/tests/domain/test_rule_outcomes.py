@@ -348,7 +348,8 @@ class RuleOutcomeTests(unittest.TestCase):
         self.assertEqual(report["score_basis"]["configuration"]["rule_weights"]["code.hardcoded_secret"], 0)
         self.assertEqual(report["score_basis"]["configuration"]["rule_weights"][COLLABORATION_RULE_ID], 1)
         blueprint = Path(__file__).resolve().parents[3] / "docs" / "blueprint.md"
-        digest = hashlib.sha256(blueprint.read_bytes()).hexdigest()
+        content = blueprint.read_text(encoding="utf-8").replace("\r\n", "\n").encode("utf-8")
+        digest = hashlib.sha256(content).hexdigest()
         self.assertEqual(digest, "f0273030ec15fd0d8d87a767a37228b371d54a3f54b556f5e32c850f2454b817")
 
 
