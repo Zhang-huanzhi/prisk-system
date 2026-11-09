@@ -66,6 +66,8 @@ Django 把 `dispatch_uid` 定义为接收器的唯一标识，用来避免重复
 
 `request_started`、`request_finished`、`got_request_exception`、`setting_changed`、`connection_created` 以及任务信号不在闭集里。自定义 `Signal()` 也不在闭集里。
 
+022 运行时解释（这是运行时对「任务信号」和「自定义 `Signal()`」的读法，不改上面的闭集）：「任务信号」读作 Celery 任务信号名 `before_task_publish`、`after_task_publish`、`task_sent`、`task_prerun`、`task_postrun`、`task_retry`、`task_success`、`task_failure`、`task_internal_error`、`task_received`、`task_revoked`、`task_unknown`、`task_rejected`。「自定义 `Signal()`」读作：`.connect` 的接收者在同一文件的变更节点里有 `= Signal(...)` 绑定，或该调用的关键字含 `sender`、`weak`、`dispatch_uid` 之一。
+
 连接形态只有两种：`callee` 的最后一段是 `connect`，且其接收者最后一段属于闭集；或者 `callee` 的最后一段是 `receiver`，且位置参数里的信号最后一段属于闭集。`@receiver([post_save, post_delete])` 在列表元素都能读到、且至少一个元素属于闭集时，按这一次调用记录。
 
 ### 触发条件
@@ -115,7 +117,7 @@ Django 把 `dispatch_uid` 定义为接收器的唯一标识，用来避免重复
 
 - Hit：闭集信号的 `connect` 或 `receiver` 与新增行相交，且按上一节确认没有 `dispatch_uid`。
 - NotFound：调用已经读完，`dispatch_uid` 出现在关键字里，或闭集信号的连接都没有与新增行相交。
-- Unanalyzed：信号名不在闭集，包括 `request_finished` 和自定义信号，原因是 `missing_framework_context`。`callee` 或 `receiver` 的位置参数切片被截断、`keyword_names` 含 `None`，或 `connect` 的 `args_count` 大于等于 4，原因是 `unsupported_stage04_details`。这些都不记 Hit，也不记 NotFound。
+- Unanalyzed：信号名不在闭集，包括 `request_finished` 和自定义信号，原因是 `missing_framework_context`。`callee` 或 `receiver` 的位置参数切片被截断、`keyword_names` 含 `None`，或 `connect` 的 `args_count` 大于等于 4，原因是 `unsupported_stage04_details`。两个原因同时成立时，记 `missing_framework_context`，不记 `unsupported_stage04_details`。这些都不记 Hit，也不记 NotFound。
 
 ### 构造样例
 
@@ -155,4 +157,4 @@ Django 把 `dispatch_uid` 定义为接收器的唯一标识，用来避免重复
 | 判定依据 | 将来的人工标注。官方文档说明的是身份去重，不是本项目的误报率 |
 | 指标 | 不预填 |
 | 验收标准 | 022 以构造样例验收。当前 022 已接入检测器 |
-| 未解决问题 | 是否把 Hit 收窄到接收器表达式为属性访问；位置参数还不是结构化字段：022 对 `connect` 只用 `args_count` 判断第四个位置参数是否可能存在，`@receiver` 的信号名从未截断的装饰器切片解析；022 已接入检测器；022 不把这些调用当作信号登记面，既不记 Hit 也不记 Unanalyzed：没有点号的 `connect(...)`，接收者最后一段读不出的 `.connect`，以及接收者不在闭集、不是上文列出的闭集外信号或 Celery 任务信号、同一文件的变更节点里没有 `= Signal(...)` 绑定、关键字里也没有 `sender`、`weak`、`dispatch_uid` 的 `.connect`（例如 `client.connect()`），所以不带这三个关键字的导入自定义信号按第 6 节的漏报处理；没有实证 |
+| 未解决问题 | 是否把 Hit 收窄到接收器表达式为属性访问；位置参数还不是结构化字段：022 对 `connect` 只用 `args_count` 判断第四个位置参数是否可能存在，`@receiver` 的信号名从未截断的装饰器切片解析；022 已接入检测器；022 不把这些调用当作信号登记面，既不记 Hit 也不记 Unanalyzed：没有点号的 `connect(...)`，接收者最后一段读不出的 `.connect`，以及接收者不在闭集、不是上文列出的闭集外信号或 Celery 任务信号、同一文件的变更节点里没有 `= Signal(...)` 绑定、关键字里也没有 `sender`、`weak`、`dispatch_uid` 的 `.connect`（例如 `client.connect()`），所以从别的模块导入、又不带这三个关键字的自定义信号既不记 Hit 也不记 Unanalyzed，这是接受的已知漏报（第 6 节）；没有实证 |

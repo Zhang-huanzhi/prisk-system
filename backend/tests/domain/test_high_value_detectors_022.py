@@ -6,6 +6,9 @@ import shutil
 import unittest
 from pathlib import Path
 
+import re
+
+from prisk.domain import second_batch_detectors as sbd
 from prisk.domain.changes import parse_unified_diff, read_diff_text, read_name_status
 from prisk.domain.rules import evaluate_rules
 from prisk.domain.structure import extract_changed_structures
@@ -70,6 +73,41 @@ class PermissionDecoratorRemovedTests(unittest.TestCase):
             "    return 1\n",
             "base",
         )
+        # Every head line is an added line, so the whole head file is visible.
+        head = commit(
+            repo,
+            path,
+            "def endpoint(request, *args):\n"
+            "    return 2\n",
+            "remove decorator",
+        )
+        result = evaluate_repo(repo, base, head)
+        self.assertEqual(len(findings(result, self.rule_id)), 1)
+        self.assertEqual(outcome(result, self.rule_id)["state"], "Hit")
+
+    def assert_details_gap(self, result: dict) -> None:
+        self.assertEqual(findings(result, self.rule_id), [])
+        item = outcome(result, self.rule_id)
+        self.assertEqual(item["state"], "Unanalyzed")
+        self.assertEqual(
+            {reason["reason"] for reason in item["reasons"]},
+            {"unsupported_stage04_details"},
+        )
+
+    def test_partially_visible_head_unanalyzed_not_hit(self) -> None:
+        root, repo = init_repo()
+        self.addCleanup(shutil.rmtree, root, True)
+        path = "netbox/dcim/views.py"
+        base = commit(
+            repo,
+            path,
+            "from rest_framework.decorators import permission_classes\n"
+            "from rest_framework.permissions import IsAuthenticated\n\n"
+            "@permission_classes([IsAuthenticated])\n"
+            "def endpoint(request):\n"
+            "    return 1\n",
+            "base",
+        )
         head = commit(
             repo,
             path,
@@ -77,9 +115,37 @@ class PermissionDecoratorRemovedTests(unittest.TestCase):
             "    return 2\n",
             "remove decorator",
         )
-        result = evaluate_repo(repo, base, head)
-        self.assertEqual(len(findings(result, self.rule_id)), 1)
-        self.assertEqual(outcome(result, self.rule_id)["state"], "Hit")
+        self.assert_details_gap(evaluate_repo(repo, base, head))
+
+    def test_unchanged_permission_classes_elsewhere_not_hit(self) -> None:
+        root, repo = init_repo()
+        self.addCleanup(shutil.rmtree, root, True)
+        path = "netbox/dcim/views.py"
+        prefix = (
+            "from rest_framework.decorators import permission_classes\n"
+            "from rest_framework.permissions import IsAuthenticated\n"
+            "from rest_framework.views import APIView\n\n"
+            "class OtherView(APIView):\n"
+            "    permission_classes = [IsAuthenticated]\n\n"
+        )
+        base = commit(
+            repo,
+            path,
+            prefix + "@permission_classes([IsAuthenticated])\n"
+            "def endpoint(request):\n"
+            "    return 1\n",
+            "base",
+        )
+        head = commit(
+            repo,
+            path,
+            prefix + "def endpoint(request):\n"
+            "    return 1\n",
+            "remove decorator only",
+        )
+        # The unchanged OtherView assignment is not in stage04, so the detector
+        # cannot apply the card's suppression and must not claim Hit.
+        self.assert_details_gap(evaluate_repo(repo, base, head))
 
     def test_action_decorator_not_found(self) -> None:
         root, repo = init_repo()
@@ -329,6 +395,36 @@ class SignalLeakTests(unittest.TestCase):
             "    task_success.connect(on_done)\n"
         )
         self.assert_framework_gap(result)
+
+    def test_framework_reason_wins_over_details(self) -> None:
+        result = self._signal_head(
+            "from django.core.signals import request_finished\n\n"
+            "def ready():\n"
+            "    request_finished.connect(on_done, **options)\n"
+        )
+        self.assert_framework_gap(result)
+
+    def test_card_runtime_reading_matches_code(self) -> None:
+        card = (
+            Path(__file__).resolve().parents[3]
+            / "docs/rules/catalog/backend_contract/data.django_signal_receiver_leak.md"
+        )
+        lines = [
+            line for line in card.read_text(encoding="utf-8").splitlines()
+            if line.startswith("022 运行时解释")
+        ]
+        self.assertEqual(len(lines), 1)
+        task_part, custom_part = lines[0].split("「自定义 `Signal()`」读作", 1)
+        task_names = [token for token in re.findall(r"`([^`]+)`", task_part) if token != "Signal()"]
+        self.assertEqual(len(task_names), len(set(task_names)))
+        self.assertEqual(set(task_names), set(sbd._TASK_SIGNALS))
+        keywords = [
+            token for token in re.findall(r"`([^`]+)`", custom_part)
+            if token not in {"= Signal(...)", ".connect"}
+        ]
+        self.assertEqual(len(keywords), len(set(keywords)))
+        self.assertEqual(set(keywords), set(sbd._SIGNAL_CONNECT_KEYWORDS))
+        self.assertIn("`= Signal(...)`", custom_part)
 
     def test_unrelated_connect_no_gap_no_hit(self) -> None:
         result = self._signal_head(

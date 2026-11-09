@@ -43,13 +43,16 @@ date: "2026-11-09"
 - `backend/prisk/domain/high_value_detectors.py`：合并第二批规则与轨迹。
 - `backend/data/rules/rule-registry.json`：六条 lifecycle → `implemented`。
 - 卡片与知识库索引徽章同步。
-- 测试：`backend/tests/domain/test_high_value_detectors_022.py`；更新 registry/demo 计数断言。
+- `auth.drf_permission_decorator_removed`：检测器拿不到完整 head 文件（`structure._map_nodes` 只保留与改动行相交的节点，`evaluate_rules` 只收到 stage04 记录）。head 有未改动行时，删除候选记 Unanalyzed `unsupported_stage04_details`，不记 Hit；同一文件可见 `permission_classes = ...` 时仍记 `missing_framework_context`。所有者不在 head 节点里时，只有它的 base 节点整段被删，才算所有者已删除；否则按函数仍在处理，因为未改动的函数不会进入 stage04。
+- `data.django_signal_receiver_leak`：闭集外的具名信号、Celery 任务信号、同一文件 `= Signal(...)` 绑定的接收者、关键字含 `sender`/`weak`/`dispatch_uid` 的 `.connect`，以及 `@receiver` 的闭集外名字，记 Unanalyzed `missing_framework_context`；它与 `unsupported_stage04_details` 同时成立时前者优先。无点号 `connect(...)`、读不出接收者的 `.connect` 和其他无关 `.connect` 不记缺口。
+- 测试：`backend/tests/domain/test_high_value_detectors_022.py`（含卡片「022 运行时解释」行与代码常量的逐项比对）；更新 registry/demo 计数断言。
 
 ## 验证
 
 - `backend\.venv\Scripts\python.exe -m unittest discover -s backend\tests -t backend`
 - 未改前端：跳过 lint/typecheck/build
 - `git diff --check`
+- 最终 head：`unittest discover` 共 167 个测试通过；`git diff --check` 无错误。
 
 ## 生命周期增量
 
@@ -67,6 +70,8 @@ date: "2026-11-09"
 - 构造样例覆盖主路径；真实 PR 实证仍属 validated 义务。
 - ViewSet / Serializer 跨文件继承、`@receiver` 位置参数截断、一对一字段配对之外的多字段改名、省略 `required` 的默认表仍 Unanalyzed。
 - stage04 只发出与 diff 相交的节点；类头是否预先存在依赖 `start_line` 不在 `changed_lines` 的启发式。
+- `auth.drf_permission_decorator_removed`：head 只要有一行未改动就记 Unanalyzed，真实 PR 上多半得不到 Hit；要恢复 Hit，需要把完整 head 源码交给检测器，本任务不加这条管线。
+- `data.django_signal_receiver_leak`：从别的模块导入、又不带 `sender`、`weak`、`dispatch_uid` 的自定义信号既不记 Hit 也不记 Unanalyzed，是接受的已知漏报。
 
 ## 验收说明
 

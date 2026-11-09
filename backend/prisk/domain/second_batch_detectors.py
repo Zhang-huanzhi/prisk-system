@@ -244,6 +244,26 @@ def _file_has_permission_classes_assign(file_item: dict[str, Any]) -> bool:
     return False
 
 
+def _head_fully_visible(file_item: dict[str, Any]) -> bool:
+    """True only when every head line is an added line.
+
+    stage04 keeps only nodes that intersect changed lines (structure._map_nodes),
+    and detectors never receive the head source. The head module node spans
+    1..line_count, so its changed_lines covering that range means no unchanged
+    head line, and therefore no invisible node, exists.
+    """
+    parse_status = file_item.get("parse_status") if isinstance(file_item.get("parse_status"), dict) else {}
+    if parse_status.get("head") != "ok":
+        return False
+    for node in _nodes(file_item, side="head", kind="module"):
+        end_line = node.get("end_line")
+        changed = node.get("changed_lines")
+        if not isinstance(end_line, int) or not isinstance(changed, list):
+            return False
+        return set(range(1, end_line + 1)) <= {line for line in changed if isinstance(line, int)}
+    return False
+
+
 def _collect_decorator_removed(file_item: dict[str, Any], enabled: set[str]) -> tuple[list, list, dict]:
     if DECORATOR_REMOVED_ID not in enabled:
         return [], [], {}
@@ -252,10 +272,27 @@ def _collect_decorator_removed(file_item: dict[str, Any], enabled: set[str]) -> 
     gaps: list[dict[str, str]] = []
     examined = 0
     suppress = _file_has_permission_classes_assign(file_item)
+    fully_visible = _head_fully_visible(file_item)
     head_owners = {
         str(node.get("qualified_name") or node.get("name") or "")
         for node in _nodes(file_item, side="head", kind="function") + _nodes(file_item, side="head", kind="class")
     }
+    # An owner absent from head nodes may simply be unchanged (stage04 only keeps
+    # changed nodes). Treat it as removed only when its base node was deleted
+    # line for line.
+    removed_owners: set[str] = set()
+    for node in _nodes(file_item, side="base", kind="function") + _nodes(file_item, side="base", kind="class"):
+        name = str(node.get("qualified_name") or node.get("name") or "")
+        start, end = node.get("start_line"), node.get("end_line")
+        changed = node.get("changed_lines")
+        if (
+            name not in head_owners
+            and isinstance(start, int)
+            and isinstance(end, int)
+            and isinstance(changed, list)
+            and set(range(start, end + 1)) <= set(changed)
+        ):
+            removed_owners.add(name)
     for node in _nodes(file_item, side="base", kind="decorator"):
         if not _changed(node):
             continue
@@ -263,7 +300,7 @@ def _collect_decorator_removed(file_item: dict[str, Any], enabled: set[str]) -> 
         expression = str(details.get("expression") or node.get("source_segment") or "").strip()
         owner = str(details.get("owner") or "")
         node_id = str(node.get("node_id") or "")
-        if owner and owner not in head_owners:
+        if owner and owner in removed_owners:
             continue
         if bool(node.get("source_segment_truncated")):
             gaps.append({"path": path, "node_id": node_id, "reason": _REASON_DETAILS})
@@ -288,6 +325,11 @@ def _collect_decorator_removed(file_item: dict[str, Any], enabled: set[str]) -> 
             continue
         if suppress:
             gaps.append({"path": path, "node_id": node_id, "reason": _REASON_FRAMEWORK})
+            continue
+        if not fully_visible:
+            # An unchanged `permission_classes = ...` elsewhere in head would be
+            # invisible, so the card's same-file suppression cannot be ruled out.
+            gaps.append({"path": path, "node_id": node_id, "reason": _REASON_DETAILS})
             continue
         examined += 1
         findings.append(_finding(
