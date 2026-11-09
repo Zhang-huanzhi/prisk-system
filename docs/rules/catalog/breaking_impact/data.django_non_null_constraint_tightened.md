@@ -1,6 +1,6 @@
 # 规则说明卡片：`data.django_non_null_constraint_tightened`
 
-> 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。
+> 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期是 `implemented`（021 接入检测器与构造测试）；默认权重 0，不是 `validated`，也没有真实 PR 实证。
 
 ## 1. 基础信息
 
@@ -10,7 +10,7 @@
 | 规则名称 | 非空约束收紧 |
 | 版本 | `v1` |
 | 规则阵营 | `breaking_impact` |
-| 生命周期 | `draft` |
+| 生命周期 | `implemented` |
 | 负责人 | `Prisk-System` |
 
 ## 2. 分类标签
@@ -97,7 +97,7 @@ Django 写明 `null` 的默认值是 `False`，并且 `AlterField` 的 `preserve
 
 ### Finding
 
-设计线索：规则 ID、字段名、`null` 的前后值、`external_impact`。不证明迁移已经失败。本任务不生成 Finding。
+设计线索：规则 ID、字段名、`null` 的前后值、`external_impact`。不证明迁移已经失败。021 生成运行时 Finding；默认权重 0。
 
 ### 证据位置
 
@@ -152,4 +152,4 @@ Django 写明 `null` 的默认值是 `False`，并且 `AlterField` 的 `preserve
 | 判定依据 | 将来的人工标注 |
 | 指标 | 不预填 |
 | 验收标准 | 布尔关键字文本进入检测器之前不能当作已实现 |
-| 未解决问题 | 当前 `literal_facts` 不保存布尔值，也没有检测器。`default=` 必须从切片确认；确认不了则 Unanalyzed。父类字段不跨文件 |
+| 未解决问题 | 当前 `literal_facts` 不保存布尔值，也021 已接入检测器。`default=` 必须从切片确认；确认不了则 Unanalyzed。父类字段不跨文件 |

@@ -80,7 +80,13 @@ class RuleRegistryTests(unittest.TestCase):
                 "code.deep_control_flow",
                 "code.global_mutable_state",
                 "workflow.test_collaboration_gap",
+                "api.drf_viewset_action_changed",
+                "auth.drf_permission_policy_downgrade",
+                "data.django_destructive_migration",
+                "data.django_non_null_constraint_tightened",
                 "data.django_raw_sql_execution",
+                "config.django_sensitive_settings_changed",
+                "auth.django_csrf_exempt_added",
             ],
         )
         registered = [rule["rule_id"] for rule in self.registry["rules"] if rule["lifecycle"] == "registered"]
@@ -193,8 +199,8 @@ class LifecycleFieldConsistencyTests(unittest.TestCase):
         self.assertEqual(rule["definition"]["impact_type"], "pr_intrinsic_risk")
         lifecycles = [item["lifecycle"] for item in self.registry["rules"]]
         # 015 left 14 drafts. 016 appends six draft cards and does not change earlier lifecycles.
-        self.assertEqual(lifecycles.count("draft"), 20)
-        self.assertEqual(lifecycles.count("implemented"), 9)
+        self.assertEqual(lifecycles.count("draft"), 14)
+        self.assertEqual(lifecycles.count("implemented"), 15)
         self.assertEqual(lifecycles.count("registered"), 0)
         self.assertEqual(lifecycles.count("validated"), 0)
         self.assertEqual(lifecycles.count("deprecated"), 0)
@@ -248,13 +254,14 @@ class Task016DraftCardTests(unittest.TestCase):
         expected = {
             "code.mutable_default_argument": ("code_smell", "Medium", "pr_intrinsic", "language"),
             "code.assert_in_production": ("code_smell", "Medium", "pr_intrinsic", "language"),
-            "auth.django_csrf_exempt_added": ("backend_contract", "High", "external_impact", "framework"),
             "auth.drf_queryset_scope_tighten_bypassed": ("backend_contract", "High", "external_impact", "framework"),
             "data.django_signal_receiver_leak": ("backend_contract", "Medium", "pr_intrinsic", "framework"),
             "data.django_field_rename_without_db_column": ("breaking_impact", "High", "external_impact", "database"),
         }
         catalog_ids = {item["rule_id"] for item in RULE_CATALOG}
         self.assertTrue(set(expected).isdisjoint(catalog_ids))
+        self.assertIn("auth.django_csrf_exempt_added", catalog_ids)
+        self.assertEqual(self.by_id["auth.django_csrf_exempt_added"]["lifecycle"], "implemented")
         index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
         self.assertIn("011 整理的研究候选仍是 20 条", index)
         self.assertIn("016 在这 20 条之外新增 6 条草稿候选", index)
@@ -369,7 +376,8 @@ class Task017CardContractTests(unittest.TestCase):
         self.assertIn("RackBaseSerializer", mapping)
         self.assertIn("restrict_queryset", mapping)
         catalog_ids = {item["rule_id"] for item in RULE_CATALOG}
-        self.assertNotIn("api.drf_viewset_action_changed", catalog_ids)
+        self.assertIn("api.drf_viewset_action_changed", catalog_ids)
+        self.assertEqual(self.by_id["api.drf_viewset_action_changed"]["lifecycle"], "implemented")
         added = (KNOWLEDGE_BASE / "catalog/backend_contract/api.drf_public_parameter_added.md").read_text(encoding="utf-8")
         self.assertIn("known-framework-bases.md", added)
         self.assertIn("省略 `required` 仍然 Unanalyzed", added)
@@ -382,7 +390,7 @@ class Task017CardContractTests(unittest.TestCase):
         self.assertEqual(self.by_id["code.bare_exception"]["definition"]["trigger_features"][0]["threshold"], ["bare", "BaseException"])
         opened = (KNOWLEDGE_BASE / "catalog/code_smell/code.unmanaged_open.md").read_text(encoding="utf-8")
         self.assertIn("Path(...).open", opened)
-        self.assertIn("检测器仍只认直接名称 `open`", opened)
+        self.assertIn("Task 020 后 Path.open 运行时与合同一致", opened)
         non_null = (KNOWLEDGE_BASE / "catalog/breaking_impact/data.django_non_null_constraint_tightened.md").read_text(encoding="utf-8")
         self.assertIn("不能只因为省略了 `null=True` 就 Hit", non_null)
         sensitive = (KNOWLEDGE_BASE / "catalog/backend_contract/config.django_sensitive_settings_changed.md").read_text(encoding="utf-8")
