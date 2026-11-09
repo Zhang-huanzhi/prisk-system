@@ -101,6 +101,17 @@ _OUT_OF_SET_SIGNALS = frozenset({
     "request_started", "request_finished", "got_request_exception",
     "setting_changed", "connection_created",
 })
+# Card: task signals are outside the closed set. Celery's documented task signal names.
+_TASK_SIGNALS = frozenset({
+    "before_task_publish", "after_task_publish", "task_sent", "task_prerun", "task_postrun",
+    "task_retry", "task_success", "task_failure", "task_internal_error", "task_received",
+    "task_revoked", "task_unknown", "task_rejected",
+})
+# Keyword names of Django's Signal.connect(receiver, sender, weak, dispatch_uid).
+_SIGNAL_CONNECT_KEYWORDS = frozenset({"sender", "weak", "dispatch_uid"})
+_CUSTOM_SIGNAL_BINDING = re.compile(
+    r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^=]*)?=\s*(?:[A-Za-z_][A-Za-z0-9_.]*\.)?Signal\s*\("
+)
 _SERIALIZER_NATIVE = frozenset({"Serializer", "ModelSerializer"})
 _MODEL_NATIVE = frozenset({"Model"})
 
@@ -512,6 +523,18 @@ def _signal_from_receiver_call(segment: str, *, truncated: bool) -> dict[str, An
     return {"status": "framework", "signals": names}
 
 
+def _custom_signal_names(file_item: dict[str, Any]) -> set[str]:
+    """Names bound to ``Signal(...)`` in head nodes of the same file."""
+    names: set[str] = set()
+    for node in _nodes(file_item, side="head"):
+        if node.get("kind") not in {"field", "literal_binding"}:
+            continue
+        match = _CUSTOM_SIGNAL_BINDING.match(str(node.get("source_segment") or ""))
+        if match:
+            names.add(match.group(1))
+    return names
+
+
 def _collect_signal_leak(file_item: dict[str, Any], enabled: set[str]) -> tuple[list, list, dict]:
     if SIGNAL_LEAK_ID not in enabled:
         return [], [], {}
@@ -520,6 +543,7 @@ def _collect_signal_leak(file_item: dict[str, Any], enabled: set[str]) -> tuple[
     gaps: list[dict[str, str]] = []
     examined = 0
     seen_receiver_segments: set[str] = set()
+    custom_signals = _custom_signal_names(file_item)
     for node in _nodes(file_item, side="head", kind="call"):
         if not _changed(node):
             continue
@@ -530,22 +554,30 @@ def _collect_signal_leak(file_item: dict[str, Any], enabled: set[str]) -> tuple[
         keyword_names = details.get("keyword_names")
         if not isinstance(keyword_names, list):
             keyword_names = []
-        if any(item is None for item in keyword_names):
-            gaps.append({"path": path, "node_id": node_id, "reason": _REASON_DETAILS})
-            continue
+        has_star_kwargs = any(item is None for item in keyword_names)
         kw_set = {str(item) for item in keyword_names if isinstance(item, str)}
         if last == "connect":
             if "." not in callee:
-                # Bare connect(...) is not signal.connect; leave other rules alone.
+                # Bare connect(...) is not a signal registration surface on the card.
                 continue
             receiver = callee.rsplit(".", 1)[0]
             signal_name = _last_segment(receiver)
             if signal_name is None:
-                gaps.append({"path": path, "node_id": node_id, "reason": _REASON_DETAILS})
+                # Card section 6: an unreadable receiver is a known miss, not a gap.
                 continue
             if signal_name not in _SIGNAL_NAMES:
-                if signal_name in _OUT_OF_SET_SIGNALS:
+                # Card: names outside the closed set (request_finished, task signals,
+                # custom Signal()) are Unanalyzed with missing_framework_context.
+                if (
+                    signal_name in _OUT_OF_SET_SIGNALS
+                    or signal_name in _TASK_SIGNALS
+                    or signal_name in custom_signals
+                    or kw_set & _SIGNAL_CONNECT_KEYWORDS
+                ):
                     gaps.append({"path": path, "node_id": node_id, "reason": _REASON_FRAMEWORK})
+                continue
+            if has_star_kwargs:
+                gaps.append({"path": path, "node_id": node_id, "reason": _REASON_DETAILS})
                 continue
             args_count = details.get("args_count")
             if not isinstance(args_count, int):
@@ -585,6 +617,9 @@ def _collect_signal_leak(file_item: dict[str, Any], enabled: set[str]) -> tuple[
                 continue
             if classified["status"] != "closed":
                 examined += 1
+                continue
+            if has_star_kwargs:
+                gaps.append({"path": path, "node_id": node_id, "reason": _REASON_DETAILS})
                 continue
             examined += 1
             seen_receiver_segments.add(segment)

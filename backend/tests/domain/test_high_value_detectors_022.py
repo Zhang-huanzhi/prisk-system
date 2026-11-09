@@ -274,7 +274,80 @@ class SignalLeakTests(unittest.TestCase):
         )
         result = evaluate_repo(repo, base, head)
         self.assertEqual(findings(result, self.rule_id), [])
-        self.assertEqual(outcome(result, self.rule_id)["state"], "Unanalyzed")
+        item = outcome(result, self.rule_id)
+        self.assertEqual(item["state"], "Unanalyzed")
+        self.assertEqual(item["reasons"][0]["reason"], "missing_framework_context")
+
+    def _signal_head(self, body: str) -> dict:
+        root, repo = init_repo()
+        self.addCleanup(shutil.rmtree, root, True)
+        path = "netbox/dcim/apps.py"
+        base = commit(repo, path, "def ready():\n    x = 1\n", "base")
+        head = commit(repo, path, body, "head")
+        return evaluate_repo(repo, base, head)
+
+    def assert_framework_gap(self, result: dict) -> None:
+        self.assertEqual(findings(result, self.rule_id), [])
+        item = outcome(result, self.rule_id)
+        self.assertEqual(item["state"], "Unanalyzed")
+        self.assertEqual(
+            {reason["reason"] for reason in item["reasons"]},
+            {"missing_framework_context"},
+        )
+
+    def test_custom_signal_connect_unanalyzed(self) -> None:
+        result = self._signal_head(
+            "from django.dispatch import Signal\n\n"
+            "device_synced = Signal()\n\n"
+            "def ready():\n"
+            "    device_synced.connect(on_sync)\n"
+        )
+        self.assert_framework_gap(result)
+
+    def test_imported_custom_signal_with_sender_unanalyzed(self) -> None:
+        result = self._signal_head(
+            "from netbox.signals import device_synced\n\n"
+            "def ready():\n"
+            "    device_synced.connect(on_sync, sender=Device)\n"
+        )
+        self.assert_framework_gap(result)
+
+    def test_custom_signal_receiver_decorator_unanalyzed(self) -> None:
+        result = self._signal_head(
+            "from django.dispatch import receiver\n"
+            "from netbox.signals import device_synced\n\n"
+            "@receiver(device_synced)\n"
+            "def on_sync(sender, **kwargs):\n"
+            "    return None\n"
+        )
+        self.assert_framework_gap(result)
+
+    def test_task_signal_unanalyzed(self) -> None:
+        result = self._signal_head(
+            "from celery.signals import task_success\n\n"
+            "def ready():\n"
+            "    task_success.connect(on_done)\n"
+        )
+        self.assert_framework_gap(result)
+
+    def test_unrelated_connect_no_gap_no_hit(self) -> None:
+        result = self._signal_head(
+            "import socket\n\n"
+            "def ready():\n"
+            "    client.connect()\n"
+            "    sock = socket.socket()\n"
+            "    sock.connect((\"localhost\", 8080))\n"
+            "    connect(database)\n"
+            "    helper(**options)\n"
+        )
+        self.assertEqual(findings(result, self.rule_id), [])
+        # No signal surface was examined, so the outcome must equal a file with
+        # no connect call at all: no missing_framework_context or details gap.
+        baseline = self._signal_head("def ready():\n    x = 2\n")
+        self.assertEqual(outcome(result, self.rule_id), outcome(baseline, self.rule_id))
+        reasons = {reason["reason"] for reason in outcome(result, self.rule_id)["reasons"]}
+        self.assertNotIn("missing_framework_context", reasons)
+        self.assertNotIn("unsupported_stage04_details", reasons)
 
 
 class FieldRenameTests(unittest.TestCase):
