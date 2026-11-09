@@ -12,6 +12,7 @@ from typing import Any
 from .changes import load_records, write_jsonl
 from .code_smells import CODE_SMELL_RULES, collect_code_smell_findings
 from .django_raw_sql import RAW_SQL_RULE, RAW_SQL_RULE_ID, collect_django_raw_sql
+from .high_value_detectors import HIGH_VALUE_RULE_IDS, HIGH_VALUE_RULES, collect_high_value_findings
 from .test_collaboration import COLLABORATION_RULE_ID, collaboration_terminal, collect_test_collaboration
 
 
@@ -61,6 +62,7 @@ RULE_CATALOG = [
     },
     *CODE_SMELL_RULES,
     RAW_SQL_RULE,
+    *HIGH_VALUE_RULES,
     {
         "rule_id": COLLABORATION_RULE_ID,
         "severity": "medium",
@@ -403,6 +405,33 @@ def _raw_sql_terminal(
     return _terminal(RAW_SQL_RULE_ID, _TERMINAL_UNANALYZED, [{"reason": _REASON_CONTEXT, "objects": []}])
 
 
+
+def _high_value_terminal(
+    rule_id: str,
+    trace: dict[str, dict[str, Any]],
+    parse_failures: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Preserve collector gap reasons (framework vs details)."""
+    info = trace.get(rule_id) or {"examined": 0, "gaps": []}
+    pairs: list[tuple[str, dict[str, str]]] = []
+    for gap in info.get("gaps") or []:
+        if not isinstance(gap, dict):
+            continue
+        node_id = str(gap.get("node_id") or "") or None
+        reason = str(gap.get("reason") or _REASON_DETAILS)
+        pairs.append((reason, _object(str(gap.get("path") or ""), node_id)))
+    for failure in parse_failures:
+        pairs.append((
+            str(failure.get("reason") or "head_parse_failed"),
+            _object(str(failure.get("path") or "")),
+        ))
+    reasons = _reasons_from_pairs(pairs)
+    if reasons:
+        return _terminal(rule_id, _TERMINAL_UNANALYZED, reasons)
+    if int(info.get("examined") or 0) > 0:
+        return _terminal(rule_id, _TERMINAL_NOT_FOUND)
+    return _terminal(rule_id, _TERMINAL_UNANALYZED, [{"reason": _REASON_CONTEXT, "objects": []}])
+
 def _smell_terminal(
     rule_id: str,
     trace: dict[str, dict[str, Any]],
@@ -442,6 +471,7 @@ def _rule_outcomes(
     findings: list[dict[str, Any]],
     smell_trace: dict[str, dict[str, Any]],
     raw_sql_trace: dict[str, Any],
+    high_value_trace: dict[str, dict[str, Any]],
     collaboration_finding: dict[str, Any] | None,
     collaboration_gaps: list[dict[str, str]],
     parse_failures: list[dict[str, Any]],
@@ -473,6 +503,8 @@ def _rule_outcomes(
             outcomes.append(_smell_terminal(rule_id, smell_trace, parse_failures))
         elif rule_id == RAW_SQL_RULE_ID:
             outcomes.append(_raw_sql_terminal(raw_sql_trace, parse_failures))
+        elif rule_id in HIGH_VALUE_RULE_IDS:
+            outcomes.append(_high_value_terminal(rule_id, high_value_trace, parse_failures))
         elif rule_id == COLLABORATION_RULE_ID:
             state, reasons = collaboration_terminal(record, collaboration_finding, collaboration_gaps)
             outcomes.append(_terminal(rule_id, state, reasons))
@@ -523,6 +555,8 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
     findings.extend(smell_findings)
     raw_sql_findings, raw_sql_gaps, raw_sql_trace = collect_django_raw_sql(stage04_record, enabled)
     findings.extend(raw_sql_findings)
+    high_value_findings, high_value_gaps, high_value_trace = collect_high_value_findings(stage04_record, enabled)
+    findings.extend(high_value_findings)
     collaboration_finding, collaboration_gaps = collect_test_collaboration(stage04_record, enabled)
     if collaboration_finding is not None:
         findings.append(collaboration_finding)
@@ -547,6 +581,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             findings,
             smell_trace,
             raw_sql_trace,
+            high_value_trace,
             collaboration_finding,
             collaboration_gaps,
             parse_failures,
@@ -556,7 +591,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
             "domains": domains,
             "test_collaboration": _testing_collaboration(collaboration_finding),
             "parse_degraded": degraded,
-            "unanalyzed": _merge_unanalyzed([*parse_failures, *smell_gaps, *raw_sql_gaps, *collaboration_gaps]),
+            "unanalyzed": _merge_unanalyzed([*parse_failures, *smell_gaps, *raw_sql_gaps, *high_value_gaps, *collaboration_gaps]),
         },
         "errors": [],
     }

@@ -13,5 +13,6 @@
 | :---: | :---: | :---: | :--- | :--- |
 | 019 | v1.1.0 | Accepted | `docs/019-v11-milestone-closure` | [v1.1 阶段里程碑收工归档与文档对齐精简](019-v11-milestone-closure.md) |
 | 020 | v1.2.0 | Accepted | `feat/020-residual-detector-alignment` | [残余检测器与合同对齐（v1.2 首切片）](020-residual-detector-alignment.md) |
+| 021 | v1.2.0 | Accepted | `feat/021-high-value-draft-detectors` | [高价值草稿检测器批次（v1.2 第二切片）](021-high-value-draft-detectors.md) |
 
-> 下一个未使用的任务编号为 **021**。任何新工作均需创建新编号任务并建立一对一分支。
+> 下一个未使用的任务编号为 **022**。任何新工作均需创建新编号任务并建立一对一分支。

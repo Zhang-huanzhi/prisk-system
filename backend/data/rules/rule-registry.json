@@ -1255,7 +1255,7 @@
       "name": "ViewSet 暴露动作变化",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -1326,7 +1326,7 @@
           "同一文件的 base/head Python AST",
           "三点 Diff"
         ],
-        "finding": "api.drf_viewset_action_changed 设计 Finding。011 不生成运行时 Finding。",
+        "finding": "api.drf_viewset_action_changed 设计 Finding。021 接入检测器；默认权重 0。",
         "evidence_location": [
           "class bases",
           "action name",
@@ -1353,8 +1353,8 @@
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
-        "dataset": "未圈定。当前没有运行结果。",
+        "method": "021 构造样例覆盖 Hit/NotFound/Unanalyzed。不下载真实 PR，不连接生产库。",
+        "dataset": "构造样例。当前没有真实 PR 实证。",
         "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
@@ -1481,7 +1481,7 @@
       "name": "DRF 权限策略显式降级",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "external_impact",
@@ -1548,7 +1548,7 @@
           "三点 Diff",
           "赋值或装饰器的未截断切片"
         ],
-        "finding": "auth.drf_permission_policy_downgrade 设计 Finding。011 不生成运行时 Finding。",
+        "finding": "auth.drf_permission_policy_downgrade 设计 Finding。021 接入检测器；默认权重 0。",
         "evidence_location": [
           "file path",
           "qualified name",
@@ -1575,8 +1575,8 @@
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
-        "dataset": "未圈定。当前没有运行结果。",
+        "method": "021 构造样例覆盖 Hit/NotFound/Unanalyzed。不下载真实 PR，不连接生产库。",
+        "dataset": "构造样例。当前没有真实 PR 实证。",
         "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
@@ -1772,7 +1772,7 @@
       "name": "破坏性数据库迁移风险",
       "version": "v1",
       "rule_family": "breaking_impact",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "external_impact",
@@ -1839,7 +1839,7 @@
           "三点 Diff",
           "文件路径"
         ],
-        "finding": "data.django_destructive_migration 设计 Finding。011 不生成运行时 Finding。",
+        "finding": "data.django_destructive_migration 设计 Finding。021 接入检测器；默认权重 0。",
         "evidence_location": [
           "migration path",
           "operation name",
@@ -1865,8 +1865,8 @@
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
-        "dataset": "未圈定。当前没有运行结果。",
+        "method": "021 构造样例覆盖 Hit/NotFound/Unanalyzed。不下载真实 PR，不连接生产库。",
+        "dataset": "构造样例。当前没有真实 PR 实证。",
         "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
@@ -1886,7 +1886,7 @@
       "name": "非空约束收紧",
       "version": "v1",
       "rule_family": "breaking_impact",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "external_impact",
@@ -1954,7 +1954,7 @@
           "未截断调用切片",
           "三点 Diff"
         ],
-        "finding": "data.django_non_null_constraint_tightened 设计 Finding。011 不生成运行时 Finding。",
+        "finding": "data.django_non_null_constraint_tightened 设计 Finding。021 接入检测器；默认权重 0。",
         "evidence_location": [
           "file path",
           "field name",
@@ -1979,8 +1979,8 @@
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
-        "dataset": "未圈定。当前没有运行结果。",
+        "method": "021 构造样例覆盖 Hit/NotFound/Unanalyzed。不下载真实 PR，不连接生产库。",
+        "dataset": "构造样例。当前没有真实 PR 实证。",
         "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
@@ -2200,7 +2200,7 @@
       "name": "敏感配置变化",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -2262,7 +2262,7 @@
           "同一文件的 base/head Python AST",
           "三点 Diff"
         ],
-        "finding": "config.django_sensitive_settings_changed 设计 Finding。不把秘密全文列为必填证据。011 不生成运行时 Finding。",
+        "finding": "config.django_sensitive_settings_changed 设计 Finding。不把秘密全文列为必填证据。021 接入检测器；默认权重 0。",
         "evidence_location": [
           "file path",
           "setting name",
@@ -2287,8 +2287,8 @@
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "构造样例仍待实现任务编写。011 不下载真实 PR，也不预填命中结果。",
-        "dataset": "未圈定。当前没有运行结果。",
+        "method": "021 构造样例覆盖 Hit/NotFound/Unanalyzed。不下载真实 PR，不连接生产库。",
+        "dataset": "构造样例。当前没有真实 PR 实证。",
         "oracle": "规则卡片中的设计边界。卡片还不是已实现检测器的 Ground Truth。",
         "metrics": [
           "命中频次",
@@ -2659,7 +2659,7 @@
       "name": "新增的 Django CSRF 豁免",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "external_impact",
@@ -2725,7 +2725,7 @@
           "同一文件的 base/head 装饰器节点",
           "三点 Diff"
         ],
-        "finding": "auth.django_csrf_exempt_added 设计 Finding。016 不生成运行时 Finding。",
+        "finding": "auth.django_csrf_exempt_added 设计 Finding。021 接入检测器；默认权重 0。",
         "evidence_location": [
           "file path",
           "owner",
@@ -2751,8 +2751,8 @@
       },
       "validation_obligation": {
         "level": "empirical_required",
-        "method": "构造样例仍待实现任务编写。016 不发送请求，也不下载真实 PR。",
-        "dataset": "未圈定。当前没有运行结果。",
+        "method": "021 构造样例覆盖 Hit/NotFound/Unanalyzed。不下载真实 PR，不连接生产库。",
+        "dataset": "构造样例。当前没有真实 PR 实证。",
         "oracle": "规则卡片中的设计边界。",
         "metrics": [
           "命中频次",

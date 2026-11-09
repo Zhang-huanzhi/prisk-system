@@ -1,6 +1,6 @@
 # 规则说明卡片：`api.drf_viewset_action_changed`
 
-> 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。
+> 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期是 `implemented`（021 接入检测器与构造测试）；默认权重 0，不是 `validated`，也没有真实 PR 实证。
 
 ## 1. 基础信息
 
@@ -10,7 +10,7 @@
 | 规则名称 | ViewSet 暴露动作变化 |
 | 版本 | `v1` |
 | 规则阵营 | `backend_contract` |
-| 生命周期 | `draft` |
+| 生命周期 | `implemented` |
 | 负责人 | `Prisk-System` |
 
 ## 2. 分类标签
@@ -90,7 +90,7 @@ DRF 写明的标准动作是 `list`、`create`、`retrieve`、`update`、`partia
 
 ### Finding
 
-设计线索：规则 ID、类名、动作名、`added` / `removed` / `methods_or_detail_changed`、`pr_intrinsic_risk`。不证明 URL 已经变化，因为 router 可能没有登记这个类。本任务不生成 Finding。
+设计线索：规则 ID、类名、动作名、`added` / `removed` / `methods_or_detail_changed`、`pr_intrinsic_risk`。不证明 URL 已经变化，因为 router 可能没有登记这个类。021 生成运行时 Finding；默认权重 0。
 
 ### 证据位置
 
@@ -145,5 +145,5 @@ DRF 写明的标准动作是 `list`、`create`、`retrieve`、`update`、`partia
 | 数据集 | 未圈定 |
 | 判定依据 | 将来的人工标注 |
 | 指标 | 不预填 |
-| 验收标准 | 待实现任务再写 |
-| 未解决问题 | 自定义 router 与跨文件继承不做；没有检测器 |
+| 验收标准 | 021 以构造样例验收 |
+| 未解决问题 | 自定义 router 与跨文件继承不做；021 已接入检测器 |
