@@ -1,6 +1,6 @@
 # 规则说明卡片：`api.django_url_pattern_changed`
 
-> 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。
+> 本卡片同时服务于工程登记和毕业论文写作。样例都是构造样例，不是某个已合并 PR 的复原。生命周期是 `implemented`（024 接入检测器与构造测试）；默认权重 0，不是 `validated`，也没有真实 PR 实证。
 
 ## 1. 基础信息
 
@@ -10,7 +10,7 @@
 | 规则名称 | 路由映射变化 |
 | 版本 | `v1` |
 | 规则阵营 | `backend_contract` |
-| 生命周期 | `draft` |
+| 生命周期 | `implemented` |
 | 负责人 | `Prisk-System` |
 
 ## 2. 分类标签
@@ -87,7 +87,7 @@ route、view 和 name 的可读文本都没变，只改了无关的格式；调�
 
 ### Finding
 
-设计线索：规则 ID、调用名、变化的 route 或 name、文件和行、`pr_intrinsic_risk`。不证明线上路由已经 404。本任务不生成 Finding。
+设计线索：规则 ID、调用名、变化的 route 或 name、文件和行、`pr_intrinsic_risk`。不证明线上路由已经 404。024 接入检测器并生成 Finding。
 
 ### 证据位置
 

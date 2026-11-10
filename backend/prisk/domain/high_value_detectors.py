@@ -15,6 +15,7 @@ from typing import Any
 
 from .framework_bases import resolve_class_bases
 from .second_batch_detectors import SECOND_BATCH_RULES, SECOND_BATCH_RULE_IDS, collect_second_batch_findings
+from .third_batch_detectors import THIRD_BATCH_RULES, THIRD_BATCH_RULE_IDS, collect_third_batch_findings
 from .sensitive_settings import SENSITIVE_SETTING_NAMES, classify_sensitive_direction
 
 
@@ -76,7 +77,7 @@ HIGH_VALUE_RULES: list[dict[str, str]] = [
     },
 ]
 
-HIGH_VALUE_RULES = [*HIGH_VALUE_RULES, *SECOND_BATCH_RULES]
+HIGH_VALUE_RULES = [*HIGH_VALUE_RULES, *SECOND_BATCH_RULES, *THIRD_BATCH_RULES]
 _RULES_BY_ID = {rule["rule_id"]: rule for rule in HIGH_VALUE_RULES}
 HIGH_VALUE_RULE_IDS = frozenset(_RULES_BY_ID)
 
@@ -149,7 +150,10 @@ def _parse_statement(segment: str) -> ast.AST | None:
 def _summary_gaps(gaps: list[dict[str, str]]) -> list[dict[str, Any]]:
     grouped: dict[tuple[str, str], list[str]] = {}
     for gap in gaps:
-        grouped.setdefault((gap["path"], gap["reason"]), []).append(gap["node_id"])
+        node_id = str(gap.get("node_id") or "")
+        node_ids = grouped.setdefault((gap["path"], gap["reason"]), [])
+        if node_id:
+            node_ids.append(node_id)
     return [
         {"path": path, "reason": reason, "node_ids": sorted(set(node_ids))}
         for (path, reason), node_ids in sorted(grouped.items())
@@ -999,6 +1003,15 @@ def collect_high_value_findings(
     second_findings, _second_gaps, second_traces = collect_second_batch_findings(stage04_record, enabled)
     findings.extend(second_findings)
     for rule_id, trace in second_traces.items():
+        traces.setdefault(rule_id, {"examined": 0, "gaps": []})
+        traces[rule_id]["examined"] += int(trace.get("examined") or 0)
+        for gap in trace.get("gaps") or []:
+            all_gaps.append(gap)
+            if gap not in traces[rule_id]["gaps"]:
+                traces[rule_id]["gaps"].append(gap)
+    third_findings, _third_gaps, third_traces = collect_third_batch_findings(stage04_record, enabled)
+    findings.extend(third_findings)
+    for rule_id, trace in third_traces.items():
         traces.setdefault(rule_id, {"examined": 0, "gaps": []})
         traces[rule_id]["examined"] += int(trace.get("examined") or 0)
         for gap in trace.get("gaps") or []:

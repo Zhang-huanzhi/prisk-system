@@ -1141,7 +1141,7 @@
       "name": "路由映射变化",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -2437,7 +2437,7 @@
       "name": "函数默认参数中的可变对象",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -2551,7 +2551,7 @@
       "name": "生产代码中的 assert",
       "version": "v1",
       "rule_family": "code_smell",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
