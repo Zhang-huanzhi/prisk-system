@@ -31,4 +31,4 @@
 
 设计 Hit 仍然要满足各卡片自己的触发条件。映射只解决「这个类算不算那条规则的适用表面」。例如 `PrimaryModelSerializer` 上省略 `required` 仍然 Unanalyzed；写出 `required=True` 且没有 `default=` 才进入新增必填规则的设计 Hit。`NetBoxModelViewSet` 上的 `get_queryset` 只有在返回未过滤 `objects.all()` 时才进入查询集规则的设计 Hit。
 
-这些规则的 `lifecycle` 仍是 `draft`。运行时已能解析本表身份，但对应 draft 检测器尚未产出 Finding；解析本身不产生 Hit。
+022 起，映射表涉及的 `api.drf_public_parameter_added` / `api.drf_public_parameter_removed` / `auth.drf_queryset_scope_tighten_bypassed` / `data.django_field_rename_without_db_column` 已是 `implemented`（默认权重 0）。解析本身仍不单独产生 Hit。

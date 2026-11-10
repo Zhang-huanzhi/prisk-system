@@ -1,6 +1,6 @@
 # 规则说明卡片：`auth.drf_permission_decorator_removed`
 
-> 本卡片同时服务于工程登记和毕业论文写作。没有证据的内容填写“待验证”，不要用推测替代结果。生命周期保持 `draft`：没有检测器，也没有运行终态。
+> 本卡片同时服务于工程登记和毕业论文写作。没有证据的内容填写“待验证”，不要用推测替代结果。本卡片也是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期是 `implemented`（022 接入检测器与构造测试）；默认权重 0，不是 `validated`，也没有真实 PR 实证。
 
 ## 1. 基础信息
 
@@ -10,7 +10,7 @@
 | 规则名称 | 权限装饰器被移除 |
 | 版本 | `v1` |
 | 规则阵营 | `backend_contract` |
-| 生命周期 | `draft` |
+| 生命周期 | `implemented` |
 | 负责人 | `Prisk-System` |
 
 ## 2. 分类标签
@@ -53,7 +53,7 @@ NetBox 的认证与权限场景已纳入 [02 阶段调研](../../../versions/v1.
 - **触发特征**：`decorator_name`（`source` 为装饰器表达式的直接名称或属性最后一段；`value_type` 为 `string`；`operator` 为 `contains`；`threshold` 为上面五个名字；`required` 为 true）。`decorator_removed`（`source` 为 base 有、head 无，且与删除行相交；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true）。
 - **不触发条件**：装饰器还在；新增装饰器；`@action` 或名单外的缓存装饰器；类属性 `permission_classes = [...]` 的取值变化。空列表和 `AllowAny` 只属于权限降级规则。
 - **输入**：同一文件 base/head 的装饰器节点和三点 Diff。
-- **Finding**：设计线索，函数或类限定名、被移除的表达式、`external_impact`。不证明请求已经越权。本任务不生成 Finding。
+- **Finding**：设计线索，函数或类限定名、被移除的表达式、`external_impact`。不证明请求已经越权。022 生成运行时 Finding；默认权重 0。
 - **证据位置**：文件、限定名、被移除的表达式、相交的删除行、base 侧切片。
 - **上下文切片**：该装饰器表达式。不附带整个函数体。
 - **影响类型**：权限声明。
@@ -98,5 +98,5 @@ class OtherView(APIView):
 | 数据集 | 未圈定 |
 | 判定依据 | 将来的人工标注 |
 | 指标 | Precision、Recall 不预填 |
-| 验收标准 | 抑制条件有构造测试之前不能写成 `registered` |
-| 未解决问题 | 五段名字还没有写进运行时代码。同一文件抑制，包括无关类 `OtherView`。收窄到同一个函数或同一个类，是未决提议。没有检测器 |
+| 验收标准 | 022 以构造样例验收。当前 022 已接入检测器 |
+| 未解决问题 | 五段名字已写进 022 运行时代码，按装饰器表达式的最后一段整段相等。同一文件抑制，包括无关类 `OtherView`。收窄到同一个函数或同一个类，是未决提议。022 已接入检测器。022 的检测器拿不到完整 head 文件：stage04 只保留与改动行相交的节点（`structure._map_nodes`），所以 head 里只要有一行未改动，那里的 `permission_classes = ...` 就可能看不见；这时删除候选记 Unanalyzed，原因是 `unsupported_stage04_details`，不记 Hit。只有 head 每一行都是新增行时，才按全文件结果判 Hit |

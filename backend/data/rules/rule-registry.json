@@ -924,7 +924,7 @@
       "name": "公有接口新增必填参数",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -1036,7 +1036,7 @@
       "name": "公有接口删除既有参数",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -1374,7 +1374,7 @@
       "name": "权限装饰器被移除",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "external_impact",
@@ -2772,7 +2772,7 @@
       "name": "DRF 查询集收紧被绕过",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "external_impact",
@@ -2908,7 +2908,7 @@
       "name": "Django 信号接收器缺少 dispatch_uid",
       "version": "v1",
       "rule_family": "backend_contract",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "pr_intrinsic",
@@ -3042,7 +3042,7 @@
       "name": "模型字段改名缺少 db_column",
       "version": "v1",
       "rule_family": "breaking_impact",
-      "lifecycle": "draft",
+      "lifecycle": "implemented",
       "owner": "Prisk-System",
       "classification": {
         "risk_nature": "external_impact",

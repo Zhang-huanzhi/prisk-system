@@ -1,6 +1,6 @@
-"""High-value draft detectors for task 021.
+"""High-value draft detectors for tasks 021 and 022.
 
-Six rules land as Finding paths with Hit / NotFound / Unanalyzed terminals.
+021 six rules plus 022 second batch land as Finding paths with Hit / NotFound / Unanalyzed terminals.
 Hits are review clues. They do not prove CSRF exploits, anonymous writes,
 dropped tables, or production misconfiguration. Lifecycle promotion happens
 in the registry when constructive tests pass; default weight stays 0.
@@ -14,6 +14,7 @@ import textwrap
 from typing import Any
 
 from .framework_bases import resolve_class_bases
+from .second_batch_detectors import SECOND_BATCH_RULES, SECOND_BATCH_RULE_IDS, collect_second_batch_findings
 from .sensitive_settings import SENSITIVE_SETTING_NAMES, classify_sensitive_direction
 
 
@@ -75,6 +76,7 @@ HIGH_VALUE_RULES: list[dict[str, str]] = [
     },
 ]
 
+HIGH_VALUE_RULES = [*HIGH_VALUE_RULES, *SECOND_BATCH_RULES]
 _RULES_BY_ID = {rule["rule_id"]: rule for rule in HIGH_VALUE_RULES}
 HIGH_VALUE_RULE_IDS = frozenset(_RULES_BY_ID)
 
@@ -994,6 +996,15 @@ def collect_high_value_findings(
             for gap in part_gaps:
                 if gap not in traces[rule_id]["gaps"]:
                     traces[rule_id]["gaps"].append(gap)
+    second_findings, _second_gaps, second_traces = collect_second_batch_findings(stage04_record, enabled)
+    findings.extend(second_findings)
+    for rule_id, trace in second_traces.items():
+        traces.setdefault(rule_id, {"examined": 0, "gaps": []})
+        traces[rule_id]["examined"] += int(trace.get("examined") or 0)
+        for gap in trace.get("gaps") or []:
+            all_gaps.append(gap)
+            if gap not in traces[rule_id]["gaps"]:
+                traces[rule_id]["gaps"].append(gap)
     findings.sort(
         key=lambda item: (
             item["evidence"][0].get("path") or "",

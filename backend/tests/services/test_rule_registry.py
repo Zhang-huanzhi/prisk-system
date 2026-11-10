@@ -80,13 +80,19 @@ class RuleRegistryTests(unittest.TestCase):
                 "code.deep_control_flow",
                 "code.global_mutable_state",
                 "workflow.test_collaboration_gap",
+                "api.drf_public_parameter_added",
+                "api.drf_public_parameter_removed",
                 "api.drf_viewset_action_changed",
+                "auth.drf_permission_decorator_removed",
                 "auth.drf_permission_policy_downgrade",
                 "data.django_destructive_migration",
                 "data.django_non_null_constraint_tightened",
                 "data.django_raw_sql_execution",
                 "config.django_sensitive_settings_changed",
                 "auth.django_csrf_exempt_added",
+                "auth.drf_queryset_scope_tighten_bypassed",
+                "data.django_signal_receiver_leak",
+                "data.django_field_rename_without_db_column",
             ],
         )
         registered = [rule["rule_id"] for rule in self.registry["rules"] if rule["lifecycle"] == "registered"]
@@ -98,8 +104,7 @@ class RuleRegistryTests(unittest.TestCase):
         index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
         catalog_ids = {item["rule_id"] for item in RULE_CATALOG}
         expected = [
-            "api.drf_public_parameter_added",
-            "auth.drf_permission_decorator_removed",
+            "api.django_url_pattern_changed",
         ]
         self.assertTrue(set(expected).isdisjoint(catalog_ids))
         self.assertIn("data.django_raw_sql_execution", catalog_ids)
@@ -198,9 +203,9 @@ class LifecycleFieldConsistencyTests(unittest.TestCase):
         self.assertIsNone(rule["classification"]["gatekeeper_condition"])
         self.assertEqual(rule["definition"]["impact_type"], "pr_intrinsic_risk")
         lifecycles = [item["lifecycle"] for item in self.registry["rules"]]
-        # 015 left 14 drafts. 016 appends six draft cards and does not change earlier lifecycles.
-        self.assertEqual(lifecycles.count("draft"), 14)
-        self.assertEqual(lifecycles.count("implemented"), 15)
+        # 022 promotes six high-value drafts to implemented; eight drafts remain.
+        self.assertEqual(lifecycles.count("draft"), 8)
+        self.assertEqual(lifecycles.count("implemented"), 21)
         self.assertEqual(lifecycles.count("registered"), 0)
         self.assertEqual(lifecycles.count("validated"), 0)
         self.assertEqual(lifecycles.count("deprecated"), 0)
@@ -254,9 +259,6 @@ class Task016DraftCardTests(unittest.TestCase):
         expected = {
             "code.mutable_default_argument": ("code_smell", "Medium", "pr_intrinsic", "language"),
             "code.assert_in_production": ("code_smell", "Medium", "pr_intrinsic", "language"),
-            "auth.drf_queryset_scope_tighten_bypassed": ("backend_contract", "High", "external_impact", "framework"),
-            "data.django_signal_receiver_leak": ("backend_contract", "Medium", "pr_intrinsic", "framework"),
-            "data.django_field_rename_without_db_column": ("breaking_impact", "High", "external_impact", "database"),
         }
         catalog_ids = {item["rule_id"] for item in RULE_CATALOG}
         self.assertTrue(set(expected).isdisjoint(catalog_ids))
@@ -305,7 +307,7 @@ class DraftContractConsistencyTests(unittest.TestCase):
 
     def test_parameter_added_target_is_same_file_surface(self) -> None:
         rule = self._rule("api.drf_public_parameter_added")
-        self.assertEqual(rule["lifecycle"], "draft")
+        self.assertEqual(rule["lifecycle"], "implemented")
         target = rule["definition"]["target"]
         self.assertNotIn("已路由 DRF", target)
         self.assertNotIn("已路由 APIView", target)
@@ -323,7 +325,7 @@ class DraftContractConsistencyTests(unittest.TestCase):
 
     def test_decorator_removed_suppression_is_same_file(self) -> None:
         rule = self._rule("auth.drf_permission_decorator_removed")
-        self.assertEqual(rule["lifecycle"], "draft")
+        self.assertEqual(rule["lifecycle"], "implemented")
         trigger = rule["definition"]["trigger"]
         self.assertIn("同一文件的 head 出现 permission_classes 赋值", trigger)
         self.assertIn("无关类", trigger)

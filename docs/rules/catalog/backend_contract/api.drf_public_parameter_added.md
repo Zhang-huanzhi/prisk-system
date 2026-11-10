@@ -1,6 +1,6 @@
 # 规则说明卡片：`api.drf_public_parameter_added`
 
-> 本卡片同时服务于工程登记和毕业论文写作。没有证据的内容填写“待验证”，不要用推测替代结果。生命周期保持 `draft`：没有检测器，也没有运行终态。
+> 本卡片同时服务于工程登记和毕业论文写作。没有证据的内容填写“待验证”，不要用推测替代结果。本卡片也是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期是 `implemented`（022 接入检测器与构造测试）；默认权重 0，不是 `validated`，也没有真实 PR 实证。
 
 ## 1. 基础信息
 
@@ -10,7 +10,7 @@
 | 规则名称 | 公有接口新增必填参数 |
 | 版本 | `v1` |
 | 规则阵营 | `backend_contract` |
-| 生命周期 | `draft` |
+| 生命周期 | `implemented` |
 | 负责人 | `Prisk-System` |
 
 ## 2. 分类标签
@@ -53,7 +53,7 @@ NetBox 的接口行为主要来自 REST serializer 和 API view，而不是任�
 - **触发特征**：`parameter_added`（`source` 为 base 字段或签名没有该名、head 有；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true）。`required_flag`（`source` 为未截断调用切片里的 `required=True` 且没有 `default=`，或参数 `has_default` 为假；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true）。`same_file_surface`（`source` 为同一文件的基类最后一段或装饰器文本；`value_type` 为 `boolean`；`operator` 为 `eq`；`threshold` 为 `true`；`required` 为 true）。
 - **不触发条件**：`required=False`；带 `default=`；只改 `help_text`；没有 `@api_view` / `@action` 的普通函数；只在 head 出现的整份类或函数；已有名字只改必填性。
 - **输入**：同一文件的 head/base AST 和三点 Diff。不读取其他文件的 router。
-- **Finding**：设计线索，规则 ID、参数名、所在类、`pr_intrinsic_risk`、严重度 `High`。不证明线上客户端已经失败。本任务不生成 Finding。
+- **Finding**：设计线索，规则 ID、参数名、所在类、`pr_intrinsic_risk`、严重度 `High`。不证明线上客户端已经失败。022 生成运行时 Finding；默认权重 0。
 - **证据位置**：文件、限定名、参数名、`required=True` 或 `has_default: false`、相交的新增行、head 侧切片。
 - **上下文切片**：该字段赋值或该函数签名。切片截断时不能把缺关键字当成 `required=True`。
 - **影响类型**：接口合同。
@@ -98,5 +98,5 @@ NetBox 的接口行为主要来自 REST serializer 和 API view，而不是任�
 | 数据集 | 未圈定。当前没有运行结果 |
 | 判定依据 | 将来的人工标注。拟定合同还不是已实现检测器的 Ground Truth |
 | 指标 | 命中频次、Precision、Recall 待验证设计确定，不预填 |
-| 验收标准 | 待验证设计确定；当前不预填结果 |
-| 未解决问题 | 没有检测器，也没有构造测试。省略 `required` 的默认表仍不冻结。`partial=True` 与父类字段仍不可读。跨文件 `router.register` 仍然不是表面证据。映射表不由运行时执行 |
+| 验收标准 | 022 以构造样例验收。当前 022 已接入检测器 |
+| 未解决问题 | 022 已接入检测器与构造测试。省略 `required` 的默认表仍不冻结。`partial=True` 与父类字段仍不可读。跨文件 `router.register` 仍然不是表面证据。022 的检测器经 `resolve_class_bases` 按最后一段整段相等读取这张表 |

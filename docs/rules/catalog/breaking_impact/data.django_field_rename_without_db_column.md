@@ -1,6 +1,6 @@
 # 规则说明卡片：`data.django_field_rename_without_db_column`
 
-> 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期保持 `draft`：没有检测器，也没有运行终态。严重度与风险性质是工程负责人的临时判断，不是终局。登记册没有权重字段；概念上的默认权重是 0，本任务不接入评分。本规则不运行 `makemigrations`，也不证明迁移文件里已经出现 `RemoveField` 与 `AddField`。
+> 本卡片是设计记录。样例都是构造样例，不是某个已合并 PR 的复原。生命周期是 `implemented`（022 接入检测器与构造测试）；默认权重 0，不是 `validated`，也没有真实 PR 实证。严重度与风险性质是工程负责人的临时判断，不是终局。本规则不运行 `makemigrations`，也不证明迁移文件里已经出现 `RemoveField` 与 `AddField`。
 
 ## 1. 基础信息
 
@@ -10,7 +10,7 @@
 | 规则名称 | 模型字段改名缺少 db_column |
 | 版本 | `v1` |
 | 规则阵营 | `breaking_impact` |
-| 生命周期 | `draft` |
+| 生命周期 | `implemented` |
 | 负责人 | `Prisk-System` |
 
 登记阵营是 `breaking_impact`。这不表示已经证实外部数据丢失。
@@ -96,7 +96,7 @@ base 与 head 都存在的同一个类。类的直接基类最后一段必须是
 
 ### Finding
 
-设计线索：规则 ID、类限定名、旧字段名、新字段名、构造器最后一段、设计标签 `external_impact`。不证明自动检测器已经发出 `RemoveField` 和 `AddField`，也不证明列上的数据已经丢失。本任务不生成 Finding。
+设计线索：规则 ID、类限定名、旧字段名、新字段名、构造器最后一段、设计标签 `external_impact`。不证明自动检测器已经发出 `RemoveField` 和 `AddField`，也不证明列上的数据已经丢失。022 生成运行时 Finding；默认权重 0。
 
 ### 证据位置
 
@@ -157,5 +157,5 @@ base 与 head 都存在的同一个类。类的直接基类最后一段必须是
 | 数据集 | 未圈定 |
 | 判定依据 | 将来的人工标注。官方文档不证明自动检测器在本项目数据上的配对结果 |
 | 指标 | 不预填 |
-| 验收标准 | 字段名与 `keyword_names` 能在同一赋值上配对，并且构造测试按本卡片工作之前，不能写成 `implemented`。文档写完也不是 `registered` |
-| 未解决问题 | `NetBoxModel` 已写入映射表，检测器还不读这张表。未列入的项目基类仍是 Unanalyzed。不跨文件读取 `RenameField`；没有检测器，没有实证 |
+| 验收标准 | 022 以构造样例验收。当前 022 已接入检测器 |
+| 未解决问题 | `NetBoxModel` 已写入映射表；022 的检测器经 `resolve_class_bases` 按最后一段整段相等读取这张表。未列入的项目基类仍是 Unanalyzed。不跨文件读取 `RenameField`；022 已接入检测器；没有实证 |
