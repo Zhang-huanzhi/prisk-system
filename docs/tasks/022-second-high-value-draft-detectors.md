@@ -2,7 +2,7 @@
 task_id: "022"
 target_version: "v1.2.0"
 title: "第二批高价值草稿检测器（v1.2 第三切片）"
-status: "In Progress"
+status: "Accepted"
 branch: "feat/022-second-high-value-draft-detectors"
 date: "2026-11-09"
 ---
@@ -72,7 +72,3 @@ date: "2026-11-09"
 - stage04 只发出与 diff 相交的节点；类头是否预先存在依赖 `start_line` 不在 `changed_lines` 的启发式。
 - `auth.drf_permission_decorator_removed`：head 只要有一行未改动就记 Unanalyzed，真实 PR 上多半得不到 Hit；要恢复 Hit，需要把完整 head 源码交给检测器，本任务不加这条管线。
 - `data.django_signal_receiver_leak`：从别的模块导入、又不带 `sender`、`weak`、`dispatch_uid` 的自定义信号既不记 Hit 也不记 Unanalyzed，是接受的已知漏报。
-
-## 验收说明
-
-任务状态保持 In Progress。PR 开出后由 Engineering Lead 审查；不在本任务内 Accepted / 合并 / 删分支。不宣布 v1.2.0，不开 023，不建 `docs/versions/v1.2*`。
