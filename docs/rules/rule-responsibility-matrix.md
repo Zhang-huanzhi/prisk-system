@@ -20,11 +20,12 @@ Precision、Recall、阈值和样本量应在后续验证设计中说明依据�
 
 ## 验证现状小结
 
-- **已接入检测器与构造测试（`implemented`，共 9 条）**：
-  - 语言异味（7 条）：`code.swallowed_exception`、`code.bare_exception`、`code.dynamic_execution`、`code.unmanaged_open`、`code.deep_control_flow`、`code.hardcoded_secret`、`code.global_mutable_state`。
-  - 过程协同（1 条）：`workflow.test_collaboration_gap`。
-  - 框架契约（1 条）：`data.django_raw_sql_execution`（先行合入，默认权重 0）。
-  - *注：上述规则已通过单元测试验证工程实现正确性，但尚未开展生产级 Precision / Recall 实证验证。*
-- **设计草稿（`draft`，共 20 条）**：
-  - 包含已编写规范卡片的 20 条设计草稿（含接口契约、权限策略、迁移变更、信号泄漏等）。
-  - Task 018 门槛决策终裁卡片设计以 `yes with carve-outs` 收口，全部草稿在检测器接入前按设计保持 `draft`，检测器实现任务统一排入 v1.2 及后续迭代。
+- **已接入检测器与构造测试（`implemented`，共 24 条）**：
+  - 语言异味（9 条）：`code.swallowed_exception`、`code.bare_exception`、`code.dynamic_execution`、`code.unmanaged_open`、`code.deep_control_flow`、`code.hardcoded_secret`、`code.global_mutable_state`、`code.assert_in_production`、`code.mutable_default_argument`。
+  - 过程与变更冲击（4 条）：`workflow.test_collaboration_gap`、`data.django_destructive_migration`、`data.django_non_null_constraint_tightened`、`data.django_field_rename_without_db_column`。
+  - 框架契约（11 条）：`api.drf_public_parameter_added`、`api.drf_public_parameter_removed`、`api.django_url_pattern_changed`、`api.drf_viewset_action_changed`、`auth.drf_permission_decorator_removed`、`auth.drf_permission_policy_downgrade`、`data.django_raw_sql_execution`、`config.django_sensitive_settings_changed`、`auth.django_csrf_exempt_added`、`auth.drf_queryset_scope_tighten_bypassed`、`data.django_signal_receiver_leak`。
+  - *注：上述规则已通过单元测试与构造样例验证工程实现正确性，但尚未开展生产级 Precision / Recall 实证验证。*
+- **设计草稿（`draft`，共 5 条）**：
+  - 延后草稿卡片（2 条）：`data.django_transaction_boundary_changed`（语句级包含关系）、`workflow.large_change_scope`（项目动态阈值与模块映射）。
+  - 暂不建卡排除项（3 条）：`code.dead_code_after_exit`、`auth.drf_object_permission_bypass`、`auth.django_permission_module_changed`。
+  - 上述草稿在接入检测器前按设计保持 `draft`，待后续全仓分析或动态工作台阶段演进。
