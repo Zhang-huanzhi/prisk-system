@@ -41,6 +41,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "data.django_field_rename_without_db_column": 0,
         "api.drf_public_parameter_added": 0,
         "api.drf_public_parameter_removed": 0,
+        "api.django_url_pattern_changed": 0,
+        "code.assert_in_production": 0,
+        "code.mutable_default_argument": 0,
         COLLABORATION_RULE_ID: 1,
     },
     "test_collaboration_weight": 1,
@@ -74,6 +77,9 @@ RULE_SCOPES = {
     "data.django_field_rename_without_db_column": "非 migrations 路径上 Model 字段一对一改名且无 db_column",
     "api.drf_public_parameter_added": "已有 Serializer 或 @api_view/@action 表面新增必填参数",
     "api.drf_public_parameter_removed": "已有 Serializer 或 @api_view/@action 表面删除参数/字段",
+    "api.django_url_pattern_changed": "同一文件 Django URL 路由（path/re_path/register）的 route、view 或 name 发生变更",
+    "code.assert_in_production": "生产代码路径中的 assert 语句（python -O 优化模式下会被跳过）",
+    "code.mutable_default_argument": "函数、异步函数或 lambda 默认参数中的可变容器（list/dict/set 显示或无参调用）",
     COLLABORATION_RULE_ID: "默认路径分类下的生产代码内容变更，且同一变更没有测试文件变更",
 }
 

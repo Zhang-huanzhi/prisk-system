@@ -82,6 +82,7 @@ class RuleRegistryTests(unittest.TestCase):
                 "workflow.test_collaboration_gap",
                 "api.drf_public_parameter_added",
                 "api.drf_public_parameter_removed",
+                "api.django_url_pattern_changed",
                 "api.drf_viewset_action_changed",
                 "auth.drf_permission_decorator_removed",
                 "auth.drf_permission_policy_downgrade",
@@ -89,6 +90,8 @@ class RuleRegistryTests(unittest.TestCase):
                 "data.django_non_null_constraint_tightened",
                 "data.django_raw_sql_execution",
                 "config.django_sensitive_settings_changed",
+                "code.mutable_default_argument",
+                "code.assert_in_production",
                 "auth.django_csrf_exempt_added",
                 "auth.drf_queryset_scope_tighten_bypassed",
                 "data.django_signal_receiver_leak",
@@ -103,19 +106,10 @@ class RuleRegistryTests(unittest.TestCase):
 
         index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
         catalog_ids = {item["rule_id"] for item in RULE_CATALOG}
-        expected = [
-            "api.django_url_pattern_changed",
-        ]
-        self.assertTrue(set(expected).isdisjoint(catalog_ids))
+        # In 024, all 11 backend_contract cards are implemented
+        self.assertIn("api.django_url_pattern_changed", catalog_ids)
         self.assertIn("data.django_raw_sql_execution", catalog_ids)
         self.assertTrue({"code.hardcoded_secret", "code.global_mutable_state"} <= catalog_ids)
-        for rule_id in expected:
-            rule = next(item for item in self.registry["rules"] if item["rule_id"] == rule_id)
-            self.assertEqual(rule["lifecycle"], "draft")
-            match = re.search(rf"\[`{re.escape(rule_id)}`\]\(([^)]+)\) · `draft`", index)
-            self.assertIsNotNone(match, rule_id)
-            content = (KNOWLEDGE_BASE / match.group(1)).read_text(encoding="utf-8")
-            _assert_split_card_identity(self, content, rule)
         for lifecycle in ("registered", "implemented"):
             entries = [rule for rule in self.registry["rules"] if rule["lifecycle"] == lifecycle]
             for rule in entries:
@@ -203,9 +197,9 @@ class LifecycleFieldConsistencyTests(unittest.TestCase):
         self.assertIsNone(rule["classification"]["gatekeeper_condition"])
         self.assertEqual(rule["definition"]["impact_type"], "pr_intrinsic_risk")
         lifecycles = [item["lifecycle"] for item in self.registry["rules"]]
-        # 022 promotes six high-value drafts to implemented; eight drafts remain.
-        self.assertEqual(lifecycles.count("draft"), 8)
-        self.assertEqual(lifecycles.count("implemented"), 21)
+        # 024 promotes three high-value drafts to implemented; five drafts remain.
+        self.assertEqual(lifecycles.count("draft"), 5)
+        self.assertEqual(lifecycles.count("implemented"), 24)
         self.assertEqual(lifecycles.count("registered"), 0)
         self.assertEqual(lifecycles.count("validated"), 0)
         self.assertEqual(lifecycles.count("deprecated"), 0)
@@ -256,14 +250,18 @@ class Task016DraftCardTests(unittest.TestCase):
     def test_six_new_cards_are_draft_and_not_runtime_rules(self) -> None:
         from prisk.domain.rules import RULE_CATALOG
 
-        expected = {
+        all_six = {
             "code.mutable_default_argument": ("code_smell", "Medium", "pr_intrinsic", "language"),
             "code.assert_in_production": ("code_smell", "Medium", "pr_intrinsic", "language"),
+            "auth.django_csrf_exempt_added": ("backend_contract", "High", "external_impact", "framework"),
+            "auth.drf_queryset_scope_tighten_bypassed": ("backend_contract", "High", "external_impact", "framework"),
+            "data.django_signal_receiver_leak": ("backend_contract", "Medium", "pr_intrinsic", "framework"),
+            "data.django_field_rename_without_db_column": ("breaking_impact", "High", "external_impact", "database"),
         }
         catalog_ids = {item["rule_id"] for item in RULE_CATALOG}
-        self.assertTrue(set(expected).isdisjoint(catalog_ids))
-        self.assertIn("auth.django_csrf_exempt_added", catalog_ids)
-        self.assertEqual(self.by_id["auth.django_csrf_exempt_added"]["lifecycle"], "implemented")
+        for rule_id in all_six:
+            self.assertIn(rule_id, catalog_ids)
+            self.assertEqual(self.by_id[rule_id]["lifecycle"], "implemented")
         index = (KNOWLEDGE_BASE / "README.md").read_text(encoding="utf-8")
         self.assertIn("011 整理的研究候选仍是 20 条", index)
         self.assertIn("016 在这 20 条之外新增 6 条草稿候选", index)
@@ -273,20 +271,19 @@ class Task016DraftCardTests(unittest.TestCase):
         self.assertIn("不把 8 / 10 / 2 重计", screen)
         readiness = (KNOWLEDGE_BASE / "v1.1-card-readiness.md").read_text(encoding="utf-8")
         self.assertIn("不是登记册里全部 23 条", readiness)
-        for rule_id, (family, severity, risk, level) in expected.items():
+        for rule_id, (family, severity, risk, level) in all_six.items():
             rule = self.by_id[rule_id]
-            self.assertEqual(rule["lifecycle"], "draft", rule_id)
+            self.assertEqual(rule["lifecycle"], "implemented", rule_id)
             self.assertEqual(rule["rule_family"], family, rule_id)
             self.assertEqual(rule["classification"]["severity"], severity, rule_id)
             self.assertEqual(rule["classification"]["risk_nature"], risk, rule_id)
             self.assertEqual(rule["classification"]["dependency_level"], level, rule_id)
             self.assertFalse(rule["classification"]["gatekeeper"], rule_id)
             self.assertIsNone(rule["classification"]["gatekeeper_condition"], rule_id)
-            badge = re.search(rf"\[`{re.escape(rule_id)}`\]\(([^)]+)\) · `draft`", index)
+            badge = re.search(rf"\[`{re.escape(rule_id)}`\]\(([^)]+)\) · `implemented`", index)
             self.assertIsNotNone(badge, rule_id)
             card = (KNOWLEDGE_BASE / badge.group(1)).read_text(encoding="utf-8")
-            self.assertEqual(_lifecycle_tokens(card), {"draft"}, rule_id)
-            self.assertIn("没有检测器", card, rule_id)
+            self.assertEqual(_lifecycle_tokens(card), {"implemented"}, rule_id)
             self.assertNotIn("NetBox 试点结果", card.replace("也没有 NetBox 试点结果", ""))
         mutable = (KNOWLEDGE_BASE / "catalog/code_smell/code.global_mutable_state.md").read_text(encoding="utf-8")
         self.assertIn("code.mutable_default_argument.md", mutable)

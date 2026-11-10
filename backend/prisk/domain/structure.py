@@ -130,6 +130,129 @@ def _container_kind(value: ast.AST | None) -> str | None:
         return f"{value.func.id}_call"
     return None
 
+def _parameter_default_items(source: str, args: ast.arguments) -> list[dict[str, Any]]:
+    positional = list(getattr(args, "posonlyargs", [])) + list(args.args)
+    paired: list[tuple[ast.arg, ast.expr | None]] = [(item, None) for item in positional]
+    offset = len(positional) - len(args.defaults)
+    for index, default in enumerate(args.defaults):
+        paired[offset + index] = (positional[offset + index], default)
+    paired.extend(zip(args.kwonlyargs, args.kw_defaults))
+    result: list[dict[str, Any]] = []
+    for parameter, default in paired:
+        if default is None:
+            continue
+        c_kind = _container_kind(default)
+        start_line = int(getattr(default, "lineno", getattr(parameter, "lineno", 1)))
+        end_line = int(getattr(default, "end_lineno", start_line))
+        result.append({
+            "name": parameter.arg,
+            "default_kind": c_kind or "non_mutable",
+            "start_line": start_line,
+            "end_line": end_line,
+            "default_expr": _expr_text(source, default),
+        })
+    return result
+
+
+def _routing_call_facts(
+    source: str,
+    node: ast.Call,
+    callee: str,
+    direct_name: str | None,
+    attribute_name: str | None,
+) -> dict[str, Any] | None:
+    callee_name = attribute_name or direct_name
+    if callee_name not in {"path", "re_path", "register", "include", "url"}:
+        return None
+    has_unpacking = any(isinstance(arg, ast.Starred) for arg in node.args) or any(
+        kw.arg is None for kw in node.keywords
+    )
+
+    route_node = None
+    for kw in node.keywords:
+        if kw.arg in {"route", "prefix"}:
+            route_node = kw.value
+            break
+    if route_node is None and node.args:
+        if not isinstance(node.args[0], ast.Starred):
+            route_node = node.args[0]
+
+    route_status = "missing"
+    route_text = None
+    if route_node is not None:
+        facts = _literal_facts(route_node, _expr_text(source, route_node))
+        if facts.get("literal_kind") == "str":
+            route_status = "str"
+            route_text = facts.get("literal_text")
+        else:
+            route_status = "unreadable"
+
+    view_node = None
+    for kw in node.keywords:
+        if kw.arg in {"view", "viewset"}:
+            view_node = kw.value
+            break
+    if view_node is None and len(node.args) >= 2:
+        if not isinstance(node.args[1], ast.Starred):
+            view_node = node.args[1]
+
+    view_status = "missing"
+    view_text = None
+    if view_node is not None:
+        if isinstance(view_node, ast.Call):
+            target_name = (
+                view_node.func.attr
+                if isinstance(view_node.func, ast.Attribute)
+                else (view_node.func.id if isinstance(view_node.func, ast.Name) else None)
+            )
+            if target_name == "include":
+                view_status = "include_call"
+                view_text = _expr_text(source, view_node)
+        if view_status != "include_call":
+            try:
+                view_text = ast.unparse(view_node).strip()
+                view_status = "expr"
+            except Exception:
+                text = _expr_text(source, view_node)
+                if text is not None:
+                    view_text = text.strip()
+                    view_status = "expr"
+                else:
+                    view_status = "unreadable"
+
+    name_node = None
+    for kw in node.keywords:
+        if kw.arg in {"name", "basename", "base_name"}:
+            name_node = kw.value
+            break
+    if name_node is None:
+        if callee_name == "register" and len(node.args) >= 3 and not isinstance(node.args[2], ast.Starred):
+            name_node = node.args[2]
+        elif callee_name in {"path", "re_path"} and len(node.args) >= 4 and not isinstance(node.args[3], ast.Starred):
+            name_node = node.args[3]
+
+    name_status = "absent"
+    name_text = None
+    if name_node is not None:
+        facts = _literal_facts(name_node, _expr_text(source, name_node))
+        if facts.get("literal_kind") == "str":
+            name_status = "str"
+            name_text = facts.get("literal_text")
+        else:
+            name_status = "unreadable"
+
+    return {
+        "callee_name": callee_name,
+        "has_unpacking": has_unpacking,
+        "route_status": route_status,
+        "route_text": route_text,
+        "view_status": view_status,
+        "view_text": view_text,
+        "name_status": name_status,
+        "name_text": name_text,
+    }
+
+
 
 def _span_cover(nodes: list[ast.AST]) -> ast.AST:
     """Build a location-only node covering every located node in the list."""
@@ -327,6 +450,7 @@ class _StructureVisitor(ast.NodeVisitor):
         kind = "async_function" if isinstance(node, ast.AsyncFunctionDef) else "function"
         qualified_name = self._qualified_name(node.name)
         decorators = self._decorators(node, qualified_name)
+        param_defaults = _parameter_default_items(self.source, node.args)
         details = {
             "signature": _function_signature(self.source, node),
             "decorators": decorators,
@@ -335,6 +459,8 @@ class _StructureVisitor(ast.NodeVisitor):
             # scan this function again.
             "literal_bindings_recorded": True,
             "contains_global_statement": False,
+            "parameter_defaults_recorded": True,
+            "parameter_defaults": param_defaults,
         }
         self._add_node(
             kind,
@@ -602,6 +728,7 @@ class _StructureVisitor(ast.NodeVisitor):
                 "default_literal": default_literal,
                 "null_literal": null_literal,
                 "used_as_with_context": id(node) in self._with_context_call_ids,
+                "routing_call": _routing_call_facts(self.source, node, callee, direct_name, attribute_name),
             },
         )
         for keyword in node.keywords:
@@ -616,6 +743,44 @@ class _StructureVisitor(ast.NodeVisitor):
                 qualified,
                 f"literal:{qualified}:keyword_argument:{keyword.lineno}:{keyword.col_offset}",
                 {"binding_name": keyword.arg, "binding_form": "keyword_argument", **facts},
+            )
+        self.generic_visit(node)
+
+
+    def visit_Assert(self, node: ast.Assert) -> None:
+        test_expr = _expr_text(self.source, node.test)
+        msg_expr = _expr_text(self.source, node.msg) if node.msg else None
+        qualified_name = self._qualified_name()
+        match_key = f"assert:{qualified_name}:{node.lineno}:{node.col_offset}"
+        self._add_node(
+            "assert_statement",
+            node,
+            "assert",
+            qualified_name,
+            match_key,
+            {
+                "statement_kind": "Assert",
+                "test_expression": test_expr,
+                "msg_expression": msg_expr,
+            },
+        )
+        self.generic_visit(node)
+
+    def visit_Lambda(self, node: ast.Lambda) -> None:
+        param_defaults = _parameter_default_items(self.source, node.args)
+        if param_defaults:
+            qualified_name = self._qualified_name("<lambda>")
+            match_key = f"lambda_defaults:{qualified_name}:{node.lineno}:{node.col_offset}"
+            self._add_node(
+                "lambda_defaults",
+                node,
+                "<lambda>",
+                qualified_name,
+                match_key,
+                {
+                    "parameter_defaults_recorded": True,
+                    "parameter_defaults": param_defaults,
+                },
             )
         self.generic_visit(node)
 
@@ -835,7 +1000,7 @@ def _structural_changes(base_nodes: list[dict[str, Any]], head_nodes: list[dict[
             # Smell-only nodes stay out of the coarse structural change list.
             # A new if, binding, or global must not become node_added for the
             # path-based api/auth/data/config rules.
-            if kind in {"control_flow", "literal_binding", "mutable_state"}:
+            if kind in {"control_flow", "literal_binding", "mutable_state", "assert_statement", "lambda_defaults"}:
                 continue
             if before is None:
                 change_type = "decorator_added" if kind == "decorator" else "node_added"

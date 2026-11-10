@@ -20,7 +20,7 @@
 
 ## 2. 新建与维护流程
 
-1. **确认编号**：在下方「当前活动任务表」及阶段入口文档中确认下一个未使用的三位任务编号（当前为 **024**）。任务编号跨版本全局唯一，不重编、不复用。
+1. **确认编号**：在下方「当前活动任务表」及阶段入口文档中确认下一个未使用的三位任务编号（当前为 **025**）。任务编号跨版本全局唯一，不重编、不复用。
 2. **复制模板**：复制 [`_task-template.md`](_task-template.md) 为 `docs/tasks/NNN-short-name.md`，并按 [`branching-and-tasks.md`](../standards/branching-and-tasks.md) 创建同名一对一分支 `<type>/NNN-short-name`（`<type>` 限 `feat`、`fix`、`docs`、`refactor`、`exp`、`chore`）。
 3. **填写前言与正文**：
    - YAML 前言必填 `task_id`、`target_version`、`title`、`status`（`Proposed` / `In Progress` / `Accepted`）、`branch`、`date`。
@@ -35,7 +35,7 @@
 
 | 任务类型 | 典型分支前缀 | 第 3 节（方案与契约）写作重点 | 第 4 节（交付物）写作重点 |
 | :--- | :---: | :--- | :--- |
-| **规则与检测器落地**<br>（如 020、021、022） | `feat/` | 用表格或结构化条目写明每条规则的 AST/Diff 触发闭集、`Hit / NotFound / Unanalyzed` 三态边界及缺口原因码；说明运行时规则总数、默认权重与 Gatekeeper 影响。 | 列出检测器模块、规则登记册（`rule-registry.json`）、同步的规则卡片，并保留 **「规则生命周期变更」** 表格。 |
+| **规则与检测器落地**<br>（如 020、021、022、024） | `feat/` | 用表格或结构化条目写明每条规则的 AST/Diff 触发闭集、`Hit / NotFound / Unanalyzed` 三态边界及缺口原因码；说明运行时规则总数、默认权重与 Gatekeeper 影响。 | 列出检测器模块、规则登记册（`rule-registry.json`）、同步的规则卡片，并保留 **「规则生命周期变更」** 表格。 |
 | **系统架构与工作台演进**<br>（如 009、后续 v1.3 任务） | `feat/` / `refactor/` | 说明模块分层职责、API/CLI 接口契约、`stage03`–`stage08` Schema 演进，以及对已保存 `backend/data/demo/` 历史快照的向后兼容性。 | 按后端（domain/services/adapters/cli）、前端组件与测试套件分类列出改动清单；不涉及规则晋升时删去生命周期表。 |
 | **实验评估与文档规范**<br>（如 012、019、023） | `exp/` / `docs/` | 说明先导/实证抽样协议与数据集隔离原则，或说明文档架构重构、卡片模板升级与跨文档一致性对齐规则。 | 列出新增/重构的文档资产路径、归档迁移映射或校验脚本；不涉及规则状态变更时删去生命周期表。 |
 
@@ -56,5 +56,6 @@
 | 021 | v1.2.0 | Accepted | `feat/021-high-value-draft-detectors` | [高价值草稿检测器批次（v1.2 第二切片）](021-high-value-draft-detectors.md) |
 | 022 | v1.2.0 | Accepted | `feat/022-second-high-value-draft-detectors` | [第二批高价值草稿检测器（v1.2 第三切片）](022-second-high-value-draft-detectors.md) |
 | 023 | v1.2.0 | Accepted | `docs/023-task-template` | [任务文档规范重构与历史活动任务对齐](023-task-template.md) |
+| 024 | v1.2.0 | Accepted | `feat/024-remaining-ast-draft-detectors` | [剩余三张本地 AST 草稿检测器落地（v1.2 第四切片）](024-remaining-ast-draft-detectors.md) |
 
-> 下一个未使用的任务编号为 **024**。任何新变更均须基于 [`_task-template.md`](_task-template.md) 创建新编号任务并建立一对一分支。
+> 下一个未使用的任务编号为 **025**。任何新变更均须基于 [`_task-template.md`](_task-template.md) 创建新编号任务并建立一对一分支。
