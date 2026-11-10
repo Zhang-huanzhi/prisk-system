@@ -3,8 +3,8 @@
 | 适用版本 | v1.x |
 | --- | --- |
 | 状态 | Active |
-| 任务 | [019](../tasks/019-v11-milestone-closure.md) |
-| 分支 | `docs/019-v11-milestone-closure` |
+| 任务 | [023](../tasks/023-task-template.md) |
+| 分支 | `docs/023-task-template` |
 
 ## 每个变更都有任务
 
@@ -14,23 +14,32 @@
 
 任务编号是跨版本的永久身份：三位数字，已使用的编号不重编、不复用。版本目录不把编号从 001 重新开始。
 
-- **001–018**：已全部评定为 Accepted，并已随里程碑归档移入 [docs/versions/v1.1.0/tasks/](../versions/v1.1.0/tasks/)。
-- **019**：用于 v1.1 阶段里程碑收工归档与文档对齐精简，分支为 `docs/019-v11-milestone-closure`，状态为 Accepted。
-- **020**：v1.2 首切片残余检测器与合同对齐，分支为 `feat/020-residual-detector-alignment`，状态为 Accepted；PR 仍开时不宣布 v1.2.0。
-- **下一个未使用的任务编号为 021**。
+- **001–018**：已全部评定为 Accepted，并已随 v1.1.0 里程碑归档移入 [docs/versions/v1.1.0/tasks/](../versions/v1.1.0/tasks/)。
+- **019 及后续活动任务**：实时状态与**下一个未使用的任务编号**统一以 [活动任务工作区](../tasks/README.md) 及当前阶段入口（[v1.2 入口](../tasks/v1.2-entry.md)）为准（Task 023 占用后，下一个未使用编号为 **024**）。
 
 任务状态只使用 `Proposed`、`In Progress`、`Accepted`。任务不使用 `Archived` 作为其内部状态值。没有明确验收时保持 `In Progress` 或 `Proposed`。
 
 ## 记录形式
 
-任务记录以 Markdown 文件保存于 `docs/tasks/NNN-short-name.md`，YAML 元数据写在文件开头的前言里：
+任务记录基于标准模板 [`docs/tasks/_task-template.md`](../tasks/_task-template.md) 创建，以 Markdown 文件保存于 `docs/tasks/NNN-short-name.md`。
 
-- `task_id`：三位数字字符串（如 `"019"`）
-- `target_version`：目标版本（如 `"v1.1.0"`）
+YAML 元数据写在文件开头的前言里：
+
+- `task_id`：三位数字字符串（如 `"023"`）
+- `target_version`：目标版本（如 `"v1.2.0"`）
 - `title`：任务标题
 - `status`：`Proposed` / `In Progress` / `Accepted`
 - `branch`：承载该工作的 Git 分支名
 - `date`：创建或更新日期
+
+正文统一采用标准六节结构：
+
+1. **背景与目标**：承接的阶段入口、前序遗留与核心目标；
+2. **范围与边界**：纳入范围与不做事项（仅记录技术与产品边界，不写日常流程套话）；
+3. **技术方案与契约设计**：核心实现机制（如三态判定契约、架构设计）及对既有 Schema、满分基线与历史快照的兼容性影响；
+4. **交付物与改动清单**：分类改动文件列表及可选的「规则生命周期变更」表；
+5. **验证与验收**：核心验收断言与实际执行的测试/检查结果；
+6. **已知限制与残余风险**：静态分析边界、工程管线限制与后续演进事项。
 
 任务编号、文件名前缀、前言中的 `branch` 与 Git 分支必须保持一对一严格一致。
 

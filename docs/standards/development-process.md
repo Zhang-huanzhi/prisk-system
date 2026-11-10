@@ -10,7 +10,7 @@
 
 每个变更，不论规模，都使用一条任务记录：`docs/tasks/NNN-short-name.md`。不存在可以不建任务的小改动例外。按规模豁免任务的做法已经废除，并且不为兼容旧习惯而保留。任务编号、状态、YAML 前言和分支形式以 [任务与分支](branching-and-tasks.md) 为准。
 
-状态只使用 Proposed、In Progress、Accepted。任务不使用 Archived。任务文档记录目标、范围、不做事项、技术方案、兼容性、验收、实际测试和遗留风险。
+状态只使用 Proposed、In Progress、Accepted。任务不使用 Archived。任务文档基于标准模板 [`docs/tasks/_task-template.md`](../tasks/_task-template.md) 编写，按六节结构记录：背景与目标、范围与边界、技术方案与契约设计（含兼容性）、交付物与改动清单（含可选的规则生命周期变更）、验证与验收、已知限制与残余风险。
 
 同一目标的后续提交和评审修复继续使用同一条任务和同一条分支。
 
