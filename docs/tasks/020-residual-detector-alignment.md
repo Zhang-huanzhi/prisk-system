@@ -62,7 +62,3 @@ date: "2026-11-09"
 - `Meta.fields = "__all__"` 与动态列表仍 Unanalyzed。
 - 敏感配置方向支撑尚未接入 `RULE_CATALOG` Finding 通路。
 - Path.open 仅识别接收者为 `Path(...)` 调用的形态；变量绑定后的 `path.open()` 仍是框架缺口。
-
-## 验收说明
-
-所有者已验收 Task 020。任务状态为 Accepted；PR 仍开，合并与删分支由 Engineering Lead 执行。登记册与 draft 规则 lifecycle 未改；不宣布 v1.2.0。

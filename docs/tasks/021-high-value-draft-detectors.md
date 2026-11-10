@@ -67,7 +67,3 @@ date: "2026-11-09"
 - 构造样例覆盖主路径；真实 PR 实证仍属 validated 义务。
 - ViewSet 跨文件继承、permission 组合运算符、RunSQL 字符串、下标赋值 DATABASES 仍 Unanalyzed。
 - gatekeeper 结构启发式仍可能对测试夹具中的 AllowAny 示例抬升。
-
-## 验收说明
-
-所有者已验收 Task 021。任务状态为 Accepted；PR 仍开，合并与删分支由 Engineering Lead 执行。不宣布 v1.2.0，不开 022，不建 `docs/versions/v1.2*`。
