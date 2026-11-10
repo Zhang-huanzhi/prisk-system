@@ -3,8 +3,8 @@
 | 适用版本 | v1.x |
 | --- | --- |
 | 状态 | Active |
-| 任务 | [019](../tasks/019-v11-milestone-closure.md) |
-| 分支 | `docs/019-v11-milestone-closure` |
+| 任务 | [025](../tasks/025-v12-milestone-closure.md) |
+| 分支 | `docs/025-v12-milestone-closure` |
 
 ## 目录分工
 
@@ -17,7 +17,7 @@
 | `docs/standards/` | 文档、任务、分支、开发流程及推进大纲 |
 | `docs/tasks/` | 活动中的任务与下一阶段入口 |
 | `docs/evaluation/pilot-v1.1/` | 真实 PR 先导试点协议与 16 条样本摸底（永久排除出 v1.4 正式集） |
-| `docs/versions/` | 已冻结归档的阶段版本（`v1.0.0/`, `v1.1.0/`） |
+| `docs/versions/` | 已冻结归档的阶段版本（`v1.0.0/`, `v1.1.0/`, `v1.2.0/`） |
 | `docs/rules/` | 研究规则卡片、规则索引与责任矩阵 |
 | `docs/schemas/` | 研究元数据 JSON Schema |
 | `docs/assets/` | 研究资产目录 |
@@ -28,7 +28,8 @@
 - 只为已经完成并冻结归档的阶段里程碑建立 `docs/versions/<version>/`。
 - 仓库现有归档目录：
   - `docs/versions/v1.0.0/`：阶段 01–08 的调研与工程基线产物；
-  - `docs/versions/v1.1.0/`：规则知识库全集、结构可行性筛选、真实 PR 先导协议及 Task 001–018 归档任务。
+  - `docs/versions/v1.1.0/`：规则知识库全集、结构可行性筛选、真实 PR 先导协议及 Task 001–018 归档任务；
+  - `docs/versions/v1.2.0/`：核心规则实现、三态引擎闭环、任务模板规范及 Task 019–024 归档任务。
 - 对应阶段收工归档后，已完成的任务记录迁入对应的 `docs/versions/<version>/tasks/`，活动工作区 `docs/tasks/` 仅保留当前活动任务与下一阶段入口。
 
 ## 冻结文本原则

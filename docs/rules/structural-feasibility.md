@@ -122,7 +122,7 @@ exclusions:
 
 本节只描述 016 新登记的 6 条草稿。它不改写上面的 8 / 10 / 2，也不把 3 条排除项写成已经有卡片。6 条都没有检测器，没有运行终态，没有权重字段。概念上的默认权重是 0。严重度是临时判断。
 
-后来的生命周期：021 将 `auth.django_csrf_exempt_added` 升为 `implemented`；022 将 `auth.drf_queryset_scope_tighten_bypassed`、`data.django_signal_receiver_leak`、`data.django_field_rename_without_db_column` 升为 `implemented`。默认权重仍是 0，都不是 `validated`。`code.mutable_default_argument` 与 `code.assert_in_production` 仍是 `draft`。上一段描述的是 016 登记时的状态。
+后来的生命周期：021 将 `auth.django_csrf_exempt_added` 升为 `implemented`；022 将 `auth.drf_queryset_scope_tighten_bypassed`、`data.django_signal_receiver_leak`、`data.django_field_rename_without_db_column` 升为 `implemented`；024 将 `code.mutable_default_argument` 与 `code.assert_in_production` 升为 `implemented`。默认权重仍是 0，都不是 `validated`。上一段描述的是 016 登记时的状态。
 
 当前节点事实仍以本节之前的描述为准，并核对过结构访问器：函数签名的参数只有 `has_default`；参数默认值的 `literal_binding` 不保存列表、字典或集合种类；没有 `Assert` 节点；装饰器保存表达式文本；调用保存 `callee`、`args_count` 和 `keyword_names`；字段节点保存名字和值指纹，不保存 `keyword_names`。
 

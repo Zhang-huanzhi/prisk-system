@@ -34,3 +34,19 @@
 - [基线摘要](v1.1.0/00-baseline-summary.md)
 - [v1.1 迭代入口总结](v1.1.0/v1.1-entry.md)
 - [已归档任务 001–018](v1.1.0/tasks/)
+
+## v1.2.0
+
+| 项目 | 内容 |
+| --- | --- |
+| 路径 | [docs/versions/v1.2.0/](v1.2.0/README.md) |
+| 范围 | 核心规则实现与三态引擎能力闭环（残余检测器合同对齐、15 条高价值草稿规则检测器分批落地、24 张卡片晋升为 `implemented`、运行时 29 条规则显式三态执行、Gatekeeper 一票抬升、标准任务模板规范化） |
+| 冻结 | Frozen / Milestone Archive |
+| 任务索引 | 包含 Task 019 至 024 任务记录，归档于 [tasks/](v1.2.0/tasks/) |
+
+### 档案文件
+
+- [README](v1.2.0/README.md)
+- [基线摘要](v1.2.0/00-baseline-summary.md)
+- [v1.2 迭代入口总结](v1.2.0/v1.2-entry.md)
+- [已归档任务 019–024](v1.2.0/tasks/)

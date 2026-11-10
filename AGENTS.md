@@ -17,7 +17,7 @@
 - `docs/schemas/`：规则元数据 JSON Schema（`rule-metadata.schema.json`）。
 - `docs/evaluation/`：实验与摸底资产（先导集与正式集物理隔离）。
 - `docs/tasks/`：当前活动任务与阶段入口文档。
-- `docs/versions/`：已冻结的阶段归档记录（如 `v1.0.0/`、`v1.1.0/`），冻结后不回写新行为。
+- `docs/versions/`：已冻结的阶段归档记录（如 `v1.0.0/`、`v1.1.0/`、`v1.2.0/`），冻结后不回写新行为。
 
 ## 3. 开发与任务工作流
 
