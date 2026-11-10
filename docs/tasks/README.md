@@ -22,7 +22,7 @@
 
 ## 2. 新建与维护流程
 
-1. **确认编号**：在下方「当前活动任务表」及阶段入口文档中确认下一个未使用的三位任务编号（当前为 **029**）。任务编号跨版本全局唯一，不重编、不复用。
+1. **确认编号**：在下方「当前活动任务表」及阶段入口文档中确认下一个未使用的三位任务编号（当前为 **030**）。任务编号跨版本全局唯一，不重编、不复用。
 2. **复制模板**：复制 [`_task-template.md`](_task-template.md) 为 `docs/tasks/NNN-short-name.md`，并按 [`branching-and-tasks.md`](../standards/branching-and-tasks.md) 创建同名一对一分支 `<type>/NNN-short-name`（`<type>` 限 `feat`、`fix`、`docs`、`refactor`、`exp`、`chore`）。
 3. **填写前言与正文**：
    - YAML 前言必填 `task_id`、`target_version`、`title`、`status`（`Proposed` / `In Progress` / `Accepted`）、`branch`、`date`。
@@ -57,5 +57,6 @@
 | 026 | v1.3.0 | Accepted | `feat/026-runtime-config-presets` | [运行时配置解耦与场景预设体系](026-runtime-config-presets.md) |
 | 027 | v1.3.0 | Accepted | `feat/027-snapshot-partial-rerun` | [快照局部重跑与分析缓存](027-snapshot-partial-rerun.md) |
 | 028 | v1.3.0 | Accepted | `feat/028-workbench-and-report-snapshot` | [Web 动态交互工作台与可复现审查报告固化](028-workbench-and-report-snapshot.md) |
+| 029 | v1.3.0 | Accepted | `refactor/029-frontend-github-ui-refactor` | [前端工作台 GitHub 风格重构与交互布局优化](029-frontend-github-ui-refactor.md) |
 
-> 下一个未使用的任务编号为 **029**。任何新变更均须基于 [`_task-template.md`](_task-template.md) 创建新编号任务并建立一对一分支。
+> 下一个未使用的任务编号为 **030**。任何新变更均须基于 [`_task-template.md`](_task-template.md) 创建新编号任务并建立一对一分支。
