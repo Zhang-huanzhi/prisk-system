@@ -515,7 +515,9 @@ def _rule_outcomes(
 
 def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] | None = None) -> dict[str, Any]:
     status = stage04_record.get("status")
-    enabled = set((rule_config or {}).get("enabled_rules", [item["rule_id"] for item in RULE_CATALOG]))
+    config_dict = rule_config or {}
+    enabled = set(config_dict.get("enabled_rules", [item["rule_id"] for item in RULE_CATALOG]))
+    rule_thresholds = config_dict.get("rule_thresholds", {})
     if status == "excluded":
         return {
             "schema_version": RULE_SCHEMA_VERSION,
@@ -551,7 +553,7 @@ def evaluate_rules(stage04_record: dict[str, Any], rule_config: dict[str, Any] |
                     matched_by_path.setdefault(path, []).append(change)
         for path, changes in sorted(matched_by_path.items()):
             findings.append(_finding(rule, path, changes))
-    smell_findings, smell_gaps, smell_trace = collect_code_smell_findings(stage04_record, enabled)
+    smell_findings, smell_gaps, smell_trace = collect_code_smell_findings(stage04_record, enabled, rule_thresholds=rule_thresholds)
     findings.extend(smell_findings)
     raw_sql_findings, raw_sql_gaps, raw_sql_trace = collect_django_raw_sql(stage04_record, enabled)
     findings.extend(raw_sql_findings)

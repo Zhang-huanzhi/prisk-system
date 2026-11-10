@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from ..domain.config import list_presets
 from ..services.branch_analysis import analyze_branches
 from ..services.demo_service import DemoData
 from ..services.project_service import ProjectError, ProjectRegistry
@@ -48,6 +49,8 @@ def create_handler(data: DemoData, projects: ProjectRegistry | None = None) -> t
             parsed = urlparse(self.path)
             if parsed.path == "/api/health":
                 self._send(200, {"status": "ok"})
+            elif parsed.path == "/api/config/presets":
+                self._send(200, {"status": "ok", "presets": list_presets()})
             elif parsed.path == "/api/dataset":
                 self._send(200, data.dataset())
             elif parsed.path.startswith("/api/pr/"):
