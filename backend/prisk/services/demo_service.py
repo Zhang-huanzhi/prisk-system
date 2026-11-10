@@ -15,9 +15,11 @@ from ..domain.config import (
     DEFAULT_CONFIG,
     PRESETS,
     PRESET_LEGACY_BASELINE,
+    build_config_snapshot,
     list_presets,
     normalize_audit_config,
 )
+from ..domain.report_export import render_markdown_report
 
 RULE_SCOPES = {
     "api.signature_changed": "API、serializer、view、viewset 和 URL 相关 Python 文件",
@@ -74,6 +76,7 @@ class DemoData:
         stage03 = self.stage03.get(pr_number, {})
         stage04 = self.stage04.get(pr_number, {})
         config_value = normalize_config(config)
+        config_snapshot = build_config_snapshot(config or config_value)
         if config and ("rule_thresholds" in config) and stage04:
             rerun_tier = "stage05_rules_rerun"
             rules_reused = False
@@ -151,6 +154,7 @@ class DemoData:
         return {
             "schema_version": "stage07.report.v2",
             "snapshot_meta": snapshot_meta,
+            "config_snapshot": config_snapshot,
             "status": rule_record.get("status", "error"),
             "repo": stage03.get("repo", rule_record.get("repo")),
             "pr_number": pr_number,
@@ -283,6 +287,11 @@ def collaboration_points(config: dict[str, Any], matched: bool) -> tuple[int, in
 def write_json_report(report: dict[str, Any], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def write_markdown_report(report: dict[str, Any], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(render_markdown_report(report) + "\n", encoding="utf-8")
 
 
 def build_scored_dataset(data: DemoData, config: dict[str, Any] | None = None) -> list[dict[str, Any]]:

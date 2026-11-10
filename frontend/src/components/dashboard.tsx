@@ -17,10 +17,13 @@ type Evidence = {
   path: string; node_id: string; node_kind: string; structural_change_type: string;
   lines: number[]; qualified_name?: string; source_segment?: string;
   capture_form?: string; callee_name?: string; handler_body_is_single_pass?: boolean;
-  used_as_with_context?: boolean; nesting_depth?: number; control_kind?: string;
+  used_as_with_context?: boolean; nesting_depth?: number; depth_threshold?: number; control_kind?: string;
   binding_name?: string; binding_form?: string; value_length?: number; value_preview?: string;
   mutable_state_form?: string; binding_targets?: string[];
   path_class?: string; additions?: number; deletions?: number; content_change?: string;
+  operation?: string; route?: string; action_name?: string; setting_name?: string; direction?: string;
+  permission_policy?: string; decorator?: string; signal?: string; old_field?: string; new_field?: string;
+  parameter_name?: string; container_kind?: string; mapped_framework_base?: string;
 };
 type Finding = {
   rule_id: string; severity: string; message: string;
@@ -38,16 +41,75 @@ type DiffFile = {
   is_python: boolean; binary: boolean; additions: number; deletions: number;
   hunks: Hunk[]; parse_status: Record<string, string>; parse_errors: { side?: string; message?: string; line?: number; column?: number }[];
 };
+type RuleThresholds = {
+  "code.deep_control_flow"?: { max_depth: number };
+  "code.hardcoded_secret"?: { min_length: number };
+};
 type Config = {
-  enabled_rules: string[]; rule_weights: Record<string, number>;
-  test_collaboration_weight: number; test_collaboration_enabled: boolean;
+  preset?: string;
+  enabled_rules: string[];
+  rule_weights: Record<string, number>;
+  test_collaboration_weight: number;
+  test_collaboration_enabled: boolean;
   thresholds: { medium: number; high: number };
+  rule_thresholds?: RuleThresholds;
+};
+type PresetItem = {
+  preset: string;
+  name: string;
+  description: string;
+  enabled_rule_count: number;
+  enabled_rules?: string[];
+  rule_weights?: Record<string, number>;
+  test_collaboration_weight?: number;
+  test_collaboration_enabled?: boolean;
+  thresholds: { medium: number; high: number };
+  rule_thresholds: RuleThresholds;
+};
+type SnapshotMeta = {
+  cache_hit: boolean;
+  rerun_tier: "full_run" | "stage05_rules_rerun" | "stage07_rescore_only";
+  diff_reused: boolean;
+  ast_reused: boolean;
+  rules_reused: boolean;
+  cache_key?: string;
+};
+type ConfigSnapshot = {
+  schema_version: string;
+  preset: string;
+  preset_name: string;
+  customized: boolean;
+  config_digest: string;
+  enabled_rule_count: number;
+  disabled_rule_count: number;
+  enabled_rules: string[];
+  disabled_rules: string[];
+  rule_weights: Record<string, number>;
+  test_collaboration_enabled: boolean;
+  test_collaboration_weight: number;
+  thresholds: { medium: number; high: number };
+  rule_thresholds: RuleThresholds;
+};
+type GatekeeperHit = { rule_id: string; path: string; node_id: string; operation: string };
+type ScoreBasis = {
+  earned_points: number;
+  maximum_points: number;
+  matched_rule_ids: string[];
+  test_collaboration: boolean;
+  configuration: Config;
+  gatekeeper_lift?: boolean;
+  gatekeeper_finding_rule_ids?: string[];
+  gatekeeper_structural_rule_ids?: string[];
+  gatekeeper_structural_hits?: GatekeeperHit[];
+  registry_gatekeeper_rule_ids?: string[];
 };
 type Report = {
   status: string; repo: string; pr_number?: number; title: string; author?: string; url?: string;
   project?: Project; base_ref?: string; head_ref?: string; merge_base_sha?: string; diff_mode?: string;
   base_sha?: string; head_sha?: string; score: number; risk_level: string;
-  score_basis: { earned_points: number; maximum_points: number; matched_rule_ids: string[]; test_collaboration: boolean; configuration: Config };
+  snapshot_meta?: SnapshotMeta;
+  config_snapshot?: ConfigSnapshot;
+  score_basis: ScoreBasis;
   summary: {
     finding_count: number; domains?: string[]; files_changed: number; business_files: number;
     test_files: number; additions: number; deletions: number; business_changed: boolean;
@@ -94,6 +156,21 @@ const ruleLabels: Record<string, string> = {
   "code.hardcoded_secret": "硬编码敏感字面量",
   "code.global_mutable_state": "全局可变状态",
   "data.django_raw_sql_execution": "Django 原生 SQL 执行",
+  "auth.django_csrf_exempt_added": "新增 CSRF 豁免装饰器",
+  "api.drf_viewset_action_changed": "DRF ViewSet 动作变更",
+  "data.django_destructive_migration": "Django 破坏性迁移操作",
+  "auth.drf_permission_policy_downgrade": "DRF 权限策略降级",
+  "config.django_sensitive_settings_changed": "Django 敏感部署设置放宽",
+  "data.django_non_null_constraint_tightened": "Django 非空约束收紧缺默认值",
+  "auth.drf_permission_decorator_removed": "DRF 权限装饰器移除",
+  "auth.drf_queryset_scope_tighten_bypassed": "DRF QuerySet 范围收窄绕过",
+  "data.django_signal_receiver_leak": "Django 信号接收器缺少 dispatch_uid",
+  "data.django_field_rename_without_db_column": "Django 字段改名未指定 db_column",
+  "api.drf_public_parameter_added": "DRF 公开接口新增必填参数",
+  "api.drf_public_parameter_removed": "DRF 公开接口删除参数或字段",
+  "api.django_url_pattern_changed": "Django URL 路由模式变更",
+  "code.assert_in_production": "生产代码中使用 assert",
+  "code.mutable_default_argument": "函数可变默认参数",
   "workflow.test_collaboration_gap": "生产代码变更未见测试路径变更",
 };
 const outcomeLabels: Record<RuleOutcome["state"], string> = {
@@ -111,6 +188,49 @@ const reasonLabels: Record<string, string> = {
   missing_file_change_channel: "没有文件变更通道",
   prior_stage_unavailable: "前置阶段不可用",
 };
+const fallbackPresets: PresetItem[] = [
+  {
+    preset: "balanced",
+    name: "均衡基线",
+    description: "全量 29 条规则分层赋予 1~3 启发式分值，兼顾安全性、框架契约与代码健康度",
+    enabled_rule_count: 29,
+    thresholds: { medium: 30, high: 65 },
+    rule_thresholds: { "code.deep_control_flow": { max_depth: 4 }, "code.hardcoded_secret": { min_length: 8 } },
+  },
+  {
+    preset: "security_focus",
+    name: "安全加固审查",
+    description: "聚焦认证权限降级、凭据泄露、CSRF 与危险执行等高危操作",
+    enabled_rule_count: 29,
+    thresholds: { medium: 25, high: 55 },
+    rule_thresholds: { "code.deep_control_flow": { max_depth: 4 }, "code.hardcoded_secret": { min_length: 6 } },
+  },
+  {
+    preset: "framework_upgrade",
+    name: "框架与迁移升级",
+    description: "聚焦破坏性迁移、数据库字段改名、URL 路由与公开 API 参数兼容性",
+    enabled_rule_count: 29,
+    thresholds: { medium: 30, high: 65 },
+    rule_thresholds: { "code.deep_control_flow": { max_depth: 4 }, "code.hardcoded_secret": { min_length: 8 } },
+  },
+  {
+    preset: "daily_review",
+    name: "日常代码合规",
+    description: "聚焦测试覆盖协同、深层控制流、静默异常与可变默认参数等代码异味",
+    enabled_rule_count: 29,
+    thresholds: { medium: 30, high: 60 },
+    rule_thresholds: { "code.deep_control_flow": { max_depth: 3 }, "code.hardcoded_secret": { min_length: 8 } },
+  },
+  {
+    preset: "legacy_baseline",
+    name: "历史兼容基线",
+    description: "保持 v1.0~v1.2 初始 10 分满分基线（结构 9 分 + 协同 1 分），供历史测试与回归比对",
+    enabled_rule_count: 29,
+    thresholds: { medium: 30, high: 65 },
+    rule_thresholds: { "code.deep_control_flow": { max_depth: 4 }, "code.hardcoded_secret": { min_length: 8 } },
+  },
+];
+
 function reasonText(reason: string) { return reasonLabels[reason] ?? reason; }
 function outcomesRecorded(report: Report) { return report.rule_outcome_availability === "recorded" && Array.isArray(report.rule_outcomes); }
 function outcomeFor(report: Report, ruleId: string) {
@@ -142,18 +262,68 @@ function collaborationCopy(report: Report) {
   if (outcome.state === "NotFound") return { tone: "neutral", text: "测试协同规则已在适用的文件变更里完整执行，未发现该复核特征。这不是安全结论。" };
   return { tone: "attention", text: "测试协同规则无法分析。没有可成立的测试上下文结论，不能当成已通过或代码安全。" };
 }
+function rerunTierLabel(meta?: SnapshotMeta) {
+  if (!meta) return "全量执行";
+  if (meta.rerun_tier === "stage07_rescore_only") return "Tier 2 · 复用快照仅重算评分";
+  if (meta.rerun_tier === "stage05_rules_rerun") return "Tier 1 · 复用 AST 重算规则";
+  return "Tier 0 · 全量提取分析";
+}
+function gatekeeperSummary(report: Report) {
+  const basis = report.score_basis;
+  if (!basis.gatekeeper_lift) return null;
+  const rules = Array.from(new Set([
+    ...(basis.gatekeeper_finding_rule_ids ?? []),
+    ...(basis.gatekeeper_structural_rule_ids ?? []),
+  ]));
+  const hits = basis.gatekeeper_structural_hits ?? [];
+  return {
+    rules,
+    hits,
+    text: `触发一票抬升（Gatekeeper）：命中高危契约特征（${rules.map((id) => ruleLabels[id] ?? id).join("、") || "高危规则"}），无论综合加权分是否达标，均强制抬升复核优先级为「优先复核」。`,
+  };
+}
+
 const initialConfig: Config = {
+  preset: "legacy_baseline",
   enabled_rules: Object.keys(ruleLabels),
   rule_weights: {
-    "api.signature_changed": 2, "auth.permission_structure_changed": 3, "data.transaction_structure_changed": 2,
-    "config.configuration_structure_changed": 1, "code.exception_structure_changed": 1,
-    "code.swallowed_exception": 0, "code.bare_exception": 0, "code.dynamic_execution": 0,
-    "code.unmanaged_open": 0, "code.deep_control_flow": 0,
-    "code.hardcoded_secret": 0, "code.global_mutable_state": 0,
+    "api.signature_changed": 2,
+    "auth.permission_structure_changed": 3,
+    "data.transaction_structure_changed": 2,
+    "config.configuration_structure_changed": 1,
+    "code.exception_structure_changed": 1,
+    "code.swallowed_exception": 0,
+    "code.bare_exception": 0,
+    "code.dynamic_execution": 0,
+    "code.unmanaged_open": 0,
+    "code.deep_control_flow": 0,
+    "code.hardcoded_secret": 0,
+    "code.global_mutable_state": 0,
     "data.django_raw_sql_execution": 0,
+    "auth.django_csrf_exempt_added": 0,
+    "api.drf_viewset_action_changed": 0,
+    "data.django_destructive_migration": 0,
+    "auth.drf_permission_policy_downgrade": 0,
+    "config.django_sensitive_settings_changed": 0,
+    "data.django_non_null_constraint_tightened": 0,
+    "auth.drf_permission_decorator_removed": 0,
+    "auth.drf_queryset_scope_tighten_bypassed": 0,
+    "data.django_signal_receiver_leak": 0,
+    "data.django_field_rename_without_db_column": 0,
+    "api.drf_public_parameter_added": 0,
+    "api.drf_public_parameter_removed": 0,
+    "api.django_url_pattern_changed": 0,
+    "code.assert_in_production": 0,
+    "code.mutable_default_argument": 0,
     "workflow.test_collaboration_gap": 1,
   },
-  test_collaboration_weight: 1, test_collaboration_enabled: true, thresholds: { medium: 30, high: 65 },
+  test_collaboration_weight: 1,
+  test_collaboration_enabled: true,
+  thresholds: { medium: 30, high: 65 },
+  rule_thresholds: {
+    "code.deep_control_flow": { max_depth: 4 },
+    "code.hardcoded_secret": { min_length: 8 },
+  },
 };
 
 function riskLabel(level: string) { return level === "high" ? "优先复核" : level === "medium" ? "建议复核" : "常规"; }
@@ -170,22 +340,47 @@ function roleLabel(role: string) { return role === "business" ? "业务" : role 
 function shortSha(value?: string) { return value ? value.slice(0, 7) : "—"; }
 function evidenceDetail(item: Evidence) {
   if (item.capture_form) return `捕获形式 ${item.capture_form}`;
-  if (typeof item.nesting_depth === "number") return `嵌套深度 ${item.nesting_depth}`;
+  if (typeof item.nesting_depth === "number") {
+    return `嵌套深度 ${item.nesting_depth}${typeof item.depth_threshold === "number" ? `（阈值 ${item.depth_threshold}）` : ""}`;
+  }
   if (item.binding_name) return `绑定 ${item.binding_name}，长度 ${item.value_length}`;
   if (item.mutable_state_form === "global_statement") return `global ${(item.binding_targets || []).join("、")}`;
   if (item.mutable_state_form === "mutable_binding") return `可变绑定 ${(item.binding_targets || []).join("、")}`;
   if (item.path_class === "production" && typeof item.additions === "number" && typeof item.deletions === "number") {
     return `生产代码 +${item.additions} / -${item.deletions}`;
   }
-  if (item.used_as_with_context === false) return "直接 open 未作为 with 上下文";
+  if (item.used_as_with_context === false) return "open 未作为 with 上下文";
+  if (item.operation) return `操作 ${item.operation}`;
+  if (item.setting_name) return `设置 ${item.setting_name}${item.direction ? ` (${item.direction})` : ""}`;
+  if (item.permission_policy) return `权限策略 ${item.permission_policy}`;
+  if (item.decorator) return `装饰器 ${item.decorator}`;
+  if (item.signal) return `信号 ${item.signal}`;
+  if (item.old_field && item.new_field) return `字段 ${item.old_field} → ${item.new_field}`;
+  if (item.parameter_name) return `参数/字段 ${item.parameter_name}`;
+  if (item.route) return `路由 ${item.route}`;
+  if (item.action_name) return `动作 ${item.action_name}`;
+  if (item.container_kind) return `默认容器 ${item.container_kind}`;
   if (item.callee_name) return `直接调用 ${item.callee_name}`;
   if (item.handler_body_is_single_pass) return "处理体只有 pass";
   return "";
 }
-function configFromReport(report: Report): Config { return report.score_basis.configuration; }
+function configFromReport(report: Report): Config {
+  const snap = report.config_snapshot;
+  const base = report.score_basis.configuration;
+  return {
+    preset: snap?.preset ?? base.preset ?? "legacy_baseline",
+    enabled_rules: snap?.enabled_rules ?? base.enabled_rules,
+    rule_weights: { ...initialConfig.rule_weights, ...(snap?.rule_weights ?? base.rule_weights) },
+    test_collaboration_weight: snap?.test_collaboration_weight ?? base.test_collaboration_weight,
+    test_collaboration_enabled: snap?.test_collaboration_enabled ?? base.test_collaboration_enabled,
+    thresholds: snap?.thresholds ?? base.thresholds,
+    rule_thresholds: snap?.rule_thresholds ?? base.rule_thresholds ?? initialConfig.rule_thresholds,
+  };
+}
 
 export function Dashboard() {
   const [dataset, setDataset] = useState<Dataset | null>(null);
+  const [presets, setPresets] = useState<PresetItem[]>(fallbackPresets);
   const [activePr, setActivePr] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [report, setReport] = useState<Report | null>(null);
@@ -278,14 +473,28 @@ export function Dashboard() {
     finally { setProjectBusy(false); }
   }, []);
 
-  const analyzeBranch = useCallback(async (loaded: Project, base: string, head: string, nextConfig?: Config) => {
+  const analyzeBranch = useCallback(async (loaded: Project, base: string, head: string, nextConfig?: Config, refresh = false) => {
     setBusy(true); setError(""); setAnalysisMode("project");
     try {
-      const response = await fetch("/api/branch-analysis", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project_id: loaded.project_id, base_ref: base, head_ref: head, config: nextConfig }) });
+      const response = await fetch("/api/branch-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project_id: loaded.project_id, base_ref: base, head_ref: head, config: nextConfig, refresh }),
+      });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error?.message || payload.error || "分支分析失败");
-      setProject(loaded); setBaseRef(base); setHeadRef(head); setReport({ ...payload, title: `${base} → ${head}`, repo: loaded.name, author: "本地 Git 分支", url: undefined, pr_number: undefined } as Report);
-      setConfig(nextConfig ?? initialConfig); if (!nextConfig) setBaselineScore((payload as Report).score); setSelectedPath(((payload as Report).files.find((file) => file.role === "business" && file.hunks.length > 0) ?? (payload as Report).files.find((file) => file.hunks.length > 0) ?? (payload as Report).files[0])?.path ?? "");
+      const nextReport = { ...payload, title: `${base} → ${head}`, repo: loaded.name, author: "本地 Git 分支", url: undefined, pr_number: undefined } as Report;
+      setProject(loaded); setBaseRef(base); setHeadRef(head); setReport(nextReport);
+      setConfig(nextConfig ?? configFromReport(nextReport));
+      if (!nextConfig) setBaselineScore(nextReport.score);
+      setSelectedPath((nextReport.files.find((file) => file.role === "business" && file.hunks.length > 0) ?? nextReport.files.find((file) => file.hunks.length > 0) ?? nextReport.files[0])?.path ?? "");
+      if (refresh) {
+        setNotice("已强制刷新 Git/AST 快照并全量重算");
+        window.setTimeout(() => setNotice(""), 1800);
+      } else if (nextConfig) {
+        setNotice(`已按新配置重算（${rerunTierLabel(nextReport.snapshot_meta)}）`);
+        window.setTimeout(() => setNotice(""), 1800);
+      }
       const query = new URLSearchParams(window.location.search); query.delete("pr"); query.set("project", loaded.project_id); query.set("base", base); query.set("head", head); query.set("tab", activeTab); window.history.pushState(null, "", `${window.location.pathname}?${query.toString()}`);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "分支分析失败"); }
     finally { setBusy(false); }
@@ -293,7 +502,7 @@ export function Dashboard() {
 
   const runAnalysis = useCallback(async () => {
     if (analysisMode === "project" && project) {
-      await analyzeBranch(project, baseRef, headRef, config);
+      await analyzeBranch(project, baseRef, headRef, config, false);
       return;
     }
     if (activePr === null) return;
@@ -306,8 +515,9 @@ export function Dashboard() {
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "重算失败");
-      setReport(payload as Report);
-      setNotice("当前 PR 已按新配置重算");
+      const nextReport = payload as Report;
+      setReport(nextReport);
+      setNotice(`当前 PR 已按新配置重算（${rerunTierLabel(nextReport.snapshot_meta)}）`);
       window.setTimeout(() => setNotice(""), 1800);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "重算失败");
@@ -318,6 +528,15 @@ export function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
+    fetch("/api/config/presets").then(async (response) => {
+      if (!response.ok) return null;
+      return response.json() as Promise<{ presets?: PresetItem[] }>;
+    }).then((payload) => {
+      if (!cancelled && payload?.presets?.length) {
+        setPresets(payload.presets);
+      }
+    }).catch(() => undefined);
+
     fetch("/api/dataset").then(async (response) => {
       if (!response.ok) throw new Error("演示 API 暂不可用");
       return response.json() as Promise<Dataset>;
@@ -406,6 +625,20 @@ export function Dashboard() {
     }
     return { ...current, enabled_rules: enabledRules, test_collaboration_enabled: !enabled };
   });
+  const selectPreset = (item: PresetItem) => {
+    setConfig((current) => ({
+      preset: item.preset,
+      enabled_rules: item.enabled_rules ? [...item.enabled_rules] : (dataset?.rules.map((r) => r.rule_id) ?? current.enabled_rules),
+      rule_weights: item.rule_weights ? { ...item.rule_weights } : current.rule_weights,
+      test_collaboration_weight: item.test_collaboration_weight ?? item.rule_weights?.["workflow.test_collaboration_gap"] ?? current.test_collaboration_weight,
+      test_collaboration_enabled: item.test_collaboration_enabled ?? true,
+      thresholds: { ...item.thresholds },
+      rule_thresholds: {
+        "code.deep_control_flow": { max_depth: item.rule_thresholds?.["code.deep_control_flow"]?.max_depth ?? 4 },
+        "code.hardcoded_secret": { min_length: item.rule_thresholds?.["code.hardcoded_secret"]?.min_length ?? 8 },
+      },
+    }));
+  };
 
   const downloadReport = (format: "json" | "md") => {
     if (!report) return;
@@ -448,18 +681,20 @@ export function Dashboard() {
         <div className="review-brand"><span className="brand-mark"><Code2 size={18} /></span><strong>prisk<span>.</span></strong><span className="brand-tag">REVIEW</span></div>
         <button className="repo-context repo-context-button" onClick={() => { setReport(null); setAnalysisMode("project"); }}><span className="repo-avatar">{(report?.repo ?? "P").slice(0, 1).toUpperCase()}</span><span><strong>{report?.repo ?? "选择项目"}</strong><small>{project?.path ?? (analysisMode === "sample" ? "冻结 NetBox 样本" : "加载本地 Git 仓库")}</small></span></button>
         <div className="sidebar-caption">当前分析</div>
-          <button className="current-pr-button" onClick={() => analysisMode === "sample" ? setDrawerOpen(true) : (setReport(null), setAnalysisMode("project"))} disabled={!dataset}>
+        <button className="current-pr-button" onClick={() => analysisMode === "sample" ? setDrawerOpen(true) : (setReport(null), setAnalysisMode("project"))} disabled={!dataset}>
           <GitPullRequest size={16} /><span><small>{analysisMode === "sample" ? "Pull Request" : "分支分析"}</small><strong>{report ? (report.pr_number ? `#${report.pr_number}` : `${report.base_ref} → ${report.head_ref}`) : "选择项目"}</strong></span><ChevronDown size={15} />
         </button>
-        <div className="sidebar-status"><span className="status-dot" />本地冻结样本</div>
-        <div className="sidebar-footer">PRISK SYSTEM <span>06 · 07</span></div>
+        <div className="sidebar-status"><span className="status-dot" />{analysisMode === "sample" ? "本地冻结样本" : "本地分支审计"}</div>
+        <div className="sidebar-footer">PRISK SYSTEM <span>v1.3</span></div>
       </aside>
 
       <main className="review-main">
         <header className="review-topbar">
-            <div className="breadcrumbs">{report?.repo ?? "Prisk"} <ChevronRight size={13} /> {analysisMode === "sample" ? "冻结 PR 样本" : "分支审计"}</div>
-          <div className="top-actions"><span className="sample-badge"><span className="status-dot" />离线样本</span>
-            <button className="icon-button" title="下载 JSON 报告" onClick={() => downloadReport("json")} disabled={!report}><Download size={16} /></button>
+          <div className="breadcrumbs">{report?.repo ?? "Prisk"} <ChevronRight size={13} /> {analysisMode === "sample" ? "冻结 PR 样本" : "分支审计"}</div>
+          <div className="top-actions">
+            {report?.snapshot_meta && <span className="rerun-badge" title="快照局部重跑层级">{rerunTierLabel(report.snapshot_meta)}</span>}
+            {report?.config_snapshot && <span className="sample-badge" title={`配置指纹 ${report.config_snapshot.config_digest}`}><span className="status-dot" />预设：{report.config_snapshot.preset_name}{report.config_snapshot.customized ? "（已定制）" : ""} · #{report.config_snapshot.config_digest.slice(0, 8)}</span>}
+            <button className="icon-button" title="下载 JSON 报告（含完整配置快照）" onClick={() => downloadReport("json")} disabled={!report}><Download size={16} /></button>
           </div>
         </header>
 
@@ -469,10 +704,16 @@ export function Dashboard() {
               <div className="eyebrow">{analysisMode === "sample" ? "PULL REQUEST REVIEW" : "BRANCH REVIEW"} <span>·</span> {report?.repo ?? "本地项目"}</div>
               <div className="pr-title-line"><h1>{report ? (report.pr_number ? `#${report.pr_number} ${report.title}` : `${report.base_ref} → ${report.head_ref}`) : "载入分析"}</h1>
                 {report && <span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span>}
+                {report?.score_basis.gatekeeper_lift && <span className="gatekeeper-pill">一票抬升</span>}
               </div>
               <p>{report ? <>{analysisMode === "sample" ? report.author ?? "NetBox contributor" : project?.path} <span className="muted-divider">·</span> base {analysisMode === "project" ? report.base_ref : ""} <code>{shortSha(report.base_sha)}</code> <ArrowDown size={12} /> head {analysisMode === "project" ? report.head_ref : ""} <code>{shortSha(report.head_sha)}</code></> : "正在读取分析对象"}</p>
             </div>
             <div className="pr-heading-actions">
+              {analysisMode === "project" && project && (
+                <button className="secondary-button" onClick={() => void analyzeBranch(project, baseRef, headRef, config, true)} disabled={busy} title="强制丢弃缓存并重新提取 Git Diff 与 AST">
+                  <RotateCcw size={14} />强制刷新快照
+                </button>
+              )}
               {analysisMode === "sample" ? <button className="secondary-button" onClick={() => setDrawerOpen(true)} disabled={!dataset}><ListFilter size={15} />切换 PR</button> : <button className="secondary-button" onClick={() => { setReport(null); setAnalysisMode("project"); }}><ListFilter size={15} />更换项目</button>}
               {report?.url && <a className="icon-button source-link" href={report.url} target="_blank" rel="noreferrer" title="查看原始 PR"><ArrowUpRight size={16} /></a>}
             </div>
@@ -486,16 +727,16 @@ export function Dashboard() {
               <Icon size={16} />{label}{id === "rules" && report && <span className="tab-count">{report.findings.length}</span>}
             </button>)}
             <div className="tab-spacer" />
-            <button className="export-text" onClick={() => downloadReport("md")} disabled={!report}><FileText size={15} />导出复核摘要</button>
+            <button className="export-text" onClick={() => downloadReport("md")} disabled={!report}><FileText size={15} />导出复核摘要（含配置快照）</button>
           </nav>
 
           {!report ? <div className="loading-panel"><LoaderCircle className="spin" size={24} />{busy ? "正在载入 PR 分析对象…" : "等待选择 PR"}</div> : <>
             {activeTab === "overview" && <Overview report={report} baselineScore={baselineScore} onShowRules={() => openTab("rules")} onShowCode={() => openTab("code")} onLocate={locateEvidence} />}
             {activeTab === "code" && <CodeReview report={report} file={selectedFile} selectedPath={selectedPath} setSelectedPath={(path) => { setSelectedPath(path); setFocusLines([]); }} focusLines={focusLines} />}
             {activeTab === "rules" && <RulesView report={report} catalog={dataset?.rules ?? []} expandedRule={expandedRule} setExpandedRule={setExpandedRule} onLocate={locateEvidence} />}
-            {activeTab === "scoring" && <ScoringView report={report} catalog={dataset?.rules ?? []} config={config} setConfig={setConfig} onWeight={updateRuleWeight} onToggle={toggleRule} onApply={() => void runAnalysis()} onReset={resetConfig} busy={busy} baselineScore={baselineScore} />}
+            {activeTab === "scoring" && <ScoringView report={report} catalog={dataset?.rules ?? []} presets={presets} config={config} setConfig={setConfig} onSelectPreset={selectPreset} onWeight={updateRuleWeight} onToggle={toggleRule} onApply={() => void runAnalysis()} onReset={resetConfig} busy={busy} baselineScore={baselineScore} />}
           </>}
-          <footer className="review-footer"><span><span className="status-dot" />本地分析结果</span><span>{analysisMode === "project" ? "stage03.v1 · stage04.v1 · stage05.v1 · stage08.branch-report.v1" : "stage03.v1 · stage04.v1 · stage05.v1 · stage07.report.v1"}</span><span>评分表示复核优先级，不是缺陷概率</span></footer>
+          <footer className="review-footer"><span><span className="status-dot" />本地分析结果</span><span>{analysisMode === "project" ? "stage03.v1 · stage04.v1 · stage05.v2 · stage08.branch-report.v1 · config.snapshot.v1" : "stage03.v1 · stage04.v1 · stage05.v2 · stage07.report.v2 · config.snapshot.v1"}</span><span>评分表示复核优先级，不是缺陷概率</span></footer>
         </div>
       </main>
 
@@ -548,6 +789,7 @@ function Overview({ report, baselineScore, onShowRules, onShowCode, onLocate }: 
 }) {
   const topFindings = report.findings.slice(0, 3);
   const collaboration = collaborationCopy(report);
+  const gatekeeper = gatekeeperSummary(report);
   return <div className="tab-page overview-page">
     <div className="overview-summary">
       <div className="score-summary"><span>当前复核优先级</span><strong>{report.score}<small>/100</small></strong><span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span><small>基线 {baselineScore ?? report.score} · 阈值 {report.score_basis.configuration.thresholds.medium}/{report.score_basis.configuration.thresholds.high}</small></div>
@@ -556,6 +798,15 @@ function Overview({ report, baselineScore, onShowRules, onShowCode, onLocate }: 
         <div className="summary-stat"><span>规则命中</span><strong>{report.findings.length}</strong></div><div className="summary-stat"><span>命中关注域</span><strong className="scene-stat">{(report.summary.domains ?? []).map((domain) => domainLabels[domain] ?? domain).join("、") || "无"}</strong></div>
       </div>
     </div>
+    {gatekeeper && (
+      <div className="gatekeeper-banner">
+        <ShieldAlert size={16} />
+        <div>
+          <strong>{gatekeeper.text}</strong>
+          {gatekeeper.hits.length > 0 && <small>证据节点：{gatekeeper.hits.map((h) => `${h.path} (${h.operation})`).join("；")}</small>}
+        </div>
+      </div>
+    )}
     <div className={`collab-banner ${collaboration.tone}`}><span className="collab-icon">{collaboration.tone === "attention" ? <AlertCircle size={16} /> : <CircleHelp size={16} />}</span><span>{collaboration.text}</span><small>辅助复核信号，不单独构成风险判断</small></div>
     <div className="overview-columns">
       <section className="overview-section"><div className="section-heading"><div><h2>重点风险线索</h2><p>当前分析命中的结构规则</p></div><button className="text-action" onClick={onShowRules}>查看全部 <ChevronRight size={14} /></button></div>
@@ -607,10 +858,11 @@ function DiffRow({ line, filePath, highlighted }: { line: DiffLine; filePath: st
 }
 
 function catalogState(report: Report, ruleId: string) {
-  if (!outcomesRecorded(report)) return { className: "unavailable", label: "终态未记录", note: "历史快照没有这条规则的终态，不能把它当成未发现。" };
+  if (!outcomesRecorded(report)) return { stateKey: "unavailable", className: "unavailable", label: "终态未记录", note: "历史快照没有这条规则的终态，不能把它当成未发现。" };
   const outcome = outcomeFor(report, ruleId);
-  if (!outcome) return { className: "disabled", label: "未启用", note: "" };
+  if (!outcome) return { stateKey: "disabled", className: "disabled", label: "未启用", note: "" };
   return {
+    stateKey: outcome.state,
     className: outcome.state === "Hit" ? "hit" : outcome.state === "NotFound" ? "not-found" : "unanalyzed",
     label: outcomeLabels[outcome.state],
     note: outcomeNote(outcome),
@@ -620,11 +872,19 @@ function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate }:
   report: Report; catalog: Rule[]; expandedRule: string | null; setExpandedRule: (key: string | null) => void;
   onLocate: (evidence: Evidence) => void;
 }) {
+  const [stateFilter, setStateFilter] = useState<string>("all");
+  const [ruleDomainFilter, setRuleDomainFilter] = useState<string>("all");
   const recorded = outcomesRecorded(report);
   const outcomes = recorded ? report.rule_outcomes ?? [] : [];
   const outcomeSummary = recorded
     ? `命中 ${outcomes.filter((item) => item.state === "Hit").length} · 未发现 ${outcomes.filter((item) => item.state === "NotFound").length} · 无法分析 ${outcomes.filter((item) => item.state === "Unanalyzed").length}`
     : "终态未记录";
+  const filteredCatalog = catalog.filter((rule) => {
+    if (ruleDomainFilter !== "all" && ruleDomain(rule.rule_id) !== ruleDomainFilter) return false;
+    if (stateFilter === "all") return true;
+    const state = catalogState(report, rule.rule_id);
+    return state.stateKey === stateFilter;
+  });
   return <div className="tab-page rules-page">
     <section className="rules-matched-section"><div className="section-heading"><div><h2>本次分析命中</h2><p>{report.findings.length} 条规则线索 · {outcomeSummary} · 展开证据可定位至代码行</p></div><span className="section-number">{report.findings.length}</span></div>
       {report.summary.unanalyzed?.length ? <div className="parse-warning"><AlertCircle size={15} />{report.summary.unanalyzed.length} 项变更未能完成分析，未按通过处理。{report.summary.unanalyzed.map((item) => `${item.path || "本次变更"}：${reasonText(item.reason)}`).join("；")}</div> : null}
@@ -639,8 +899,25 @@ function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate }:
         </div>)}</div>}
       </article>)}</div> : <div className="empty-state"><CircleHelp size={18} />{findingAbsenceCopy(report)}</div>}
     </section>
-    <section className="rule-catalog-section"><div className="section-heading"><div><h2>规则目录</h2><p>当前实现的规则、触发条件与适用边界。终态按本次分析记录，未发现不是安全结论。</p></div><span className="catalog-count">{catalog.length} 条规则</span></div>
-      <div className="rule-catalog">{catalog.map((rule) => {
+    <section className="rule-catalog-section">
+      <div className="section-heading">
+        <div><h2>规则目录</h2><p>当前实现的 29 条规则、触发条件与适用边界。终态按本次分析记录，未发现不是安全结论。</p></div>
+        <div className="catalog-filter-bar">
+          <select aria-label="按终态筛选规则" value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}>
+            <option value="all">全部终态 ({catalog.length})</option>
+            <option value="Hit">命中 (Hit)</option>
+            <option value="NotFound">未发现 (NotFound)</option>
+            <option value="Unanalyzed">无法分析 (Unanalyzed)</option>
+            <option value="disabled">未启用</option>
+          </select>
+          <select aria-label="按关注域筛选规则" value={ruleDomainFilter} onChange={(e) => setRuleDomainFilter(e.target.value)}>
+            <option value="all">全部关注域</option>
+            {Object.entries(domainLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          </select>
+          <span className="catalog-count">{filteredCatalog.length} / {catalog.length}</span>
+        </div>
+      </div>
+      <div className="rule-catalog">{filteredCatalog.map((rule) => {
         const state = catalogState(report, rule.rule_id);
         return <article className="catalog-rule" key={rule.rule_id}>
         <div className="catalog-rule-title"><span className={`finding-symbol domain-${ruleDomain(rule.rule_id)}`}>{domainIcon(ruleDomain(rule.rule_id))}</span><div><small>{rule.rule_id}</small><h3>{ruleLabels[rule.rule_id] ?? rule.rule_id}</h3></div><span className={`catalog-state ${state.className}`}>{state.label}</span></div>
@@ -655,19 +932,51 @@ function CatalogField({ label, value }: { label: string; value: string }) {
   return <div className="catalog-field"><span>{label}</span><p>{value || "未设置"}</p></div>;
 }
 
-function ScoringView({ report, catalog, config, setConfig, onWeight, onToggle, onApply, onReset, busy, baselineScore }: {
-  report: Report; catalog: Rule[]; config: Config; setConfig: React.Dispatch<React.SetStateAction<Config>>;
+function ScoringView({ report, catalog, presets, config, setConfig, onSelectPreset, onWeight, onToggle, onApply, onReset, busy, baselineScore }: {
+  report: Report; catalog: Rule[]; presets: PresetItem[]; config: Config; setConfig: React.Dispatch<React.SetStateAction<Config>>;
+  onSelectPreset: (item: PresetItem) => void;
   onWeight: (ruleId: string, value: number) => void; onToggle: (ruleId: string) => void;
   onApply: () => void; onReset: () => void; busy: boolean; baselineScore: number | null;
 }) {
+  const gatekeeper = gatekeeperSummary(report);
+  const deepDepth = config.rule_thresholds?.["code.deep_control_flow"]?.max_depth ?? 4;
+  const secretLen = config.rule_thresholds?.["code.hardcoded_secret"]?.min_length ?? 8;
   return <div className="tab-page scoring-page">
-    <section className="scoring-summary"><div><span>当前分析评分</span><strong>{report.score}<small>/100</small></strong><span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span></div><div className="scoring-equation"><strong>{report.score_basis.earned_points}</strong><span>/</span><strong>{report.score_basis.maximum_points}</strong><small>已得权重 / 可得权重</small></div><div className="scoring-baseline"><span>默认分数</span><strong>{baselineScore ?? report.score}</strong><small>仅当前分析的默认配置结果</small></div></section>
-    <div className="scoring-layout"><section className="scoring-controls"><div className="section-heading"><div><h2>规则权重</h2><p>开关和权重只用于当前 PR 重算</p></div><button className="icon-button" title="恢复默认" onClick={onReset}><RotateCcw size={16} /></button></div>
+    <section className="scoring-summary"><div><span>当前分析评分</span><strong>{report.score}<small>/100</small></strong><span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span></div><div className="scoring-equation"><strong>{report.score_basis.earned_points}</strong><span>/</span><strong>{report.score_basis.maximum_points}</strong><small>已得权重 / 可得权重</small></div><div className="scoring-baseline"><span>默认分数</span><strong>{baselineScore ?? report.score}</strong><small>{report.config_snapshot ? `配置指纹 #${report.config_snapshot.config_digest.slice(0, 8)} · ${rerunTierLabel(report.snapshot_meta)}` : "仅当前分析的默认配置结果"}</small></div></section>
+    {gatekeeper && (
+      <div className="gatekeeper-banner">
+        <ShieldAlert size={16} />
+        <div><strong>{gatekeeper.text}</strong></div>
+      </div>
+    )}
+    <section className="preset-section">
+      <div className="section-heading">
+        <div><h2>审查场景预设（Presets）</h2><p>选择预设可一键载入对应的 29 条规则权重矩阵、分级阈值与内部判定参数，随后可继续细粒度微调</p></div>
+      </div>
+      <div className="preset-grid">
+        {presets.map((item) => (
+          <button
+            type="button"
+            key={item.preset}
+            className={`preset-card ${config.preset === item.preset ? "active" : ""}`}
+            onClick={() => onSelectPreset(item)}
+          >
+            <div className="preset-card-head">
+              <strong>{item.name}</strong>
+              <code>{item.preset}</code>
+            </div>
+            <p>{item.description}</p>
+            <small>阈值 {item.thresholds.medium}/{item.thresholds.high} · 深度&gt;{item.rule_thresholds?.["code.deep_control_flow"]?.max_depth ?? 4} · 密钥≥{item.rule_thresholds?.["code.hardcoded_secret"]?.min_length ?? 8}</small>
+          </button>
+        ))}
+      </div>
+    </section>
+    <div className="scoring-layout"><section className="scoring-controls"><div className="section-heading"><div><h2>规则权重与启用开关（{config.enabled_rules.length} / {catalog.length} 已启用）</h2><p>开关和权重将封存至本次分析报告快照，确保结论可复现</p></div><button className="icon-button" title="恢复默认基线" onClick={onReset}><RotateCcw size={16} /></button></div>
       <div className="weight-rule-list">{catalog.map((rule) => <div className="weight-rule" key={rule.rule_id}>
         <label className="rule-toggle"><input type="checkbox" checked={config.enabled_rules.includes(rule.rule_id)} onChange={() => onToggle(rule.rule_id)} /><span className="checkmark"><Check size={12} /></span><span className={`finding-symbol domain-${ruleDomain(rule.rule_id)}`}>{domainIcon(ruleDomain(rule.rule_id))}</span><span><strong>{ruleLabels[rule.rule_id] ?? rule.rule_id}</strong><small>{rule.rule_id}</small></span></label>
         <div className="weight-slider"><input type="range" min={0} max={5} step={1} value={config.rule_weights[rule.rule_id] ?? rule.default_weight} disabled={!config.enabled_rules.includes(rule.rule_id)} onChange={(event) => onWeight(rule.rule_id, Number(event.target.value))} aria-label={`${rule.rule_id} 权重`} /><output>{config.rule_weights[rule.rule_id] ?? rule.default_weight}</output></div>
       </div>)}</div>
-      <div className="auxiliary-weight"><label><span><strong>生产代码变更未见测试路径变更</strong><small>与规则行使用同一个权重 1，不另外加分</small></span><input type="checkbox" checked={config.test_collaboration_enabled} onChange={(event) => setConfig((current) => {
+      <div className="auxiliary-weight"><label><span><strong>生产代码变更未见测试路径变更</strong><small>与规则行使用同一个权重，不另外重复加分</small></span><input type="checkbox" checked={config.test_collaboration_enabled} onChange={(event) => setConfig((current) => {
         const enabled = event.target.checked;
         const hasRule = current.enabled_rules.includes("workflow.test_collaboration_gap");
         const enabledRules = enabled
@@ -683,8 +992,37 @@ function ScoringView({ report, catalog, config, setConfig, onWeight, onToggle, o
         }));
       }} aria-label="测试协同缺失权重" /><output>{config.test_collaboration_weight}</output></div></div>
     </section>
-    <aside className="threshold-panel"><h2>等级阈值</h2><p>调整当前 PR 的复核优先级分段。</p><label>建议复核<input type="number" min={0} max={99} value={config.thresholds.medium} onChange={(event) => setConfig((current) => ({ ...current, thresholds: { ...current.thresholds, medium: Number(event.target.value) } }))} /></label><label>优先复核<input type="number" min={1} max={100} value={config.thresholds.high} onChange={(event) => setConfig((current) => ({ ...current, thresholds: { ...current.thresholds, high: Number(event.target.value) } }))} /></label><button className="primary-button apply-score" onClick={onApply} disabled={busy}>{busy ? <LoaderCircle size={15} className="spin" /> : <Settings2 size={15} />}应用并重算当前 PR</button></aside></div>
-    <div className="score-boundary"><CircleHelp size={17} /><div><strong>评分是人工复核优先级，不是缺陷概率。</strong><p>规则按命中与配置权重计分，不按 evidence 条数重复累加。权重尚未通过独立标注集校准。</p></div></div>
+    <aside className="threshold-panel">
+      <h2>等级分段阈值</h2>
+      <p>调整复核优先级分段（0 ≤ 建议复核 &lt; 优先复核 ≤ 100）。</p>
+      <label>建议复核 (medium)<input type="number" min={0} max={99} value={config.thresholds.medium} onChange={(event) => setConfig((current) => ({ ...current, thresholds: { ...current.thresholds, medium: Number(event.target.value) } }))} /></label>
+      <label>优先复核 (high)<input type="number" min={1} max={100} value={config.thresholds.high} onChange={(event) => setConfig((current) => ({ ...current, thresholds: { ...current.thresholds, high: Number(event.target.value) } }))} /></label>
+      <div className="rule-threshold-divider" />
+      <h2>规则内部判定阈值</h2>
+      <p>修改内部参数将触发 Tier 1 局部重跑（直接复用 AST，重算 Stage05 规则）。</p>
+      <label>深层控制流最大深度 (2~10)<input type="number" min={2} max={10} value={deepDepth} onChange={(event) => {
+        const val = Math.max(2, Math.min(10, Number(event.target.value) || 4));
+        setConfig((current) => ({
+          ...current,
+          rule_thresholds: {
+            ...current.rule_thresholds,
+            "code.deep_control_flow": { max_depth: val },
+          },
+        }));
+      }} /></label>
+      <label>敏感字面量最小长度 (4~32)<input type="number" min={4} max={32} value={secretLen} onChange={(event) => {
+        const val = Math.max(4, Math.min(32, Number(event.target.value) || 8));
+        setConfig((current) => ({
+          ...current,
+          rule_thresholds: {
+            ...current.rule_thresholds,
+            "code.hardcoded_secret": { min_length: val },
+          },
+        }));
+      }} /></label>
+      <button className="primary-button apply-score" onClick={onApply} disabled={busy}>{busy ? <LoaderCircle size={15} className="spin" /> : <Settings2 size={15} />}应用并重算当前分析</button>
+    </aside></div>
+    <div className="score-boundary"><CircleHelp size={17} /><div><strong>评分是人工复核优先级，不是缺陷概率。</strong><p>规则按命中与配置权重计分，不按 evidence 条数重复累加。导出的 Markdown / JSON 报告将强制封存当前运行配置快照，确保审查结论可追溯、可复现。</p></div></div>
   </div>;
 }
 
@@ -696,18 +1034,86 @@ function fileStatusLabel(status: string) {
 }
 function severityLabel(value: string) { return value === "high" ? "高" : value === "medium" ? "中" : "低"; }
 function renderMarkdown(report: Report) {
+  const snap = report.config_snapshot;
+  const cfg = configFromReport(report);
+  const enabledRules = snap?.enabled_rules ?? cfg.enabled_rules;
+  const allKnownRules = Object.keys(ruleLabels);
+  const disabledRules = snap?.disabled_rules ?? allKnownRules.filter((id) => !enabledRules.includes(id));
+  const deepDepth = (snap?.rule_thresholds ?? cfg.rule_thresholds)?.["code.deep_control_flow"]?.max_depth ?? 4;
+  const secretLen = (snap?.rule_thresholds ?? cfg.rule_thresholds)?.["code.hardcoded_secret"]?.min_length ?? 8;
+  const gatekeeper = gatekeeperSummary(report);
+  const recorded = outcomesRecorded(report);
+  const outcomeByRule = new Map((report.rule_outcomes ?? []).map((o) => [o.rule_id, o]));
+
+  const reproPayload = {
+    preset: snap?.preset ?? cfg.preset ?? "legacy_baseline",
+    config_digest: snap?.config_digest ?? "",
+    enabled_rules: enabledRules,
+    rule_weights: snap?.rule_weights ?? cfg.rule_weights,
+    test_collaboration_enabled: snap?.test_collaboration_enabled ?? cfg.test_collaboration_enabled,
+    test_collaboration_weight: snap?.test_collaboration_weight ?? cfg.test_collaboration_weight,
+    thresholds: snap?.thresholds ?? cfg.thresholds,
+    rule_thresholds: {
+      "code.deep_control_flow": { max_depth: deepDepth },
+      "code.hardcoded_secret": { min_length: secretLen },
+    },
+  };
+
   return [
-    `# ${report.pr_number ? `PR #${report.pr_number}` : `${report.base_ref} → ${report.head_ref}`} 代码变更复核`, "", `- 标题：${report.title}`, `- 作者：${report.author ?? "未知"}`,
+    `# ${report.pr_number ? `PR #${report.pr_number}` : `${report.base_ref} → ${report.head_ref}`} 代码变更复核`,
+    "",
+    `- 标题：${report.title}`,
+    `- 仓库：${report.repo ?? "未知"}`,
+    `- 作者：${report.author ?? "未知"}`,
+    `- 提交快照：base \`${shortSha(report.base_sha)}\` → head \`${shortSha(report.head_sha)}\``,
     `- 复核优先级：${report.score}/100（${riskLabel(report.risk_level)}，不是缺陷概率）`,
+    `- 计分依据：${report.score_basis.earned_points} / ${report.score_basis.maximum_points}（已得权重 / 可得权重）`,
+    `- 一票抬升（Gatekeeper）：${gatekeeper ? `已触发（强制抬升为优先复核，触发规则：${gatekeeper.rules.join(", ")}）` : "未触发"}`,
     `- 变更规模：${report.summary.files_changed} 个文件，+${report.summary.additions} / -${report.summary.deletions}`,
-    "", "## 规则终态", outcomesRecorded(report)
+    ...(report.snapshot_meta ? [`- 执行层级：\`${report.snapshot_meta.rerun_tier}\`（cache_hit=${report.snapshot_meta.cache_hit}）`] : []),
+    "",
+    "## 运行配置快照（可复现封存）",
+    "",
+    `- 配置 Schema：\`${snap?.schema_version ?? "config.snapshot.v1"}\``,
+    `- 配置指纹（SHA-256）：\`${snap?.config_digest ?? "local"}\``,
+    `- 场景预设：\`${snap?.preset ?? cfg.preset ?? "legacy_baseline"}\`（${snap?.preset_name ?? "自定义/基线"}，自定义覆盖：\`${Boolean(snap?.customized)}\`）`,
+    `- 等级分段阈值：建议复核 \`medium >= ${cfg.thresholds.medium}\`，优先复核 \`high >= ${cfg.thresholds.high}\``,
+    `- 规则内部判定阈值：\`code.deep_control_flow.max_depth = ${deepDepth}\`，\`code.hardcoded_secret.min_length = ${secretLen}\``,
+    `- 测试协同配置：\`enabled = ${cfg.test_collaboration_enabled}\`，\`weight = ${cfg.test_collaboration_weight}\``,
+    `- 启用规则数：${enabledRules.length} / ${allKnownRules.length}`,
+    `- 已禁用规则：${disabledRules.length ? disabledRules.map((r) => `\`${r}\``).join(", ") : "无（全部 29 条规则均已启用）"}`,
+    "",
+    "### 启用规则与权重明细",
+    "",
+    "| 规则 ID | 规则名称 | 启发式权重 | 本次终态 |",
+    "| :--- | :--- | :---: | :--- |",
+    ...enabledRules.map((ruleId) => {
+      const weight = (snap?.rule_weights ?? cfg.rule_weights)[ruleId] ?? 0;
+      const outcome = outcomeByRule.get(ruleId);
+      const stateText = recorded && outcome ? outcomeLabels[outcome.state] : "终态未记录";
+      return `| \`${ruleId}\` | ${ruleLabels[ruleId] ?? ruleId} | ${weight} | ${stateText} |`;
+    }),
+    "",
+    "### 可复现配置载荷",
+    "",
+    "```json",
+    JSON.stringify(reproPayload, null, 2),
+    "```",
+    "",
+    "## 规则终态",
+    recorded
       ? (report.rule_outcomes ?? []).flatMap((outcome) => [
         `- ${outcome.rule_id}：${outcomeLabels[outcome.state]}${outcomeNote(outcome) ? `。${outcomeNote(outcome)}` : ""}`,
       ]).concat(["", "未发现不是安全结论。无法分析不是通过。"])
       : ["- 这次结果没有规则终态记录。没有 Finding 不能解释为未发现或已通过。"],
-    "", "## 规则线索", ...report.findings.flatMap((finding) => [
+    "",
+    "## 规则线索",
+    ...report.findings.flatMap((finding) => [
       "", `### ${finding.rule_id}`, `- ${finding.message}`, `- 复核建议：${finding.suggested_action}`,
       ...finding.evidence.map((item) => `- ${item.path}:${item.lines.join(",")} · ${item.node_kind} · ${item.structural_change_type} · ${item.qualified_name ?? item.node_id}${evidenceDetail(item) ? ` · ${evidenceDetail(item)}` : ""}`),
-    ]), "", "## 说明", ...report.limitations.map((item) => `- ${item}`),
+    ]),
+    "",
+    "## 说明",
+    ...report.limitations.map((item) => `- ${item}`),
   ].join("\n");
 }

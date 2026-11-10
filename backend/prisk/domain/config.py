@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 from typing import Any
 
 from .rules import RULE_CATALOG
@@ -10,6 +12,7 @@ from .test_collaboration import COLLABORATION_RULE_ID
 
 
 CONFIG_SCHEMA_VERSION = "config.v1"
+CONFIG_SNAPSHOT_SCHEMA_VERSION = "config.snapshot.v1"
 
 PRESET_BALANCED = "balanced"
 PRESET_SECURITY_FOCUS = "security_focus"
@@ -278,15 +281,19 @@ def get_preset(preset_name: str) -> dict[str, Any]:
 
 
 def list_presets() -> list[dict[str, Any]]:
-    """返回所有可用预设的元数据清单（供前端选择器或 API 消费）。"""
+    """返回所有可用预设的完整元数据与参数清单（供前端选择器或 API 消费）。"""
     return [
         {
             "preset": item["preset"],
             "name": item["name"],
             "description": item["description"],
             "enabled_rule_count": len(item["enabled_rules"]),
-            "thresholds": item["thresholds"],
-            "rule_thresholds": item["rule_thresholds"],
+            "enabled_rules": list(item["enabled_rules"]),
+            "rule_weights": copy.deepcopy(item["rule_weights"]),
+            "test_collaboration_weight": item["test_collaboration_weight"],
+            "test_collaboration_enabled": item["test_collaboration_enabled"],
+            "thresholds": copy.deepcopy(item["thresholds"]),
+            "rule_thresholds": copy.deepcopy(item["rule_thresholds"]),
         }
         for item in PRESETS.values()
     ]
@@ -385,3 +392,74 @@ def normalize_audit_config(
         result["schema_version"] = CONFIG_SCHEMA_VERSION
 
     return result
+
+
+def build_config_snapshot(
+    config: dict[str, Any] | None,
+    default_preset: str = PRESET_LEGACY_BASELINE,
+) -> dict[str, Any]:
+    """构建完整、自包含且附带确定性 SHA-256 指纹的可复现运行配置快照。
+
+    无论调用方是否显式传入 preset 或 rule_thresholds，本函数均会将实际生效的
+    预设标识、29 条规则启用/禁用名单、权重映射、风险等级阈值及规则内部判定参数
+    完整封存，用于审查报告固化与复现核验。
+    """
+    supplied = config or {}
+    normalized = normalize_audit_config(supplied, default_preset=default_preset)
+    preset_name = str(supplied.get("preset") or normalized.get("preset") or default_preset)
+    base_preset = get_preset(preset_name)
+
+    base_rule_thresholds = copy.deepcopy(base_preset.get("rule_thresholds", {}))
+    supplied_rule_thresholds = normalized.get("rule_thresholds") or supplied.get("rule_thresholds") or {}
+    merged_rule_thresholds = {**base_rule_thresholds}
+    for r_id, p_dict in supplied_rule_thresholds.items():
+        merged_rule_thresholds.setdefault(r_id, {}).update(p_dict)
+    effective_rule_thresholds = _validate_rule_thresholds(merged_rule_thresholds)
+
+    enabled_rules = list(normalized["enabled_rules"])
+    enabled_set = set(enabled_rules)
+    disabled_rules = [rule_id for rule_id in _ALL_RULE_IDS if rule_id not in enabled_set]
+
+    customized = (
+        enabled_set != set(base_preset["enabled_rules"])
+        or normalized["rule_weights"] != base_preset["rule_weights"]
+        or bool(normalized["test_collaboration_enabled"]) != bool(base_preset["test_collaboration_enabled"])
+        or int(normalized["test_collaboration_weight"]) != int(base_preset["test_collaboration_weight"])
+        or normalized["thresholds"] != base_preset["thresholds"]
+        or effective_rule_thresholds != base_preset.get("rule_thresholds", {})
+    )
+
+    canonical_payload = {
+        "schema_version": CONFIG_SNAPSHOT_SCHEMA_VERSION,
+        "enabled_rules": sorted(enabled_rules),
+        "rule_weights": {k: int(normalized["rule_weights"][k]) for k in sorted(normalized["rule_weights"])},
+        "test_collaboration_enabled": bool(normalized["test_collaboration_enabled"]),
+        "test_collaboration_weight": int(normalized["test_collaboration_weight"]),
+        "thresholds": {
+            "medium": int(normalized["thresholds"]["medium"]),
+            "high": int(normalized["thresholds"]["high"]),
+        },
+        "rule_thresholds": {
+            r_id: {pk: effective_rule_thresholds[r_id][pk] for pk in sorted(effective_rule_thresholds[r_id])}
+            for r_id in sorted(effective_rule_thresholds)
+        },
+    }
+    canonical_bytes = json.dumps(canonical_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    config_digest = hashlib.sha256(canonical_bytes).hexdigest()[:16]
+
+    return {
+        "schema_version": CONFIG_SNAPSHOT_SCHEMA_VERSION,
+        "preset": preset_name,
+        "preset_name": base_preset["name"],
+        "customized": customized,
+        "config_digest": config_digest,
+        "enabled_rule_count": len(enabled_rules),
+        "disabled_rule_count": len(disabled_rules),
+        "enabled_rules": enabled_rules,
+        "disabled_rules": disabled_rules,
+        "rule_weights": copy.deepcopy(normalized["rule_weights"]),
+        "test_collaboration_enabled": bool(normalized["test_collaboration_enabled"]),
+        "test_collaboration_weight": int(normalized["test_collaboration_weight"]),
+        "thresholds": copy.deepcopy(normalized["thresholds"]),
+        "rule_thresholds": copy.deepcopy(effective_rule_thresholds),
+    }
