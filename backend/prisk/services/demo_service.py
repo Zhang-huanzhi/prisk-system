@@ -8,48 +8,16 @@ from pathlib import Path
 from typing import Any
 
 from ..domain.changes import load_records
-from ..domain.rules import RULE_CATALOG, rule_domain
+from ..domain.rules import RULE_CATALOG, evaluate_rules, rule_domain
 from ..domain.test_collaboration import COLLABORATION_RULE_ID
 from ..domain.gatekeeper import apply_gatekeeper_lift
-
-
-DEFAULT_CONFIG: dict[str, Any] = {
-    "enabled_rules": [rule["rule_id"] for rule in RULE_CATALOG],
-    "rule_weights": {
-        "api.signature_changed": 2,
-        "auth.permission_structure_changed": 3,
-        "data.transaction_structure_changed": 2,
-        "config.configuration_structure_changed": 1,
-        "code.exception_structure_changed": 1,
-        "code.swallowed_exception": 0,
-        "code.bare_exception": 0,
-        "code.dynamic_execution": 0,
-        "code.unmanaged_open": 0,
-        "code.deep_control_flow": 0,
-        "code.hardcoded_secret": 0,
-        "code.global_mutable_state": 0,
-        "data.django_raw_sql_execution": 0,
-        "auth.django_csrf_exempt_added": 0,
-        "api.drf_viewset_action_changed": 0,
-        "data.django_destructive_migration": 0,
-        "auth.drf_permission_policy_downgrade": 0,
-        "config.django_sensitive_settings_changed": 0,
-        "data.django_non_null_constraint_tightened": 0,
-        "auth.drf_permission_decorator_removed": 0,
-        "auth.drf_queryset_scope_tighten_bypassed": 0,
-        "data.django_signal_receiver_leak": 0,
-        "data.django_field_rename_without_db_column": 0,
-        "api.drf_public_parameter_added": 0,
-        "api.drf_public_parameter_removed": 0,
-        "api.django_url_pattern_changed": 0,
-        "code.assert_in_production": 0,
-        "code.mutable_default_argument": 0,
-        COLLABORATION_RULE_ID: 1,
-    },
-    "test_collaboration_weight": 1,
-    "test_collaboration_enabled": True,
-    "thresholds": {"medium": 30, "high": 65},
-}
+from ..domain.config import (
+    DEFAULT_CONFIG,
+    PRESETS,
+    PRESET_LEGACY_BASELINE,
+    list_presets,
+    normalize_audit_config,
+)
 
 RULE_SCOPES = {
     "api.signature_changed": "API、serializer、view、viewset 和 URL 相关 Python 文件",
@@ -103,12 +71,15 @@ class DemoData:
         *,
         include_diff: bool = True,
     ) -> dict[str, Any]:
-        rule_record = self.stage05.get(pr_number)
-        if rule_record is None:
-            raise KeyError(f"PR #{pr_number} 不存在")
         stage03 = self.stage03.get(pr_number, {})
         stage04 = self.stage04.get(pr_number, {})
         config_value = normalize_config(config)
+        if config and ("rule_thresholds" in config) and stage04:
+            rule_record = evaluate_rules(stage04, config_value)
+        else:
+            rule_record = self.stage05.get(pr_number)
+            if rule_record is None:
+                raise KeyError(f"PR #{pr_number} 不存在")
         findings = rule_record.get("findings", [])
         enabled = set(config_value["enabled_rules"])
         selected = [finding for finding in findings if finding.get("rule_id") in enabled]
@@ -280,38 +251,7 @@ class DemoData:
 
 
 def normalize_config(config: dict[str, Any] | None) -> dict[str, Any]:
-    supplied = config or {}
-    rule_ids = {item["rule_id"] for item in RULE_CATALOG}
-    enabled_rules = supplied.get("enabled_rules", DEFAULT_CONFIG["enabled_rules"])
-    if not isinstance(enabled_rules, list) or any(rule_id not in rule_ids for rule_id in enabled_rules):
-        raise ValueError("enabled_rules 包含未知规则")
-    weights = {**DEFAULT_CONFIG["rule_weights"], **supplied.get("rule_weights", {})}
-    if any(rule_id not in rule_ids for rule_id in weights):
-        raise ValueError("rule_weights 包含未知规则")
-    if any(not isinstance(value, int) or not 0 <= value <= 5 for value in weights.values()):
-        raise ValueError("规则权重必须是 0 到 5 的整数")
-    supplied_weights = supplied.get("rule_weights") or {}
-    if (
-        COLLABORATION_RULE_ID in supplied_weights
-        and "test_collaboration_weight" not in supplied
-    ):
-        collaboration_weight = supplied_weights[COLLABORATION_RULE_ID]
-    else:
-        collaboration_weight = supplied.get("test_collaboration_weight", DEFAULT_CONFIG["test_collaboration_weight"])
-    if type(collaboration_weight) is not int or not 0 <= collaboration_weight <= 5:
-        raise ValueError("测试协同权重必须是 0 到 5 的整数")
-    weights[COLLABORATION_RULE_ID] = collaboration_weight
-    thresholds = {**DEFAULT_CONFIG["thresholds"], **supplied.get("thresholds", {})}
-    medium, high = thresholds.get("medium"), thresholds.get("high")
-    if not isinstance(medium, int) or not isinstance(high, int) or not 0 <= medium < high <= 100:
-        raise ValueError("风险阈值需满足 0 ≤ medium < high ≤ 100")
-    return {
-        "enabled_rules": list(dict.fromkeys(enabled_rules)),
-        "rule_weights": weights,
-        "test_collaboration_weight": collaboration_weight,
-        "test_collaboration_enabled": bool(supplied.get("test_collaboration_enabled", True)),
-        "thresholds": thresholds,
-    }
+    return normalize_audit_config(config, default_preset=PRESET_LEGACY_BASELINE)
 
 
 def summed_rule_points(rule_ids: set[str] | list[str], weights: dict[str, int]) -> int:

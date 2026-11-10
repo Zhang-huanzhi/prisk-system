@@ -96,8 +96,8 @@ def analyze_branches(
         "test_cochanged": counts["business"] > 0 and counts["test"] > 0,
     })
     structure = extract_changed_structures(change, repo)
-    rules = evaluate_rules(structure)
     config_value = normalize_config(config)
+    rules = evaluate_rules(structure, config_value)
     score, level, score_basis = _score(rules, config_value, stage_record=structure)
     nodes = {node.get("node_id"): node for item in structure.get("files", []) for node in item.get("nodes", []) if node.get("node_id")}
     findings = []

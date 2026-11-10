@@ -223,10 +223,11 @@ def _mutable_message(form: str, targets: list[str]) -> str:
     )
 
 
-def _depth_message(kind: str, depth: int, basis: str) -> str:
+def _depth_message(kind: str, depth: int, basis: str, threshold: int = CONTROL_FLOW_DEPTH_THRESHOLD) -> str:
     basis_text = "记录的嵌套深度" if basis == "recorded" else "源码切片内的深度下界"
+    threshold_desc = f"固定阈值 {CONTROL_FLOW_DEPTH_THRESHOLD}" if threshold == CONTROL_FLOW_DEPTH_THRESHOLD else f"配置阈值 {threshold}"
     return (
-        f"控制流 {kind} 的{basis_text}为 {depth}，超过固定阈值 {CONTROL_FLOW_DEPTH_THRESHOLD}。"
+        f"控制流 {kind} 的{basis_text}为 {depth}，超过{threshold_desc}。"
         "计入深度的语句是 if、for、async for、while、with、async with 和 try。"
         "此线索只要求复核可读性，不判断缺陷。"
     )
@@ -681,25 +682,26 @@ def _control_findings(
     file_item: dict[str, Any],
     node: dict[str, Any],
     enabled: set[str],
+    max_depth: int = CONTROL_FLOW_DEPTH_THRESHOLD,
 ) -> tuple[list[dict[str, Any]], bool]:
     if node.get("kind") != "control_flow" or "code.deep_control_flow" not in enabled:
         return [], True
     kind, depth, basis, evaluable = _resolve_control_flow(node)
     if not evaluable or kind is None or depth is None or basis is None:
         return [], False
-    if depth <= CONTROL_FLOW_DEPTH_THRESHOLD:
+    if depth <= max_depth:
         return [], True
     return [
         _finding(
             "code.deep_control_flow",
-            _depth_message(kind, depth, basis),
+            _depth_message(kind, depth, basis, threshold=max_depth),
             _evidence(
                 path,
                 file_item,
                 node,
                 control_kind=kind,
                 nesting_depth=depth,
-                depth_threshold=CONTROL_FLOW_DEPTH_THRESHOLD,
+                depth_threshold=max_depth,
                 nesting_depth_basis=basis,
             ),
         )
@@ -714,7 +716,7 @@ def _placeholder_value(text: str) -> bool:
     return text.casefold() in SECRET_PLACEHOLDERS
 
 
-def _secret_qualifies(facts: dict[str, Any]) -> bool:
+def _secret_qualifies(facts: dict[str, Any], min_length: int = SECRET_LITERAL_MIN_LENGTH) -> bool:
     text = facts.get("literal_text")
     length = facts.get("literal_length")
     return (
@@ -722,7 +724,7 @@ def _secret_qualifies(facts: dict[str, Any]) -> bool:
         and isinstance(text, str)
         and isinstance(length, int)
         and not isinstance(length, bool)
-        and length >= SECRET_LITERAL_MIN_LENGTH
+        and length >= min_length
         and len(text) == length
         and not _placeholder_value(text)
     )
@@ -881,10 +883,11 @@ def _secret_from_parts(
     file_item: dict[str, Any],
     node: dict[str, Any],
     bindings: list[tuple[str, str, dict[str, Any]]],
+    min_length: int = SECRET_LITERAL_MIN_LENGTH,
 ) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     for name, form, facts in bindings:
-        if not _credential_name(name) or not _secret_qualifies(facts):
+        if not _credential_name(name) or not _secret_qualifies(facts, min_length=min_length):
             continue
         text = str(facts["literal_text"])
         findings.append(
@@ -923,7 +926,7 @@ def _mutable_finding(
     )
 
 
-def _scan_legacy_function(node: dict[str, Any]) -> dict[str, list[dict[str, Any]]] | None:
+def _scan_legacy_function(node: dict[str, Any], min_length: int = SECRET_LITERAL_MIN_LENGTH) -> dict[str, list[dict[str, Any]]] | None:
     """Recover globals, nested class containers, and credential bindings from one function slice."""
     if node.get("source_segment_truncated"):
         return None
@@ -941,7 +944,7 @@ def _scan_legacy_function(node: dict[str, Any]) -> dict[str, list[dict[str, Any]
 
     def add_secret(name: str, form: str, facts: dict[str, Any], lineno: int, end_lineno: int | None, source_segment: str | None) -> None:
         lines = _line_overlap(origin, lineno, end_lineno, changed)
-        if not lines or not _credential_name(name) or not _secret_qualifies(facts):
+        if not lines or not _credential_name(name) or not _secret_qualifies(facts, min_length=min_length):
             return
         secrets.append({
             "name": name,
@@ -1024,15 +1027,16 @@ def _legacy_function_findings(
     *,
     secrets: bool,
     mutables: bool,
+    min_length: int = SECRET_LITERAL_MIN_LENGTH,
 ) -> tuple[list[dict[str, Any]], bool]:
-    scanned = _scan_legacy_function(node)
+    scanned = _scan_legacy_function(node, min_length=min_length)
     if scanned is None:
         return [], False
     findings: list[dict[str, Any]] = []
     if secrets:
         for item in scanned["secrets"]:
             narrowed = _narrow_node(node, item["start_line"], item["end_line"], item["lines"], item["segment"])
-            findings.extend(_secret_from_parts(path, file_item, narrowed, [(item["name"], item["form"], item["facts"])]))
+            findings.extend(_secret_from_parts(path, file_item, narrowed, [(item["name"], item["form"], item["facts"])], min_length=min_length))
     if mutables:
         for item in scanned["mutables"]:
             narrowed = _narrow_node(node, item["start_line"], item["end_line"], item["lines"], item["segment"])
@@ -1071,6 +1075,7 @@ def _secret_findings(
     enabled: set[str],
     *,
     legacy_snapshot: bool,
+    min_length: int = SECRET_LITERAL_MIN_LENGTH,
 ) -> tuple[list[dict[str, Any]], bool, bool]:
     """Return findings, evaluable, and whether this node was in the rule's context.
 
@@ -1086,11 +1091,11 @@ def _secret_findings(
         form = details.get("binding_form")
         name = details.get("binding_name")
         if isinstance(name, str) and form in BINDING_FORMS and recorded is not None:
-            return _secret_from_parts(path, file_item, node, [(name, str(form), recorded)]), True, True
+            return _secret_from_parts(path, file_item, node, [(name, str(form), recorded)], min_length=min_length), True, True
         recovered = _recover_literal_bindings(node.get("source_segment"), bool(node.get("source_segment_truncated")))
         if recovered is None:
             return [], False, True
-        return _secret_from_parts(path, file_item, node, recovered), True, True
+        return _secret_from_parts(path, file_item, node, recovered, min_length=min_length), True, True
     if not legacy_snapshot:
         return [], True, False
     if kind == "field":
@@ -1107,7 +1112,7 @@ def _secret_findings(
         bindings = _assignment_bindings(statement, source)
         if isinstance(field_name, str):
             bindings = [item for item in bindings if item[0] == field_name and item[1] == "name_assignment"]
-        return _secret_from_parts(path, file_item, node, bindings), True, True
+        return _secret_from_parts(path, file_item, node, bindings, min_length=min_length), True, True
     if kind == "call":
         details = node.get("details") or {}
         recovered = None
@@ -1125,15 +1130,15 @@ def _secret_findings(
                 if facts is None:
                     return [], False, True
                 bindings.append((name, "keyword_argument", facts))
-            return _secret_from_parts(path, file_item, node, bindings), True, True
+            return _secret_from_parts(path, file_item, node, bindings, min_length=min_length), True, True
         if recovered is None:
             return [], False, True
         bindings = [(name, "keyword_argument", facts) for name, facts in recovered.items()]
-        return _secret_from_parts(path, file_item, node, bindings), True, True
+        return _secret_from_parts(path, file_item, node, bindings, min_length=min_length), True, True
     if kind in {"function", "async_function"}:
         if (node.get("details") or {}).get("literal_bindings_recorded") is True:
             return [], True, True
-        findings, evaluable = _legacy_function_findings(path, file_item, node, secrets=True, mutables=False)
+        findings, evaluable = _legacy_function_findings(path, file_item, node, secrets=True, mutables=False, min_length=min_length)
         return findings, evaluable, True
     return [], True, False
 
@@ -1247,6 +1252,7 @@ def _dedupe_findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def collect_code_smell_findings(
     stage04_record: dict[str, Any],
     enabled: set[str],
+    rule_thresholds: dict[str, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, dict[str, Any]]]:
     """Match evaluable head nodes.
 
@@ -1256,6 +1262,9 @@ def collect_code_smell_findings(
     """
     if not enabled.intersection(_RULES_BY_ID):
         return [], [], {}
+    thresholds = rule_thresholds or {}
+    max_depth = thresholds.get("code.deep_control_flow", {}).get("max_depth", CONTROL_FLOW_DEPTH_THRESHOLD)
+    min_secret_len = thresholds.get("code.hardcoded_secret", {}).get("min_length", SECRET_LITERAL_MIN_LENGTH)
     findings: list[dict[str, Any]] = []
     gaps: dict[str, list[tuple[str, str] | str]] = {}
     trace: dict[str, dict[str, Any]] = {
@@ -1289,13 +1298,14 @@ def collect_code_smell_findings(
         for node in head_nodes:
             handler_findings, handler_ok = _handler_findings(path, file_item, node, enabled)
             call_findings, call_ok, open_gap = _call_findings(path, file_item, node, enabled)
-            control_findings, control_ok = _control_findings(path, file_item, node, enabled)
+            control_findings, control_ok = _control_findings(path, file_item, node, enabled, max_depth=max_depth)
             secret_findings, secret_ok, secret_considered = _secret_findings(
                 path,
                 file_item,
                 node,
                 enabled,
                 legacy_snapshot=legacy_secret_snapshot,
+                min_length=min_secret_len,
             )
             mutable_node_findings, mutable_ok, mutable_considered = _mutable_findings(
                 path,

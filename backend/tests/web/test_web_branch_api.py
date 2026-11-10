@@ -60,3 +60,12 @@ class BranchApiTests(unittest.TestCase):
         status, _ = self.request("POST", "/api/branch-analysis", {})
         self.assertIn(status, {400, 404})
 
+    def test_presets_endpoint_and_preset_analysis(self):
+        status, payload = self.request("GET", "/api/config/presets")
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(len(payload["presets"]), 5)
+        presets = {item["preset"]: item for item in payload["presets"]}
+        self.assertIn("security_focus", presets)
+        self.assertIn("balanced", presets)
+

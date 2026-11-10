@@ -22,7 +22,7 @@
 
 ## 2. 新建与维护流程
 
-1. **确认编号**：在下方「当前活动任务表」及阶段入口文档中确认下一个未使用的三位任务编号（当前为 **026**）。任务编号跨版本全局唯一，不重编、不复用。
+1. **确认编号**：在下方「当前活动任务表」及阶段入口文档中确认下一个未使用的三位任务编号（当前为 **027**）。任务编号跨版本全局唯一，不重编、不复用。
 2. **复制模板**：复制 [`_task-template.md`](_task-template.md) 为 `docs/tasks/NNN-short-name.md`，并按 [`branching-and-tasks.md`](../standards/branching-and-tasks.md) 创建同名一对一分支 `<type>/NNN-short-name`（`<type>` 限 `feat`、`fix`、`docs`、`refactor`、`exp`、`chore`）。
 3. **填写前言与正文**：
    - YAML 前言必填 `task_id`、`target_version`、`title`、`status`（`Proposed` / `In Progress` / `Accepted`）、`branch`、`date`。
@@ -54,5 +54,6 @@
 | 任务 | 目标版本 | 状态 | 分支 (`branch`) | 任务记录 |
 | :---: | :---: | :---: | :--- | :--- |
 | 025 | v1.2.0 | Accepted | `docs/025-v12-milestone-closure` | [v1.2 阶段里程碑收工归档与文档对齐](025-v12-milestone-closure.md) |
+| 026 | v1.3.0 | Accepted | `feat/026-runtime-config-presets` | [运行时配置解耦与场景预设体系](026-runtime-config-presets.md) |
 
-> 下一个未使用的任务编号为 **026**。任何新变更均须基于 [`_task-template.md`](_task-template.md) 创建新编号任务并建立一对一分支。
+> 下一个未使用的任务编号为 **027**。任何新变更均须基于 [`_task-template.md`](_task-template.md) 创建新编号任务并建立一对一分支。
