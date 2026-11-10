@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  AlertCircle, ArrowDown, ArrowDownRight, ArrowUpRight, Check, ChevronDown,
-  ChevronRight, CircleHelp, Code2, Download, FileCode2, FileText, Filter,
-  GitPullRequest, ListFilter, LoaderCircle, LockKeyhole, Network, RotateCcw,
-  Search, Settings2, ShieldAlert, SlidersHorizontal, X,
+  AlertCircle, ArrowDownRight, ArrowUpRight, Check, ChevronDown,
+  ChevronRight, CircleHelp, Code2, Download, FileCode2, FileText,
+  Folder, FolderOpen, GitPullRequest, ListFilter, LoaderCircle, LockKeyhole,
+  Network, RotateCcw, Search, Settings2, ShieldAlert, SlidersHorizontal, X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -264,9 +264,9 @@ function collaborationCopy(report: Report) {
 }
 function rerunTierLabel(meta?: SnapshotMeta) {
   if (!meta) return "全量执行";
-  if (meta.rerun_tier === "stage07_rescore_only") return "Tier 2 · 复用快照仅重算评分";
+  if (meta.rerun_tier === "stage07_rescore_only") return "Tier 2 · 仅重算评分";
   if (meta.rerun_tier === "stage05_rules_rerun") return "Tier 1 · 复用 AST 重算规则";
-  return "Tier 0 · 全量提取分析";
+  return "Tier 0 · 全量执行";
 }
 function gatekeeperSummary(report: Report) {
   const basis = report.score_basis;
@@ -403,6 +403,12 @@ export function Dashboard() {
   const [headRef, setHeadRef] = useState("");
   const [projectBusy, setProjectBusy] = useState(false);
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+
+  // Sidebar Rule Catalog Explorer state
+  const [sidebarRuleSearch, setSidebarRuleSearch] = useState("");
+  const [sidebarStateFilter, setSidebarStateFilter] = useState<string>("all");
+  const [collapsedDomains, setCollapsedDomains] = useState<Record<string, boolean>>({});
+  const [selectedCatalogRule, setSelectedCatalogRule] = useState<string | null>(null);
 
   const writeLocation = useCallback((pr: number, tab: TabId, mode: "push" | "replace" = "push") => {
     const query = new URLSearchParams(window.location.search);
@@ -593,7 +599,6 @@ export function Dashboard() {
     return `${item.pr_number} ${item.title} ${item.author ?? ""}`.toLowerCase().includes(search.toLowerCase());
   }), [dataset, riskFilter, domainFilter, search]);
 
-  const selectedFile = report?.files.find((file) => file.path === selectedPath) ?? null;
   const openTab = (tab: TabId) => {
     setActiveTab(tab);
     if (activePr !== null) writeLocation(activePr, tab);
@@ -608,7 +613,13 @@ export function Dashboard() {
     setSelectedPath(file.path);
     setFocusLines(evidence.lines);
     setExpandedRule(null);
+    setSelectedCatalogRule(null);
     openTab("code");
+    // Scroll file card into view
+    setTimeout(() => {
+      const el = document.getElementById(`diff-file-${encodeURIComponent(file.path)}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
   const updateRuleWeight = (ruleId: string, value: number) => setConfig((current) => ({
     ...current,
@@ -651,16 +662,6 @@ export function Dashboard() {
     URL.revokeObjectURL(link.href);
   };
 
-  if (analysisMode === "project" && !report) {
-    return <ProjectPicker
-      path={projectPath} setPath={setProjectPath} project={project} baseRef={baseRef} setBaseRef={setBaseRef}
-      headRef={headRef} setHeadRef={setHeadRef} busy={projectBusy || busy} error={error}
-      onLoad={(path) => void loadProject(path)} onAnalyze={() => project && void analyzeBranch(project, baseRef, headRef)}
-      onSample={() => { setProject(null); void loadPr(226, "overview"); }}
-      recentProjects={recentProjects}
-    />;
-  }
-
   const resetConfig = () => {
     setConfig(initialConfig);
     if (analysisMode === "project" && project) {
@@ -675,190 +676,1084 @@ export function Dashboard() {
     }
   };
 
+  // Group rules by domain for sidebar
+  const allKnownRuleIds = Object.keys(ruleLabels);
+  const groupedRules = useMemo(() => {
+    const groups: Record<string, string[]> = {
+      api: [], auth: [], data: [], config: [], code: [], workflow: [],
+    };
+    for (const ruleId of allKnownRuleIds) {
+      const d = ruleDomain(ruleId);
+      if (groups[d]) groups[d].push(ruleId);
+    }
+    return groups;
+  }, [allKnownRuleIds]);
+
+  const sidebarFilteredRules = useMemo(() => {
+    return allKnownRuleIds.filter((id) => {
+      const label = ruleLabels[id] ?? id;
+      const matchSearch = !sidebarRuleSearch || id.toLowerCase().includes(sidebarRuleSearch.toLowerCase()) || label.includes(sidebarRuleSearch);
+      if (!matchSearch) return false;
+      if (sidebarStateFilter === "all" || !report) return true;
+      const state = catalogState(report, id);
+      return state.stateKey === sidebarStateFilter;
+    });
+  }, [allKnownRuleIds, sidebarRuleSearch, sidebarStateFilter, report]);
+
+  if (analysisMode === "project" && !report) {
+    return <ProjectPicker
+      path={projectPath} setPath={setProjectPath} project={project} baseRef={baseRef} setBaseRef={setBaseRef}
+      headRef={headRef} setHeadRef={setHeadRef} busy={projectBusy || busy} error={error}
+      onLoad={(path) => void loadProject(path)} onAnalyze={() => project && void analyzeBranch(project, baseRef, headRef)}
+      onSample={() => { setProject(null); void loadPr(226, "overview"); }}
+      recentProjects={recentProjects}
+    />;
+  }
+
+  const selectedRuleMeta = dataset?.rules.find((r) => r.rule_id === selectedCatalogRule);
+
   return (
     <div className="review-shell">
+      {/* =========================================================================
+          LEFT SIDEBAR: Brand + Project/Branch + Rule Catalog Explorer
+          ========================================================================= */}
       <aside className="review-sidebar">
-        <div className="review-brand"><span className="brand-mark"><Code2 size={18} /></span><strong>prisk<span>.</span></strong><span className="brand-tag">REVIEW</span></div>
-        <button className="repo-context repo-context-button" onClick={() => { setReport(null); setAnalysisMode("project"); }}><span className="repo-avatar">{(report?.repo ?? "P").slice(0, 1).toUpperCase()}</span><span><strong>{report?.repo ?? "选择项目"}</strong><small>{project?.path ?? (analysisMode === "sample" ? "冻结 NetBox 样本" : "加载本地 Git 仓库")}</small></span></button>
-        <div className="sidebar-caption">当前分析</div>
-        <button className="current-pr-button" onClick={() => analysisMode === "sample" ? setDrawerOpen(true) : (setReport(null), setAnalysisMode("project"))} disabled={!dataset}>
-          <GitPullRequest size={16} /><span><small>{analysisMode === "sample" ? "Pull Request" : "分支分析"}</small><strong>{report ? (report.pr_number ? `#${report.pr_number}` : `${report.base_ref} → ${report.head_ref}`) : "选择项目"}</strong></span><ChevronDown size={15} />
+        <div className="review-brand">
+          <span className="brand-mark"><Code2 size={16} /></span>
+          <strong>prisk<span>.</span></strong>
+          <span className="brand-tag">REVIEW</span>
+        </div>
+
+        {/* Project Context Button (with ellipsis) */}
+        <button
+          className="repo-context"
+          onClick={() => { setReport(null); setAnalysisMode("project"); }}
+          title={project?.path ?? (report?.repo ?? "选择项目")}
+        >
+          <span className="repo-avatar">{(report?.repo ?? project?.name ?? "P").slice(0, 1).toUpperCase()}</span>
+          <div className="repo-context-main">
+            <strong>{report?.repo ?? project?.name ?? "选择项目"}</strong>
+            <small>{project?.path ?? (analysisMode === "sample" ? "冻结 NetBox 样本" : "加载本地 Git 仓库")}</small>
+          </div>
         </button>
-        <div className="sidebar-status"><span className="status-dot" />{analysisMode === "sample" ? "本地冻结样本" : "本地分支审计"}</div>
-        <div className="sidebar-footer">PRISK SYSTEM <span>v1.3</span></div>
+
+        {/* Current Analysis Branch/PR Button */}
+        <button
+          className="current-pr-button"
+          onClick={() => analysisMode === "sample" ? setDrawerOpen(true) : (setReport(null), setAnalysisMode("project"))}
+          title={report ? (report.pr_number ? `#${report.pr_number} ${report.title}` : `${report.base_ref} → ${report.head_ref}`) : "选择分析对象"}
+        >
+          <GitPullRequest size={15} />
+          <span>
+            <small>{analysisMode === "sample" ? "Pull Request" : "分支审计"}</small>
+            <strong>{report ? (report.pr_number ? `#${report.pr_number}` : `${report.base_ref} → ${report.head_ref}`) : "选择对象"}</strong>
+          </span>
+          <ChevronDown size={14} />
+        </button>
+
+        {/* 29 Rules Sidebar Catalog */}
+        <section className="sidebar-rule-section" aria-label="规则目录">
+          <div className="sidebar-rule-header">
+            <h3>规则目录</h3>
+            <span className="sidebar-rule-count">{report ? `${report.findings.length} 命中 / 29 规则` : "29 条规则"}</span>
+          </div>
+
+          <div className="sidebar-rule-search">
+            <Search size={13} />
+            <input
+              value={sidebarRuleSearch}
+              onChange={(e) => setSidebarRuleSearch(e.target.value)}
+              placeholder="搜索规则名称或 ID..."
+            />
+            {sidebarRuleSearch && <button onClick={() => setSidebarRuleSearch("")} className="icon-button" style={{ width: 16, height: 16, border: 0 }}><X size={12} /></button>}
+          </div>
+
+          <div className="sidebar-rule-filter-chips">
+            <button className={`rule-chip ${sidebarStateFilter === "all" ? "active" : ""}`} onClick={() => setSidebarStateFilter("all")}>全部</button>
+            <button className={`rule-chip ${sidebarStateFilter === "Hit" ? "active" : ""}`} onClick={() => setSidebarStateFilter("Hit")}>命中</button>
+            <button className={`rule-chip ${sidebarStateFilter === "NotFound" ? "active" : ""}`} onClick={() => setSidebarStateFilter("NotFound")}>未发现</button>
+            <button className={`rule-chip ${sidebarStateFilter === "Unanalyzed" ? "active" : ""}`} onClick={() => setSidebarStateFilter("Unanalyzed")}>无法分析</button>
+          </div>
+
+          <div className="sidebar-rule-tree">
+            {Object.entries(groupedRules).map(([domain, ruleIds]) => {
+              const visibleRules = ruleIds.filter((id) => sidebarFilteredRules.includes(id));
+              if (visibleRules.length === 0) return null;
+              const isCollapsed = Boolean(collapsedDomains[domain]);
+              return (
+                <div key={domain} className="sidebar-domain-group">
+                  <button
+                    className="sidebar-domain-head"
+                    onClick={() => setCollapsedDomains((c) => ({ ...c, [domain]: !c[domain] }))}
+                  >
+                    <span>
+                      {domainIcon(domain)}
+                      {domainLabels[domain] ?? domain}
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span className="nav-tab-count" style={{ height: 16, minWidth: 16, fontSize: 10 }}>{visibleRules.length}</span>
+                      {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                    </span>
+                  </button>
+
+                  {!isCollapsed && visibleRules.map((ruleId) => {
+                    const st = report ? catalogState(report, ruleId) : null;
+                    const isSelected = selectedCatalogRule === ruleId;
+                    return (
+                      <button
+                        key={ruleId}
+                        className={`sidebar-rule-item ${isSelected ? "selected" : ""}`}
+                        onClick={() => setSelectedCatalogRule(ruleId)}
+                        title={`点击查看规则说明卡片：${ruleLabels[ruleId] ?? ruleId}`}
+                      >
+                        <div>
+                          <strong>{ruleLabels[ruleId] ?? ruleId}</strong>
+                          <small>{ruleId}</small>
+                        </div>
+                        {st && (
+                          <span className={`rule-state-pill ${st.className}`}>
+                            {st.stateKey === "Hit" ? "Hit" : st.stateKey === "NotFound" ? "OK" : st.stateKey === "Unanalyzed" ? "Gap" : "Off"}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="sidebar-footer">
+          <span><span className="status-dot" /> {analysisMode === "sample" ? "本地冻结样本" : "本地分支审计"}</span>
+          <span>v1.3</span>
+        </div>
       </aside>
 
+      {/* =========================================================================
+          MAIN WORKSPACE: GitHub PR Style Header + Tabs + Content
+          ========================================================================= */}
       <main className="review-main">
-        <header className="review-topbar">
-          <div className="breadcrumbs">{report?.repo ?? "Prisk"} <ChevronRight size={13} /> {analysisMode === "sample" ? "冻结 PR 样本" : "分支审计"}</div>
-          <div className="top-actions">
-            {report?.snapshot_meta && <span className="rerun-badge" title="快照局部重跑层级">{rerunTierLabel(report.snapshot_meta)}</span>}
-            {report?.config_snapshot && <span className="sample-badge" title={`配置指纹 ${report.config_snapshot.config_digest}`}><span className="status-dot" />预设：{report.config_snapshot.preset_name}{report.config_snapshot.customized ? "（已定制）" : ""} · #{report.config_snapshot.config_digest.slice(0, 8)}</span>}
-            <button className="icon-button" title="下载 JSON 报告（含完整配置快照）" onClick={() => downloadReport("json")} disabled={!report}><Download size={16} /></button>
-          </div>
-        </header>
-
-        <div className="review-content">
-          <div className="pr-heading">
-            <div className="pr-heading-main">
-              <div className="eyebrow">{analysisMode === "sample" ? "PULL REQUEST REVIEW" : "BRANCH REVIEW"} <span>·</span> {report?.repo ?? "本地项目"}</div>
-              <div className="pr-title-line"><h1>{report ? (report.pr_number ? `#${report.pr_number} ${report.title}` : `${report.base_ref} → ${report.head_ref}`) : "载入分析"}</h1>
-                {report && <span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span>}
-                {report?.score_basis.gatekeeper_lift && <span className="gatekeeper-pill">一票抬升</span>}
-              </div>
-              <p>{report ? <>{analysisMode === "sample" ? report.author ?? "NetBox contributor" : project?.path} <span className="muted-divider">·</span> base {analysisMode === "project" ? report.base_ref : ""} <code>{shortSha(report.base_sha)}</code> <ArrowDown size={12} /> head {analysisMode === "project" ? report.head_ref : ""} <code>{shortSha(report.head_sha)}</code></> : "正在读取分析对象"}</p>
+        {/* Compact GitHub PR Style Header */}
+        <header className="gh-header">
+          <div className="gh-header-row1">
+            <div className="gh-title-group">
+              <h1>
+                {report ? (
+                  report.pr_number ? (
+                    <>#{report.pr_number} {report.title}</>
+                  ) : (
+                    <><code>{report.base_ref}</code> → <code>{report.head_ref}</code></>
+                  )
+                ) : "载入分析"}
+              </h1>
+              {report && (
+                <span className={`risk-pill ${riskClass(report.risk_level)}`}>
+                  {riskLabel(report.risk_level)} · {report.score}/100
+                </span>
+              )}
+              {report?.score_basis.gatekeeper_lift && (
+                <span className="gatekeeper-pill">
+                  <ShieldAlert size={13} /> 一票抬升
+                </span>
+              )}
             </div>
-            <div className="pr-heading-actions">
+
+            <div className="gh-header-actions">
               {analysisMode === "project" && project && (
-                <button className="secondary-button" onClick={() => void analyzeBranch(project, baseRef, headRef, config, true)} disabled={busy} title="强制丢弃缓存并重新提取 Git Diff 与 AST">
-                  <RotateCcw size={14} />强制刷新快照
+                <button
+                  className="secondary-button"
+                  onClick={() => void analyzeBranch(project, baseRef, headRef, config, true)}
+                  disabled={busy}
+                  title="强制丢弃缓存并重新提取 Git Diff 与 AST"
+                >
+                  <RotateCcw size={14} /> 强制刷新快照
                 </button>
               )}
-              {analysisMode === "sample" ? <button className="secondary-button" onClick={() => setDrawerOpen(true)} disabled={!dataset}><ListFilter size={15} />切换 PR</button> : <button className="secondary-button" onClick={() => { setReport(null); setAnalysisMode("project"); }}><ListFilter size={15} />更换项目</button>}
-              {report?.url && <a className="icon-button source-link" href={report.url} target="_blank" rel="noreferrer" title="查看原始 PR"><ArrowUpRight size={16} /></a>}
+              {analysisMode === "sample" ? (
+                <button className="secondary-button" onClick={() => setDrawerOpen(true)} disabled={!dataset}>
+                  <ListFilter size={14} /> 切换 PR
+                </button>
+              ) : (
+                <button className="secondary-button" onClick={() => { setReport(null); setAnalysisMode("project"); }}>
+                  <ListFilter size={14} /> 更换项目
+                </button>
+              )}
+              <button
+                className="secondary-button"
+                onClick={() => downloadReport("md")}
+                disabled={!report}
+                title="导出包含完整运行配置快照的 Markdown 审查报告"
+              >
+                <FileText size={14} /> 导出复核报告
+              </button>
+              <button
+                className="icon-button"
+                title="下载 JSON 报告（含配置快照与可复现载荷）"
+                onClick={() => downloadReport("json")}
+                disabled={!report}
+              >
+                <Download size={15} />
+              </button>
             </div>
           </div>
 
-          {error && <div className="error-banner"><AlertCircle size={17} />{error}</div>}
-          {notice && <div className="toast"><Check size={15} />{notice}</div>}
+          {/* Metadata Row */}
+          <div className="gh-header-meta">
+            {report && (
+              <>
+                <span className="meta-item">
+                  {analysisMode === "sample" ? report.author ?? "NetBox contributor" : project?.name}
+                </span>
+                <span>·</span>
+                <span className="meta-item">
+                  commit <code>{shortSha(report.base_sha)}</code> → <code>{shortSha(report.head_sha)}</code>
+                </span>
+                <span>·</span>
+                <span className="meta-item">
+                  {report.summary.files_changed} 个变更文件（<span className="plus">+{report.summary.additions}</span> / <span className="minus">−{report.summary.deletions}</span>）
+                </span>
+                {report.snapshot_meta && (
+                  <span className="meta-badge meta-tier" title={`执行层级：${report.snapshot_meta.rerun_tier}`}>
+                    {rerunTierLabel(report.snapshot_meta)}
+                  </span>
+                )}
+                {report.config_snapshot && (
+                  <span className="meta-badge" title={`配置确定性指纹：${report.config_snapshot.config_digest}`}>
+                    预设：{report.config_snapshot.preset_name}{report.config_snapshot.customized ? " (已定制)" : ""} · #{report.config_snapshot.config_digest.slice(0, 8)}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
 
-          <nav className="review-tabs" aria-label="PR 审计视图">
-            {tabs.map(({ id, label, icon: Icon }) => <button key={id} className={activeTab === id ? "review-tab active" : "review-tab"} onClick={() => openTab(id)}>
-              <Icon size={16} />{label}{id === "rules" && report && <span className="tab-count">{report.findings.length}</span>}
-            </button>)}
-            <div className="tab-spacer" />
-            <button className="export-text" onClick={() => downloadReport("md")} disabled={!report}><FileText size={15} />导出复核摘要（含配置快照）</button>
+          {/* GitHub UnderlineNav Tabs */}
+          <nav className="gh-nav-tabs" aria-label="PR 审计视图">
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                className={activeTab === id ? "gh-nav-tab active" : "gh-nav-tab"}
+                onClick={() => openTab(id)}
+              >
+                <Icon size={16} />
+                {label}
+                {id === "code" && report && (
+                  <span className="nav-tab-count">{report.files.length}</span>
+                )}
+                {id === "rules" && report && (
+                  <span className="nav-tab-count">{report.findings.length}</span>
+                )}
+              </button>
+            ))}
           </nav>
+        </header>
 
-          {!report ? <div className="loading-panel"><LoaderCircle className="spin" size={24} />{busy ? "正在载入 PR 分析对象…" : "等待选择 PR"}</div> : <>
-            {activeTab === "overview" && <Overview report={report} baselineScore={baselineScore} onShowRules={() => openTab("rules")} onShowCode={() => openTab("code")} onLocate={locateEvidence} />}
-            {activeTab === "code" && <CodeReview report={report} file={selectedFile} selectedPath={selectedPath} setSelectedPath={(path) => { setSelectedPath(path); setFocusLines([]); }} focusLines={focusLines} />}
-            {activeTab === "rules" && <RulesView report={report} catalog={dataset?.rules ?? []} expandedRule={expandedRule} setExpandedRule={setExpandedRule} onLocate={locateEvidence} />}
-            {activeTab === "scoring" && <ScoringView report={report} catalog={dataset?.rules ?? []} presets={presets} config={config} setConfig={setConfig} onSelectPreset={selectPreset} onWeight={updateRuleWeight} onToggle={toggleRule} onApply={() => void runAnalysis()} onReset={resetConfig} busy={busy} baselineScore={baselineScore} />}
-          </>}
-          <footer className="review-footer"><span><span className="status-dot" />本地分析结果</span><span>{analysisMode === "project" ? "stage03.v1 · stage04.v1 · stage05.v2 · stage08.branch-report.v1 · config.snapshot.v1" : "stage03.v1 · stage04.v1 · stage05.v2 · stage07.report.v2 · config.snapshot.v1"}</span><span>评分表示复核优先级，不是缺陷概率</span></footer>
+        {/* Banners & Notices */}
+        <div className="review-content">
+          {error && <div className="error-banner"><AlertCircle size={16} />{error}</div>}
+          {notice && <div className="toast"><Check size={16} />{notice}</div>}
+
+          {!report ? (
+            <div className="loading-panel">
+              <LoaderCircle className="spin" size={24} />
+              {busy ? "正在读取并分析分支快照…" : "等待选择分析对象"}
+            </div>
+          ) : (
+            <>
+              {activeTab === "overview" && (
+                <Overview
+                  report={report}
+                  baselineScore={baselineScore}
+                  onShowRules={() => openTab("rules")}
+                  onShowCode={() => openTab("code")}
+                  onLocate={locateEvidence}
+                />
+              )}
+              {activeTab === "code" && (
+                <CodeReview
+                  report={report}
+                  selectedPath={selectedPath}
+                  setSelectedPath={(path) => { setSelectedPath(path); setFocusLines([]); }}
+                  focusLines={focusLines}
+                />
+              )}
+              {activeTab === "rules" && (
+                <RulesView
+                  report={report}
+                  catalog={dataset?.rules ?? []}
+                  expandedRule={expandedRule}
+                  setExpandedRule={setExpandedRule}
+                  onLocate={locateEvidence}
+                  onOpenRuleCard={(id) => setSelectedCatalogRule(id)}
+                />
+              )}
+              {activeTab === "scoring" && (
+                <ScoringView
+                  report={report}
+                  catalog={dataset?.rules ?? []}
+                  presets={presets}
+                  config={config}
+                  setConfig={setConfig}
+                  onSelectPreset={selectPreset}
+                  onWeight={updateRuleWeight}
+                  onToggle={toggleRule}
+                  onApply={() => void runAnalysis()}
+                  onReset={resetConfig}
+                  busy={busy}
+                  baselineScore={baselineScore}
+                />
+              )}
+            </>
+          )}
+
+          <footer className="review-footer">
+            <span>
+              <span className="status-dot" /> 本地审计链路 · {analysisMode === "project" ? "stage03.v1 · stage04.v1 · stage05.v2 · stage08.branch-report.v1 · config.snapshot.v1" : "stage03.v1 · stage04.v1 · stage05.v2 · stage07.report.v2 · config.snapshot.v1"}
+            </span>
+            <span>评分表示人工复核优先级，不是缺陷概率</span>
+          </footer>
         </div>
       </main>
 
-      {drawerOpen && <div className="drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDrawerOpen(false); }}>
-        <section className="pr-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
-          <header className="drawer-header"><div><span className="eyebrow">FROZEN SAMPLE</span><h2 id="drawer-title">选择 Pull Request</h2><p>{dataset?.counts.analyzable ?? 0} 条可分析 PR</p></div><button className="icon-button" title="关闭" onClick={() => setDrawerOpen(false)}><X size={18} /></button></header>
-          <div className="drawer-controls"><label className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索编号、标题或作者" /></label>
-            <div className="drawer-filters"><label><Filter size={14} /><select aria-label="风险等级" value={riskFilter} onChange={(event) => setRiskFilter(event.target.value)}><option value="all">全部等级</option><option value="high">优先复核</option><option value="medium">建议复核</option><option value="low">常规</option></select></label>
-              <label><ListFilter size={14} /><select aria-label="关注域" value={domainFilter} onChange={(event) => setDomainFilter(event.target.value)}><option value="all">全部关注域</option>{Object.entries(domainLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label></div>
-          </div>
-          <div className="drawer-pr-list">{filteredPrs.map((item) => <button key={item.pr_number} className={`drawer-pr ${item.pr_number === activePr ? "selected" : ""}`} onClick={() => choosePr(item)}>
-            <span className="drawer-pr-main"><span className="pr-number">#{item.pr_number}</span><strong>{item.title}</strong><small>{item.author ?? "NetBox contributor"}</small></span>
-            <span className="drawer-pr-side"><span className={`risk-pill ${riskClass(item.risk_level)}`}>{riskLabel(item.risk_level)}</span><small>{item.finding_count} 条命中</small></span>
-          </button>)}{filteredPrs.length === 0 && <div className="empty-list">没有符合条件的 PR</div>}</div>
-          <div className="drawer-footer">本次分析只针对当前选中的一个 PR</div>
-        </section>
-      </div>}
+      {/* =========================================================================
+          RULE DETAILS DRAWER / MODAL: Open when any rule is clicked in sidebar or table
+          ========================================================================= */}
+      {selectedCatalogRule && (
+        <div className="drawer-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setSelectedCatalogRule(null); }}>
+          <section className="rule-drawer" role="dialog" aria-modal="true" aria-labelledby="rule-drawer-title">
+            <header className="rule-drawer-head">
+              <div>
+                <span className="risk-pill" style={{ fontSize: 11, background: "#ddf4ff", color: "#0969da", border: "1px solid #54aeff" }}>
+                  {domainLabels[ruleDomain(selectedCatalogRule)] ?? ruleDomain(selectedCatalogRule)}
+                </span>
+                <h2 id="rule-drawer-title">{ruleLabels[selectedCatalogRule] ?? selectedCatalogRule}</h2>
+                <code>{selectedCatalogRule}</code>
+              </div>
+              <button className="icon-button" title="关闭" onClick={() => setSelectedCatalogRule(null)}>
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="rule-drawer-body">
+              {report && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#f6f8fa", borderRadius: 6, border: "1px solid #d0d7de" }}>
+                  <strong>本次分析终态：</strong>
+                  {(() => {
+                    const st = catalogState(report, selectedCatalogRule);
+                    return (
+                      <span className={`risk-pill ${st.className === "hit" ? "risk-high" : st.className === "unanalyzed" ? "risk-medium" : "risk-low"}`}>
+                        {st.label}
+                      </span>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Finding Evidence if hit */}
+              {report?.findings.filter((f) => f.rule_id === selectedCatalogRule).map((finding, idx) => (
+                <div key={idx} style={{ padding: "12px 14px", background: "#ffebe9", border: "1px solid #ff8182", borderRadius: 6 }}>
+                  <strong style={{ color: "#cf222e", display: "block", marginBottom: 6 }}>本次命中证据（{finding.evidence.length} 项）：</strong>
+                  <p style={{ margin: "0 0 8px", fontSize: 13, color: "#1f2328" }}>{finding.message}</p>
+                  {finding.evidence.map((ev, eIdx) => (
+                    <div key={eIdx} className="evidence-card" style={{ background: "#fff" }}>
+                      <div>
+                        <strong>{ev.path}</strong>
+                        <div><code>{ev.lines.map((l) => `L${l}`).join(", ") || "无 Diff 行号"}</code> · <span>{ev.node_kind} · {ev.structural_change_type}</span></div>
+                        {evidenceDetail(ev) ? <small style={{ color: "#59636e" }}>{evidenceDetail(ev)}</small> : null}
+                      </div>
+                      <button className="secondary-button" onClick={() => locateEvidence(ev)} disabled={!ev.lines.length}>
+                        定位代码 <ArrowUpRight size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              <div className="drawer-field">
+                <span>触发条件 (Trigger Feature)</span>
+                <p>{selectedRuleMeta?.trigger || "基于局部 AST / Diff 结构特征闭集提取"}</p>
+              </div>
+
+              <div className="drawer-field">
+                <span>适用范围 (Applicability)</span>
+                <p>{selectedRuleMeta?.applicable_scope || "适用对应语言/框架的局部变更范围"}</p>
+              </div>
+
+              <div className="drawer-field">
+                <span>复核建议 (Suggested Action)</span>
+                <p>{selectedRuleMeta?.suggested_action || "检查该结构变更是否符合预期，排查潜在边界风险"}</p>
+              </div>
+
+              <div className="drawer-field">
+                <span>已知限制 (Limitations)</span>
+                <p>{selectedRuleMeta?.limitations || "单文件局部 AST 分析，未跨文件追踪符号全局定义"}</p>
+              </div>
+
+              <div className="drawer-field">
+                <span>启发式权重</span>
+                <p>当前启用权重：<strong>{config.rule_weights[selectedCatalogRule] ?? selectedRuleMeta?.default_weight ?? 0}</strong>（基线默认权重：{selectedRuleMeta?.default_weight ?? 0}）</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* PR Selection Drawer (for NetBox sample mode) */}
+      {drawerOpen && (
+        <div className="drawer-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setDrawerOpen(false); }}>
+          <section className="pr-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+            <header className="drawer-header">
+              <div>
+                <h2 id="drawer-title">选择 Pull Request 样本</h2>
+                <small style={{ color: "#59636e" }}>{dataset?.counts.analyzable ?? 0} 条可分析 PR</small>
+              </div>
+              <button className="icon-button" title="关闭" onClick={() => setDrawerOpen(false)}><X size={18} /></button>
+            </header>
+            <div className="drawer-controls">
+              <div className="gh-search-input-box" style={{ height: 34, marginBottom: 8 }}>
+                <Search size={15} />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索 PR 编号、标题或作者..." />
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <select className="secondary-button" style={{ flex: 1 }} value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}>
+                  <option value="all">全部风险等级</option>
+                  <option value="high">优先复核</option>
+                  <option value="medium">建议复核</option>
+                  <option value="low">常规</option>
+                </select>
+                <select className="secondary-button" style={{ flex: 1 }} value={domainFilter} onChange={(e) => setDomainFilter(e.target.value)}>
+                  <option value="all">全部关注域</option>
+                  {Object.entries(domainLabels).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="drawer-pr-list">
+              {filteredPrs.map((item) => (
+                <button
+                  key={item.pr_number}
+                  className={`drawer-pr ${item.pr_number === activePr ? "selected" : ""}`}
+                  onClick={() => choosePr(item)}
+                >
+                  <div>
+                    <span style={{ color: "#0969da", fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600 }}>#{item.pr_number}</span>
+                    <strong>{item.title}</strong>
+                    <small>{item.author ?? "NetBox contributor"}</small>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <span className={`risk-pill ${riskClass(item.risk_level)}`}>{riskLabel(item.risk_level)}</span>
+                    <small style={{ display: "block", marginTop: 4 }}>{item.finding_count} 命中</small>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
 
-function ProjectPicker({ path, setPath, project, baseRef, setBaseRef, headRef, setHeadRef, busy, error, onLoad, onAnalyze, onSample, recentProjects }: {
+/* ==========================================================================
+   Project Picker Component
+   ========================================================================== */
+function ProjectPicker({
+  path, setPath, project, baseRef, setBaseRef, headRef, setHeadRef, busy, error,
+  onLoad, onAnalyze, onSample, recentProjects,
+}: {
   path: string; setPath: (value: string) => void; project: Project | null; baseRef: string; setBaseRef: (value: string) => void;
   headRef: string; setHeadRef: (value: string) => void; busy: boolean; error: string; onLoad: (path: string) => void;
   onAnalyze: () => void; onSample: () => void; recentProjects: RecentProject[];
 }) {
   const branches = project?.branches ?? [];
-  return <main className="project-picker-shell">
-    <header className="picker-topbar"><span className="brand-mark"><Code2 size={18} /></span><strong>prisk<span>.</span></strong><span>本地代码审计</span></header>
-    <section className="project-picker-content">
-      <div className="eyebrow">LOCAL PROJECT WORKSPACE</div><h1>选择一个 Git 项目</h1><p className="picker-intro">加载仓库后选择基准分支和目标分支，生成一次可追溯的分支审计。</p>
-      <form className="project-load-form" onSubmit={(event) => { event.preventDefault(); onLoad(path); }}>
-        <label htmlFor="repo-path">本地仓库路径</label><div className="project-path-row"><input id="repo-path" value={path} onChange={(event) => setPath(event.target.value)} placeholder="例如 D:\\work\\my-project" /><button className="primary-button" disabled={busy || !path.trim()}>{busy ? <LoaderCircle size={15} className="spin" /> : <Search size={15} />}加载项目</button></div>
-        {recentProjects.length > 0 && <div className="recent-project-list"><span>最近项目</span>{recentProjects.map((recent) => <button type="button" className="recent-project" key={recent.path} onClick={() => { setPath(recent.path); onLoad(recent.path); }}><RotateCcw size={14} /><strong>{recent.name}</strong><code>{recent.path}</code></button>)}</div>}
-      </form>
-      {error && <div className="error-banner"><AlertCircle size={16} />{error}</div>}
-      {project && <section className="loaded-project"><div className="loaded-project-heading"><span className="repo-avatar">{project.name.slice(0, 1).toUpperCase()}</span><div><h2>{project.name}</h2><p>{project.path}</p><small>{project.branches.length} 个分支 · 当前 {project.current_branch || "分离 HEAD"} · HEAD {shortSha(project.current_head)}</small></div></div>
-        <div className="branch-selectors"><label>基准分支<select value={baseRef} onChange={(event) => setBaseRef(event.target.value)}>{branches.map((branch) => <option key={branch.ref} value={branch.ref}>{branch.ref} · {branch.short_sha}</option>)}</select></label><ArrowDownRight size={17} /><label>目标分支<select value={headRef} onChange={(event) => setHeadRef(event.target.value)}>{branches.map((branch) => <option key={branch.ref} value={branch.ref}>{branch.ref} · {branch.short_sha}</option>)}</select></label></div>
-        <div className="branch-list"><div className="branch-list-title">仓库分支</div>{branches.map((branch) => <div className="branch-row" key={branch.ref}><span className={`branch-kind ${branch.kind}`}>{branch.kind === "local" ? "本地" : "远程"}</span><strong>{branch.ref}</strong><code>{branch.short_sha}</code><span>{branch.subject}</span></div>)}</div>
-        <div className="project-actions"><small>只读取已提交分支，不切换分支，也不包含未提交改动。</small><button className="primary-button" onClick={onAnalyze} disabled={busy || !baseRef || !headRef || baseRef === headRef}>{busy ? <LoaderCircle size={15} className="spin" /> : <GitPullRequest size={15} />}开始分析</button></div>
-      </section>}
-      <div className="sample-entry"><div><strong>没有本地仓库？</strong><span>可以加载冻结 NetBox PR 样本，查看现有分析结果。</span></div><button className="secondary-button" onClick={onSample}><FileText size={15} />加载冻结 NetBox 样本</button></div>
-      <footer className="picker-boundary">分析采用 base...head 三点 Diff · 分数只表示人工复核优先级</footer>
-    </section>
-  </main>;
+  return (
+    <main className="project-picker-shell">
+      <header className="picker-topbar">
+        <span className="brand-mark"><Code2 size={18} /></span>
+        <strong>prisk<span>.</span></strong>
+        <span>本地 Git 分支审计</span>
+      </header>
+      <section className="project-picker-content">
+        <h1>选择或输入本地 Git 项目</h1>
+        <p className="picker-intro">读取本地仓库提交，通过 Git 三点 Diff 与 AST 分析，生成可追溯可复现的审查报告。</p>
+        <form className="project-load-form" onSubmit={(e) => { e.preventDefault(); onLoad(path); }}>
+          <label htmlFor="repo-path">本地仓库绝对路径</label>
+          <div className="project-path-row">
+            <input
+              id="repo-path"
+              value={path}
+              onChange={(e) => setPath(e.target.value)}
+              placeholder="例如 D:\\work\\my-django-project"
+            />
+            <button className="primary-button" disabled={busy || !path.trim()}>
+              {busy ? <LoaderCircle size={15} className="spin" /> : <Search size={15} />}
+              加载仓库
+            </button>
+          </div>
+          {recentProjects.length > 0 && (
+            <div className="recent-project-list">
+              <span>最近使用的项目：</span>
+              {recentProjects.map((recent) => (
+                <button
+                  type="button"
+                  className="recent-project"
+                  key={recent.path}
+                  onClick={() => { setPath(recent.path); onLoad(recent.path); }}
+                >
+                  <RotateCcw size={14} />
+                  <strong>{recent.name}</strong>
+                  <code>{recent.path}</code>
+                </button>
+              ))}
+            </div>
+          )}
+        </form>
+
+        {error && <div className="error-banner" style={{ marginTop: 16 }}><AlertCircle size={16} />{error}</div>}
+
+        {project && (
+          <section className="loaded-project">
+            <div className="loaded-project-heading">
+              <span className="repo-avatar">{project.name.slice(0, 1).toUpperCase()}</span>
+              <div>
+                <h2>{project.name}</h2>
+                <p>{project.path}</p>
+                <small>{project.branches.length} 个分支 · 当前分支 {project.current_branch || "分离 HEAD"} · HEAD {shortSha(project.current_head)}</small>
+              </div>
+            </div>
+            <div className="branch-selectors">
+              <label>
+                基准分支 (base)
+                <select value={baseRef} onChange={(e) => setBaseRef(e.target.value)}>
+                  {branches.map((b) => <option key={b.ref} value={b.ref}>{b.ref} ({b.short_sha})</option>)}
+                </select>
+              </label>
+              <ArrowDownRight size={18} />
+              <label>
+                目标分支 (head)
+                <select value={headRef} onChange={(e) => setHeadRef(e.target.value)}>
+                  {branches.map((b) => <option key={b.ref} value={b.ref}>{b.ref} ({b.short_sha})</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="project-actions">
+              <small>采用 base...head 三点 Diff，不影响本地工作区，不执行任何写操作。</small>
+              <button
+                className="primary-button"
+                onClick={onAnalyze}
+                disabled={busy || !baseRef || !headRef || baseRef === headRef}
+              >
+                {busy ? <LoaderCircle size={15} className="spin" /> : <GitPullRequest size={15} />}
+                开始审查分支
+              </button>
+            </div>
+          </section>
+        )}
+
+        <div className="sample-entry">
+          <div>
+            <strong>需要体验？</strong>
+            <span>可以加载已验证的冻结 NetBox PR 样本，查阅完整的审计与三态结果。</span>
+          </div>
+          <button className="secondary-button" onClick={onSample}>
+            <FileText size={15} /> 加载冻结 NetBox 样本
+          </button>
+        </div>
+      </section>
+    </main>
+  );
 }
 
-function Overview({ report, baselineScore, onShowRules, onShowCode, onLocate }: {
+/* ==========================================================================
+   Overview Tab Component
+   ========================================================================== */
+function Overview({
+  report, baselineScore, onShowRules, onShowCode, onLocate,
+}: {
   report: Report; baselineScore: number | null; onShowRules: () => void; onShowCode: () => void; onLocate: (evidence: Evidence) => void;
 }) {
-  const topFindings = report.findings.slice(0, 3);
+  const topFindings = report.findings.slice(0, 5);
   const collaboration = collaborationCopy(report);
   const gatekeeper = gatekeeperSummary(report);
-  return <div className="tab-page overview-page">
-    <div className="overview-summary">
-      <div className="score-summary"><span>当前复核优先级</span><strong>{report.score}<small>/100</small></strong><span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span><small>基线 {baselineScore ?? report.score} · 阈值 {report.score_basis.configuration.thresholds.medium}/{report.score_basis.configuration.thresholds.high}</small></div>
-      <div className="summary-details">
-        <div className="summary-stat"><span>变更文件</span><strong>{report.summary.files_changed}</strong></div><div className="summary-stat"><span>新增行</span><strong className="plus">+{report.summary.additions}</strong></div><div className="summary-stat"><span>删除行</span><strong className="minus">−{report.summary.deletions}</strong></div><div className="summary-stat"><span>业务 / 测试文件</span><strong>{report.summary.business_files} / {report.summary.test_files}</strong></div>
-        <div className="summary-stat"><span>规则命中</span><strong>{report.findings.length}</strong></div><div className="summary-stat"><span>命中关注域</span><strong className="scene-stat">{(report.summary.domains ?? []).map((domain) => domainLabels[domain] ?? domain).join("、") || "无"}</strong></div>
-      </div>
-    </div>
-    {gatekeeper && (
-      <div className="gatekeeper-banner">
-        <ShieldAlert size={16} />
-        <div>
-          <strong>{gatekeeper.text}</strong>
-          {gatekeeper.hits.length > 0 && <small>证据节点：{gatekeeper.hits.map((h) => `${h.path} (${h.operation})`).join("；")}</small>}
+
+  return (
+    <div className="overview-page">
+      <div className="overview-summary">
+        <div className="score-summary">
+          <span>当前复核优先级</span>
+          <strong>{report.score}<small>/100</small></strong>
+          <span className={`risk-pill ${riskClass(report.risk_level)}`}>
+            {riskLabel(report.risk_level)}
+          </span>
+          <small>
+            基线：{baselineScore ?? report.score} · 阈值：{report.score_basis.configuration.thresholds.medium}/{report.score_basis.configuration.thresholds.high}
+          </small>
+        </div>
+        <div className="summary-details">
+          <div className="summary-stat">
+            <span>变更文件</span>
+            <strong>{report.summary.files_changed}</strong>
+          </div>
+          <div className="summary-stat">
+            <span>新增行数</span>
+            <strong className="plus">+{report.summary.additions}</strong>
+          </div>
+          <div className="summary-stat">
+            <span>删除行数</span>
+            <strong className="minus">−{report.summary.deletions}</strong>
+          </div>
+          <div className="summary-stat">
+            <span>业务 / 测试文件</span>
+            <strong>{report.summary.business_files} / {report.summary.test_files}</strong>
+          </div>
+          <div className="summary-stat">
+            <span>规则命中数</span>
+            <strong>{report.findings.length}</strong>
+          </div>
+          <div className="summary-stat">
+            <span>命中关注域</span>
+            <strong style={{ fontSize: 14 }}>
+              {(report.summary.domains ?? []).map((d) => domainLabels[d] ?? d).join("、") || "无"}
+            </strong>
+          </div>
         </div>
       </div>
-    )}
-    <div className={`collab-banner ${collaboration.tone}`}><span className="collab-icon">{collaboration.tone === "attention" ? <AlertCircle size={16} /> : <CircleHelp size={16} />}</span><span>{collaboration.text}</span><small>辅助复核信号，不单独构成风险判断</small></div>
-    <div className="overview-columns">
-      <section className="overview-section"><div className="section-heading"><div><h2>重点风险线索</h2><p>当前分析命中的结构规则</p></div><button className="text-action" onClick={onShowRules}>查看全部 <ChevronRight size={14} /></button></div>
-        {topFindings.length ? <div className="overview-finding-list">{topFindings.map((finding, index) => <button className="overview-finding" key={`${finding.rule_id}-${index}`} onClick={() => finding.evidence[0] && onLocate(finding.evidence[0])}>
-          <span className={`finding-symbol domain-${ruleDomain(finding.rule_id)}`}>{domainIcon(ruleDomain(finding.rule_id))}</span><span className="overview-finding-main"><strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong><small>{finding.evidence.length} 条证据 · {finding.evidence[0]?.path}</small></span><ArrowUpRight size={15} />
-        </button>)}</div> : <div className="empty-state compact"><CircleHelp size={17} />{findingAbsenceCopy(report)}</div>}
-      </section>
-      <section className="overview-section change-overview"><div className="section-heading"><div><h2>变更范围</h2><p>{report.diff_mode === "three_dot" ? "来自 base...head 三点 Diff" : "来自冻结 PR 三点 Diff"}</p></div><button className="text-action" onClick={onShowCode}>审查代码 <ChevronRight size={14} /></button></div>
-        <div className="file-role-summary"><span><FileCode2 size={16} />业务文件<strong>{report.summary.business_files}</strong></span><span><FileCode2 size={16} />测试文件<strong>{report.summary.test_files}</strong></span><span><FileText size={16} />其他文件<strong>{Math.max(0, report.summary.files_changed - report.summary.business_files - report.summary.test_files)}</strong></span></div>
-        <div className="sha-summary"><span>BASE {report.base_ref && <b>{report.base_ref}</b>} <code>{shortSha(report.base_sha)}</code></span><ArrowDownRight size={15} /><span>HEAD {report.head_ref && <b>{report.head_ref}</b>} <code>{shortSha(report.head_sha)}</code></span>{report.merge_base_sha && <span>MERGE BASE <code>{shortSha(report.merge_base_sha)}</code></span>}</div>
-      </section>
+
+      {gatekeeper && (
+        <div className="gatekeeper-banner">
+          <ShieldAlert size={20} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <strong>{gatekeeper.text}</strong>
+            {gatekeeper.hits.length > 0 && (
+              <small>结构证据：{gatekeeper.hits.map((h) => `${h.path} (${h.operation})`).join("；")}</small>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className={`collab-banner ${collaboration.tone}`}>
+        {collaboration.tone === "attention" ? <AlertCircle size={18} style={{ color: "#9a6700" }} /> : <CircleHelp size={18} />}
+        <span>{collaboration.text}</span>
+        <small>辅助协同信号</small>
+      </div>
+
+      <div className="overview-columns">
+        <div className="overview-card">
+          <div className="overview-card-header">
+            <div>
+              <h2>重点风险线索</h2>
+              <p>本次分析命中的核心结构特征</p>
+            </div>
+            <button className="secondary-button" onClick={onShowRules} style={{ fontSize: 12, padding: "2px 8px" }}>
+              查看全部 <ChevronRight size={13} />
+            </button>
+          </div>
+          {topFindings.length ? (
+            <div>
+              {topFindings.map((finding, index) => (
+                <button
+                  key={`${finding.rule_id}-${index}`}
+                  className="finding-item-btn"
+                  onClick={() => finding.evidence[0] && onLocate(finding.evidence[0])}
+                >
+                  <span style={{ color: "#0969da" }}>{domainIcon(ruleDomain(finding.rule_id))}</span>
+                  <div className="finding-item-info">
+                    <strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong>
+                    <small>{finding.evidence.length} 条证据 · {finding.evidence[0]?.path}</small>
+                  </div>
+                  <ArrowUpRight size={15} style={{ color: "#59636e" }} />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <CircleHelp size={20} />
+              {findingAbsenceCopy(report)}
+            </div>
+          )}
+        </div>
+
+        <div className="overview-card">
+          <div className="overview-card-header">
+            <div>
+              <h2>变更范围与快照</h2>
+              <p>{report.diff_mode === "three_dot" ? "来自 base...head 三点对比" : "来自冻结 PR 三点快照"}</p>
+            </div>
+            <button className="secondary-button" onClick={onShowCode} style={{ fontSize: 12, padding: "2px 8px" }}>
+              审查代码 <ChevronRight size={13} />
+            </button>
+          </div>
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #d8dee4" }}>
+              <span>业务代码文件</span>
+              <strong>{report.summary.business_files}</strong>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #d8dee4" }}>
+              <span>测试代码文件</span>
+              <strong>{report.summary.test_files}</strong>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #d8dee4" }}>
+              <span>其他配置文件</span>
+              <strong>{Math.max(0, report.summary.files_changed - report.summary.business_files - report.summary.test_files)}</strong>
+            </div>
+            <div style={{ padding: "8px 0", fontSize: 13, color: "#59636e" }}>
+              base: <code>{shortSha(report.base_sha)}</code> → head: <code>{shortSha(report.head_sha)}</code>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>;
+  );
 }
 
-function CodeReview({ report, file, selectedPath, setSelectedPath, focusLines }: {
-  report: Report; file: DiffFile | null; selectedPath: string; setSelectedPath: (path: string) => void; focusLines: number[];
+/* ==========================================================================
+   Code Review (Files Changed) Component - GitHub Primer Style
+   ========================================================================== */
+type FileTreeNode =
+  | { kind: "dir"; name: string; fullPath: string; children: FileTreeNode[]; fileCount: number }
+  | { kind: "file"; name: string; fullPath: string; file: DiffFile };
+
+function buildFileTree(files: DiffFile[]): FileTreeNode[] {
+  type IntermediateDir = { dirs: Record<string, IntermediateDir>; files: DiffFile[] };
+  const root: IntermediateDir = { dirs: {}, files: [] };
+
+  for (const f of files) {
+    const parts = f.path.split("/");
+    let cur = root;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const p = parts[i];
+      if (!cur.dirs[p]) cur.dirs[p] = { dirs: {}, files: [] };
+      cur = cur.dirs[p];
+    }
+    cur.files.push(f);
+  }
+
+  function convert(dir: IntermediateDir, parentPath = ""): FileTreeNode[] {
+    const res: FileTreeNode[] = [];
+    const dirEntries = Object.entries(dir.dirs).sort(([a], [b]) => a.localeCompare(b));
+
+    for (const [dName, initialSub] of dirEntries) {
+      let sub = initialSub;
+      let combinedPath = parentPath ? `${parentPath}/${dName}` : dName;
+      let displayName = dName;
+      // Compact single child dirs (e.g. backend/app/modules)
+      while (Object.keys(sub.dirs).length === 1 && sub.files.length === 0) {
+        const nextKey = Object.keys(sub.dirs)[0];
+        displayName += `/${nextKey}`;
+        combinedPath += `/${nextKey}`;
+        sub = sub.dirs[nextKey];
+      }
+      const children = convert(sub, combinedPath);
+      const totalFiles = children.reduce((acc, c) => acc + (c.kind === "file" ? 1 : c.fileCount), 0);
+      res.push({
+        kind: "dir",
+        name: displayName,
+        fullPath: combinedPath,
+        children,
+        fileCount: totalFiles,
+      });
+    }
+
+    const fileEntries = dir.files.sort((a, b) => a.path.localeCompare(b.path));
+    for (const f of fileEntries) {
+      const parts = f.path.split("/");
+      res.push({
+        kind: "file",
+        name: parts[parts.length - 1],
+        fullPath: f.path,
+        file: f,
+      });
+    }
+    return res;
+  }
+
+  return convert(root);
+}
+
+function CodeReview({
+  report, selectedPath, setSelectedPath, focusLines,
+}: {
+  report: Report; selectedPath: string; setSelectedPath: (path: string) => void; focusLines: number[];
 }) {
   const [fileSearch, setFileSearch] = useState("");
-  const files = report.files.filter((item) => item.path.toLowerCase().includes(fileSearch.toLowerCase()));
-  return <div className="code-workspace">
-    <aside className="diff-file-panel"><div className="diff-file-header"><div><h2>变更文件</h2><small>{report.files.length} 个文件 · +{report.summary.additions} −{report.summary.deletions}</small></div><span className="file-count">{files.length}</span></div>
-      <label className="file-search"><Search size={14} /><input value={fileSearch} onChange={(event) => setFileSearch(event.target.value)} placeholder="筛选文件" /></label>
-      <div className="diff-file-list">{files.map((item) => <button key={`${item.path}-${item.status}`} className={`diff-file-item ${selectedPath === item.path ? "active" : ""}`} onClick={() => setSelectedPath(item.path)}>
-        <span className="file-item-path"><FileCode2 size={14} /><span>{item.path}</span></span><span className="file-item-meta"><span className={`role-tag role-${item.role}`}>{roleLabel(item.role)}</span><span className="file-diff"><b className="plus">+{item.additions}</b> <b className="minus">−{item.deletions}</b></span></span>
-        {item.status !== "modified" && <span className="file-status">{fileStatusLabel(item.status)}</span>}
-      </button>)}{files.length === 0 && <div className="empty-list">没有匹配文件</div>}</div>
-    </aside>
-    <section className="diff-content" aria-label="代码差异">
-      {file ? <>
-        <header className="diff-content-header"><div><div className="diff-path">{file.old_path && file.new_path && file.old_path !== file.new_path ? <><span>{file.old_path}</span><ArrowDownRight size={13} /><strong>{file.new_path}</strong></> : <strong>{file.path}</strong>}</div><div className="diff-subline"><span className={`role-tag role-${file.role}`}>{roleLabel(file.role)}</span><span>{fileStatusLabel(file.status)}</span><span className="plus">+{file.additions}</span><span className="minus">−{file.deletions}</span>{file.parse_status.head && <span className={file.parse_status.head === "ok" ? "parse-ok" : "parse-degraded"}>AST {file.parse_status.head === "ok" ? "已解析" : "降级"}</span>}</div></div></header>
-        {file.parse_errors.length > 0 && <div className="parse-warning"><AlertCircle size={15} />{file.parse_errors.map((item, index) => <span key={index}>{item.side ?? "版本"}：{item.message ?? "解析失败"}{item.line ? `（${item.line}:${item.column ?? 0}）` : ""}</span>)}</div>}
-        {file.binary ? <div className="empty-state diff-empty"><FileText size={19} />二进制文件没有可显示的行级 Diff。</div>
-          : file.hunks.length === 0 ? <div className="empty-state diff-empty"><FileText size={19} />此文件没有行级变更内容。可能是纯重命名或 Diff 不可用。</div>
-            : <div className="diff-scroll"><div className="diff-table">{file.hunks.map((hunk, hunkIndex) => <section className="diff-hunk" key={`${hunk.old_start}-${hunk.new_start}-${hunkIndex}`}>
-              <div className="hunk-heading">@@ -{hunk.old_start},{hunk.old_count} +{hunk.new_start},{hunk.new_count} @@</div>
-              {hunk.lines.map((line, lineIndex) => <DiffRow key={`${line.kind}-${line.old_line}-${line.new_line}-${lineIndex}`} line={line} filePath={file.path} highlighted={focusLines.some((number) => line.old_line === number || line.new_line === number)} />)}
-            </section>)}</div></div>}
-      </> : <div className="empty-state diff-empty">选择左侧文件查看行级变更。</div>}
-    </section>
-  </div>;
+  const [viewMode, setViewMode] = useState<"stream" | "single">("stream");
+  const [collapsedFiles, setCollapsedFiles] = useState<Record<string, boolean>>({});
+  const [viewedFiles, setViewedFiles] = useState<Record<string, boolean>>({});
+  const [collapsedDirs, setCollapsedDirs] = useState<Record<string, boolean>>({});
+
+  const filteredFiles = useMemo(() => {
+    return report.files.filter((f) => f.path.toLowerCase().includes(fileSearch.toLowerCase()));
+  }, [report.files, fileSearch]);
+
+  const treeNodes = useMemo(() => buildFileTree(filteredFiles), [filteredFiles]);
+
+  const viewedCount = Object.values(viewedFiles).filter(Boolean).length;
+  const totalCount = report.files.length;
+
+  const toggleViewed = (path: string) => {
+    setViewedFiles((prev) => {
+      const nextVal = !prev[path];
+      if (nextVal) {
+        // Auto-collapse when viewed
+        setCollapsedFiles((c) => ({ ...c, [path]: true }));
+      }
+      return { ...prev, [path]: nextVal };
+    });
+  };
+
+  const toggleCollapse = (path: string) => {
+    setCollapsedFiles((prev) => ({ ...prev, [path]: !prev[path] }));
+  };
+
+  const collapseAll = () => {
+    const all: Record<string, boolean> = {};
+    for (const f of report.files) all[f.path] = true;
+    setCollapsedFiles(all);
+  };
+
+  const expandAll = () => {
+    setCollapsedFiles({});
+  };
+
+  const selectAndScroll = (path: string) => {
+    setSelectedPath(path);
+    if (viewMode === "stream") {
+      setCollapsedFiles((prev) => ({ ...prev, [path]: false }));
+      const target = document.getElementById(`diff-file-${encodeURIComponent(path)}`);
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const renderTree = (nodes: FileTreeNode[]) => {
+    return nodes.map((node) => {
+      if (node.kind === "dir") {
+        const isCollapsed = Boolean(collapsedDirs[node.fullPath]);
+        return (
+          <div key={node.fullPath} className="tree-dir-node">
+            <button
+              className="tree-dir-head"
+              onClick={() => setCollapsedDirs((prev) => ({ ...prev, [node.fullPath]: !prev[node.fullPath] }))}
+            >
+              {isCollapsed ? <Folder size={14} style={{ color: "#54aeff" }} /> : <FolderOpen size={14} style={{ color: "#54aeff" }} />}
+              <span>{node.name}</span>
+              <small style={{ color: "#656d76", marginLeft: "auto", fontSize: 11 }}>({node.fileCount})</small>
+            </button>
+            {!isCollapsed && (
+              <div style={{ paddingLeft: 12 }}>
+                {renderTree(node.children)}
+              </div>
+            )}
+          </div>
+        );
+      }
+      const f = node.file;
+      const isSelected = selectedPath === f.path;
+      const isViewed = Boolean(viewedFiles[f.path]);
+      return (
+        <button
+          key={f.path}
+          className={`tree-file-node ${isSelected ? "active" : ""}`}
+          onClick={() => selectAndScroll(f.path)}
+          title={f.path}
+        >
+          <FileCode2 size={13} className="tree-file-icon" />
+          <span className="tree-file-name">{node.name}</span>
+          {isViewed ? (
+            <span className="tree-file-viewed" title="已审阅">✓</span>
+          ) : (
+            <span className="tree-file-diffstat">
+              <span className="plus">+{f.additions}</span> <span className="minus">−{f.deletions}</span>
+            </span>
+          )}
+        </button>
+      );
+    });
+  };
+
+  const filesToRender = viewMode === "single"
+    ? report.files.filter((f) => f.path === selectedPath)
+    : filteredFiles;
+
+  return (
+    <div className="gh-code-workspace">
+      {/* ================= Left Sticky Directory Tree ================= */}
+      <aside className="gh-file-tree-panel">
+        <div className="gh-file-tree-header">
+          <strong>变更文件</strong>
+          <small>{filteredFiles.length} / {totalCount} 个文件</small>
+        </div>
+        <div className="gh-file-tree-search">
+          <div className="gh-search-input-box">
+            <Search size={13} style={{ color: "#656d76" }} />
+            <input
+              value={fileSearch}
+              onChange={(e) => setFileSearch(e.target.value)}
+              placeholder="按路径过滤文件..."
+            />
+            {fileSearch && <button onClick={() => setFileSearch("")} style={{ border: 0, background: "none" }}><X size={12} /></button>}
+          </div>
+        </div>
+        <div className="gh-tree-scroll">
+          {treeNodes.length > 0 ? renderTree(treeNodes) : <div className="empty-state">无匹配文件</div>}
+        </div>
+      </aside>
+
+      {/* ================= Right Multi-File Diff Stream ================= */}
+      <section className="gh-diff-stream" aria-label="代码差异审查">
+        {/* Progress & Controls Bar */}
+        <div className="gh-diff-controls">
+          <div className="gh-diff-progress">
+            <span>已审阅 {viewedCount} / {totalCount} 个文件</span>
+            <div style={{ width: 100, height: 6, background: "#d0d7de", borderRadius: 3, overflow: "hidden" }}>
+              <div style={{ width: `${(viewedCount / Math.max(1, totalCount)) * 100}%`, height: "100%", background: "#1f883d" }} />
+            </div>
+          </div>
+          <div className="gh-diff-view-modes">
+            <button className="secondary-button" onClick={expandAll} style={{ padding: "0 8px", fontSize: 12 }}>全部展开</button>
+            <button className="secondary-button" onClick={collapseAll} style={{ padding: "0 8px", fontSize: 12 }}>全部折叠</button>
+            <span style={{ color: "#d0d7de" }}>|</span>
+            <button
+              className={`secondary-button ${viewMode === "stream" ? "primary-button" : ""}`}
+              onClick={() => setViewMode("stream")}
+              style={{ padding: "0 8px", fontSize: 12 }}
+            >
+              连续显示全部
+            </button>
+            <button
+              className={`secondary-button ${viewMode === "single" ? "primary-button" : ""}`}
+              onClick={() => setViewMode("single")}
+              style={{ padding: "0 8px", fontSize: 12 }}
+            >
+              单文件聚焦
+            </button>
+          </div>
+        </div>
+
+        {/* Files Stream */}
+        {filesToRender.map((f) => {
+          const isCollapsed = Boolean(collapsedFiles[f.path]);
+          const isViewed = Boolean(viewedFiles[f.path]);
+          return (
+            <article
+              key={f.path}
+              id={`diff-file-${encodeURIComponent(f.path)}`}
+              className="gh-diff-file-card"
+            >
+              {/* Card Header (Sticky) */}
+              <header className="gh-file-card-header">
+                <div className="gh-file-card-left">
+                  <button
+                    className="gh-collapse-toggle"
+                    onClick={() => toggleCollapse(f.path)}
+                    title={isCollapsed ? "展开文件" : "折叠文件"}
+                  >
+                    {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                  </button>
+                  <div className="gh-file-path-title">
+                    {f.old_path && f.new_path && f.old_path !== f.new_path ? (
+                      <><span>{f.old_path}</span> → <strong>{f.new_path}</strong></>
+                    ) : (
+                      <strong>{f.path}</strong>
+                    )}
+                  </div>
+                  <div className="gh-file-tags">
+                    <span className={`role-badge role-${f.role}`}>{roleLabel(f.role)}</span>
+                    <span className="status-badge">{fileStatusLabel(f.status)}</span>
+                    {f.parse_status.head && (
+                      <span className={`ast-badge ${f.parse_status.head === "ok" ? "ast-ok" : "ast-degraded"}`}>
+                        AST {f.parse_status.head === "ok" ? "已解析" : "降级"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="gh-file-card-right">
+                  <div className="diffstat-block">
+                    <span className="plus">+{f.additions}</span>
+                    <span className="minus">−{f.deletions}</span>
+                  </div>
+                  <label className="viewed-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={isViewed}
+                      onChange={() => toggleViewed(f.path)}
+                    />
+                    <span>已审阅</span>
+                  </label>
+                </div>
+              </header>
+
+              {/* Card Body */}
+              {!isCollapsed && (
+                <div>
+                  {f.parse_errors.length > 0 && (
+                    <div style={{ padding: "8px 14px", background: "#fff8c5", borderBottom: "1px solid #d4a72c", color: "#745c34", fontSize: 12 }}>
+                      <AlertCircle size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
+                      {f.parse_errors.map((e, idx) => (
+                        <span key={idx}>{e.side ?? "版本"}：{e.message ?? "解析异常"}{e.line ? ` (${e.line}:${e.column ?? 0})` : ""} </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {f.binary ? (
+                    <div className="empty-state" style={{ padding: 24 }}>二进制文件差异暂不可直接预览。</div>
+                  ) : f.hunks.length === 0 ? (
+                    <div className="empty-state" style={{ padding: 24 }}>此文件无行级文本变动（可能是纯重命名或权限变更）。</div>
+                  ) : (
+                    <div className="gh-diff-table">
+                      {f.hunks.map((hunk, hIdx) => (
+                        <div key={`${hunk.old_start}-${hunk.new_start}-${hIdx}`}>
+                          <div className="hunk-heading">
+                            @@ -{hunk.old_start},{hunk.old_count} +{hunk.new_start},{hunk.new_count} @@
+                          </div>
+                          {hunk.lines.map((line, lIdx) => (
+                            <DiffRow
+                              key={`${line.kind}-${line.old_line}-${line.new_line}-${lIdx}`}
+                              line={line}
+                              filePath={f.path}
+                              highlighted={focusLines.some((num) => line.old_line === num || line.new_line === num)}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </article>
+          );
+        })}
+        {filesToRender.length === 0 && (
+          <div className="empty-state" style={{ background: "#fff", border: "1px solid #d0d7de", borderRadius: 6 }}>
+            没有匹配的变更文件。
+          </div>
+        )}
+      </section>
+    </div>
+  );
 }
 
 function DiffRow({ line, filePath, highlighted }: { line: DiffLine; filePath: string; highlighted: boolean }) {
   const prefix = line.kind === "add" ? "+" : line.kind === "delete" ? "−" : " ";
-  return <div className={`diff-row diff-${line.kind}${highlighted ? " diff-highlight" : ""}`} data-file-path={filePath} data-diff-old-line={line.old_line ?? undefined} data-diff-new-line={line.new_line ?? undefined}>
-    <span className="line-number old-line-number">{line.old_line ?? ""}</span><span className="line-number new-line-number">{line.new_line ?? ""}</span><span className="diff-marker">{prefix}</span><code>{line.text || " "}</code>
-  </div>;
+  return (
+    <div
+      className={`diff-row diff-${line.kind}${highlighted ? " diff-highlight" : ""}`}
+      data-file-path={filePath}
+      data-diff-old-line={line.old_line ?? undefined}
+      data-diff-new-line={line.new_line ?? undefined}
+    >
+      <span className="line-number old-line-number">{line.old_line ?? ""}</span>
+      <span className="line-number new-line-number">{line.new_line ?? ""}</span>
+      <span className="diff-marker">{prefix}</span>
+      <code>{line.text || " "}</code>
+    </div>
+  );
 }
 
+/* ==========================================================================
+   Rules & Findings Tab Component
+   ========================================================================== */
 function catalogState(report: Report, ruleId: string) {
-  if (!outcomesRecorded(report)) return { stateKey: "unavailable", className: "unavailable", label: "终态未记录", note: "历史快照没有这条规则的终态，不能把它当成未发现。" };
+  if (!outcomesRecorded(report)) return { stateKey: "unavailable", className: "unavailable", label: "终态未记录", note: "历史快照没有这条规则的终态记录。" };
   const outcome = outcomeFor(report, ruleId);
   if (!outcome) return { stateKey: "disabled", className: "disabled", label: "未启用", note: "" };
   return {
@@ -868,9 +1763,13 @@ function catalogState(report: Report, ruleId: string) {
     note: outcomeNote(outcome),
   };
 }
-function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate }: {
+
+function RulesView({
+  report, catalog, expandedRule, setExpandedRule, onLocate, onOpenRuleCard,
+}: {
   report: Report; catalog: Rule[]; expandedRule: string | null; setExpandedRule: (key: string | null) => void;
   onLocate: (evidence: Evidence) => void;
+  onOpenRuleCard: (ruleId: string) => void;
 }) {
   const [stateFilter, setStateFilter] = useState<string>("all");
   const [ruleDomainFilter, setRuleDomainFilter] = useState<string>("all");
@@ -879,60 +1778,175 @@ function RulesView({ report, catalog, expandedRule, setExpandedRule, onLocate }:
   const outcomeSummary = recorded
     ? `命中 ${outcomes.filter((item) => item.state === "Hit").length} · 未发现 ${outcomes.filter((item) => item.state === "NotFound").length} · 无法分析 ${outcomes.filter((item) => item.state === "Unanalyzed").length}`
     : "终态未记录";
-  const filteredCatalog = catalog.filter((rule) => {
+
+  const allRules = catalog.length > 0 ? catalog : Object.keys(ruleLabels).map((id) => ({
+    rule_id: id,
+    severity: "Medium",
+    trigger: "",
+    evidence_type: "",
+    applicable_scope: "",
+    suggested_action: "",
+    limitations: "",
+    default_weight: 0,
+    enabled_by_default: true,
+  }));
+
+  const filteredCatalog = allRules.filter((rule) => {
     if (ruleDomainFilter !== "all" && ruleDomain(rule.rule_id) !== ruleDomainFilter) return false;
     if (stateFilter === "all") return true;
     const state = catalogState(report, rule.rule_id);
     return state.stateKey === stateFilter;
   });
-  return <div className="tab-page rules-page">
-    <section className="rules-matched-section"><div className="section-heading"><div><h2>本次分析命中</h2><p>{report.findings.length} 条规则线索 · {outcomeSummary} · 展开证据可定位至代码行</p></div><span className="section-number">{report.findings.length}</span></div>
-      {report.summary.unanalyzed?.length ? <div className="parse-warning"><AlertCircle size={15} />{report.summary.unanalyzed.length} 项变更未能完成分析，未按通过处理。{report.summary.unanalyzed.map((item) => `${item.path || "本次变更"}：${reasonText(item.reason)}`).join("；")}</div> : null}
-      {report.findings.length ? <div className="matched-findings">{report.findings.map((finding, index) => <article className="matched-finding" key={`${finding.rule_id}-${index}`}>
-        <button className="matched-finding-head" onClick={() => setExpandedRule(expandedRule === `${finding.rule_id}-${index}` ? null : `${finding.rule_id}-${index}`)} aria-expanded={expandedRule === `${finding.rule_id}-${index}`}>
-          <span className={`finding-symbol domain-${ruleDomain(finding.rule_id)}`}>{domainIcon(ruleDomain(finding.rule_id))}</span><span className="matched-finding-title"><small>{finding.rule_id}</small><strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong><span>{finding.message}</span></span>
-          <span className={`severity-tag severity-${finding.severity}`}>{severityLabel(finding.severity)}</span><span className="evidence-count">{finding.evidence.length} 证据</span>{expandedRule === `${finding.rule_id}-${index}` ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
-        {expandedRule === `${finding.rule_id}-${index}` && <div className="matched-evidence-list"><p>复核建议：{finding.suggested_action}</p>{finding.evidence.map((item, evidenceIndex) => <div className="rule-evidence" key={`${item.node_id}-${evidenceIndex}`}>
-          <div><strong>{item.path}</strong><span>{item.node_kind} · {item.structural_change_type}</span><small>{item.qualified_name ?? item.node_id}</small>{evidenceDetail(item) ? <small>{evidenceDetail(item)}</small> : null}<code>{item.lines.map((line) => `L${line}`).join(", ") || "无 Diff 行号"}</code></div>
-          <button className="text-action" onClick={() => onLocate(item)} disabled={!item.lines.length}>定位到代码 <ArrowUpRight size={14} /></button>
-        </div>)}</div>}
-      </article>)}</div> : <div className="empty-state"><CircleHelp size={18} />{findingAbsenceCopy(report)}</div>}
-    </section>
-    <section className="rule-catalog-section">
-      <div className="section-heading">
-        <div><h2>规则目录</h2><p>当前实现的 29 条规则、触发条件与适用边界。终态按本次分析记录，未发现不是安全结论。</p></div>
-        <div className="catalog-filter-bar">
-          <select aria-label="按终态筛选规则" value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}>
-            <option value="all">全部终态 ({catalog.length})</option>
-            <option value="Hit">命中 (Hit)</option>
-            <option value="NotFound">未发现 (NotFound)</option>
-            <option value="Unanalyzed">无法分析 (Unanalyzed)</option>
-            <option value="disabled">未启用</option>
-          </select>
-          <select aria-label="按关注域筛选规则" value={ruleDomainFilter} onChange={(e) => setRuleDomainFilter(e.target.value)}>
-            <option value="all">全部关注域</option>
-            {Object.entries(domainLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-          </select>
-          <span className="catalog-count">{filteredCatalog.length} / {catalog.length}</span>
+
+  return (
+    <div className="rules-page">
+      {/* Top: Findings List */}
+      <section className="rules-section-card">
+        <div className="rules-section-head">
+          <div>
+            <h2>本次分析命中线索 (Findings)</h2>
+            <p>{report.findings.length} 条命中 · {outcomeSummary} · 展开可查阅证据节点并跳转至代码</p>
+          </div>
+          <span className="nav-tab-count" style={{ fontSize: 13, height: 24, minWidth: 24 }}>
+            {report.findings.length}
+          </span>
         </div>
-      </div>
-      <div className="rule-catalog">{filteredCatalog.map((rule) => {
-        const state = catalogState(report, rule.rule_id);
-        return <article className="catalog-rule" key={rule.rule_id}>
-        <div className="catalog-rule-title"><span className={`finding-symbol domain-${ruleDomain(rule.rule_id)}`}>{domainIcon(ruleDomain(rule.rule_id))}</span><div><small>{rule.rule_id}</small><h3>{ruleLabels[rule.rule_id] ?? rule.rule_id}</h3></div><span className={`catalog-state ${state.className}`}>{state.label}</span></div>
-        {state.note ? <p className="catalog-outcome-note">{state.note}</p> : null}
-        <div className="catalog-fields"><CatalogField label="关注域 / 严重程度" value={`${domainLabels[ruleDomain(rule.rule_id)] ?? ruleDomain(rule.rule_id)} · ${severityLabel(rule.severity)}`} /><CatalogField label="触发条件" value={rule.trigger} /><CatalogField label="证据类型" value={rule.evidence_type} /><CatalogField label="适用范围" value={rule.applicable_scope} /><CatalogField label="复核建议" value={rule.suggested_action} /><CatalogField label="当前限制" value={rule.limitations} /></div>
-      </article>; })}</div>
-    </section>
-  </div>;
+
+        {report.summary.unanalyzed?.length ? (
+          <div style={{ padding: "10px 18px", background: "#fff8c5", borderBottom: "1px solid #d4a72c", fontSize: 13, color: "#745c34" }}>
+            <AlertCircle size={15} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
+            {report.summary.unanalyzed.length} 项变更存在分析缺口（未作为代码安全通过处理）：
+            {report.summary.unanalyzed.map((item) => `${item.path || "本次变更"} (${reasonText(item.reason)})`).join("；")}
+          </div>
+        ) : null}
+
+        {report.findings.length ? (
+          <div>
+            {report.findings.map((finding, index) => (
+              <article className="matched-finding" key={`${finding.rule_id}-${index}`}>
+                <button
+                  className="matched-finding-head"
+                  onClick={() => setExpandedRule(expandedRule === `${finding.rule_id}-${index}` ? null : `${finding.rule_id}-${index}`)}
+                  aria-expanded={expandedRule === `${finding.rule_id}-${index}`}
+                >
+                  <span style={{ color: "#cf222e" }}>{domainIcon(ruleDomain(finding.rule_id))}</span>
+                  <div className="matched-finding-title">
+                    <strong>{ruleLabels[finding.rule_id] ?? finding.rule_id}</strong>
+                    <span>{finding.message}</span>
+                    <small>{finding.rule_id}</small>
+                  </div>
+                  <span className={`risk-pill ${finding.severity === "high" ? "risk-high" : finding.severity === "medium" ? "risk-medium" : "risk-low"}`}>
+                    {severityLabel(finding.severity)}
+                  </span>
+                  <span style={{ color: "#59636e", fontSize: 12 }}>{finding.evidence.length} 证据</span>
+                  {expandedRule === `${finding.rule_id}-${index}` ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+
+                {expandedRule === `${finding.rule_id}-${index}` && (
+                  <div className="matched-evidence-box">
+                    <p><strong>复核建议：</strong>{finding.suggested_action}</p>
+                    {finding.evidence.map((item, evIndex) => (
+                      <div className="evidence-card" key={`${item.node_id}-${evIndex}`}>
+                        <div>
+                          <strong>{item.path}</strong>
+                          <div><span>{item.node_kind} · {item.structural_change_type}</span> · <small>{item.qualified_name ?? item.node_id}</small></div>
+                          {evidenceDetail(item) ? <small style={{ color: "#59636e" }}>{evidenceDetail(item)}</small> : null}
+                          <code>{item.lines.map((line) => `L${line}`).join(", ") || "无 Diff 行号"}</code>
+                        </div>
+                        <button className="secondary-button" onClick={() => onLocate(item)} disabled={!item.lines.length}>
+                          定位到代码 <ArrowUpRight size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <CircleHelp size={22} />
+            {findingAbsenceCopy(report)}
+          </div>
+        )}
+      </section>
+
+      {/* Bottom: 29 Rules Table */}
+      <section className="rules-section-card">
+        <div className="rules-section-head">
+          <div>
+            <h2>规则终态与完整目录表</h2>
+            <p>已落地的 29 条规则触发条件与适用边界。终态按本次分析记录，未发现不是代码安全结论。</p>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <select className="secondary-button" value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}>
+              <option value="all">全部终态</option>
+              <option value="Hit">命中 (Hit)</option>
+              <option value="NotFound">未发现 (NotFound)</option>
+              <option value="Unanalyzed">无法分析 (Unanalyzed)</option>
+              <option value="disabled">未启用</option>
+            </select>
+            <select className="secondary-button" value={ruleDomainFilter} onChange={(e) => setRuleDomainFilter(e.target.value)}>
+              <option value="all">全部关注域</option>
+              {Object.entries(domainLabels).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <table className="rules-table">
+          <thead>
+            <tr>
+              <th style={{ width: 40 }}></th>
+              <th>规则名称 / ID</th>
+              <th>关注域</th>
+              <th>严重级别</th>
+              <th>本次终态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredCatalog.map((rule) => {
+              const st = catalogState(report, rule.rule_id);
+              return (
+                <tr key={rule.rule_id}>
+                  <td style={{ color: "#0969da" }}>{domainIcon(ruleDomain(rule.rule_id))}</td>
+                  <td>
+                    <strong style={{ display: "block", color: "#1f2328" }}>{ruleLabels[rule.rule_id] ?? rule.rule_id}</strong>
+                    <code style={{ fontSize: 11, color: "#59636e" }}>{rule.rule_id}</code>
+                    {st.note && <small style={{ display: "block", color: "#9a6700", marginTop: 2 }}>{st.note}</small>}
+                  </td>
+                  <td>{domainLabels[ruleDomain(rule.rule_id)] ?? ruleDomain(rule.rule_id)}</td>
+                  <td>
+                    <span className={`risk-pill ${rule.severity === "High" || rule.severity === "Critical" ? "risk-high" : rule.severity === "Medium" ? "risk-medium" : "risk-low"}`}>
+                      {rule.severity}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`risk-pill ${st.className === "hit" ? "risk-high" : st.className === "unanalyzed" ? "risk-medium" : "risk-low"}`}>
+                      {st.label}
+                    </span>
+                  </td>
+                  <td>
+                    <button className="secondary-button" style={{ padding: "0 8px", fontSize: 12 }} onClick={() => onOpenRuleCard(rule.rule_id)}>
+                      查看卡片
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </section>
+    </div>
+  );
 }
 
-function CatalogField({ label, value }: { label: string; value: string }) {
-  return <div className="catalog-field"><span>{label}</span><p>{value || "未设置"}</p></div>;
-}
-
-function ScoringView({ report, catalog, presets, config, setConfig, onSelectPreset, onWeight, onToggle, onApply, onReset, busy, baselineScore }: {
+/* ==========================================================================
+   Scoring & Configuration Tab Component
+   ========================================================================== */
+function ScoringView({
+  report, catalog, presets, config, setConfig, onSelectPreset, onWeight, onToggle, onApply, onReset, busy, baselineScore,
+}: {
   report: Report; catalog: Rule[]; presets: PresetItem[]; config: Config; setConfig: React.Dispatch<React.SetStateAction<Config>>;
   onSelectPreset: (item: PresetItem) => void;
   onWeight: (ruleId: string, value: number) => void; onToggle: (ruleId: string) => void;
@@ -941,89 +1955,189 @@ function ScoringView({ report, catalog, presets, config, setConfig, onSelectPres
   const gatekeeper = gatekeeperSummary(report);
   const deepDepth = config.rule_thresholds?.["code.deep_control_flow"]?.max_depth ?? 4;
   const secretLen = config.rule_thresholds?.["code.hardcoded_secret"]?.min_length ?? 8;
-  return <div className="tab-page scoring-page">
-    <section className="scoring-summary"><div><span>当前分析评分</span><strong>{report.score}<small>/100</small></strong><span className={`risk-pill ${riskClass(report.risk_level)}`}>{riskLabel(report.risk_level)}</span></div><div className="scoring-equation"><strong>{report.score_basis.earned_points}</strong><span>/</span><strong>{report.score_basis.maximum_points}</strong><small>已得权重 / 可得权重</small></div><div className="scoring-baseline"><span>默认分数</span><strong>{baselineScore ?? report.score}</strong><small>{report.config_snapshot ? `配置指纹 #${report.config_snapshot.config_digest.slice(0, 8)} · ${rerunTierLabel(report.snapshot_meta)}` : "仅当前分析的默认配置结果"}</small></div></section>
-    {gatekeeper && (
-      <div className="gatekeeper-banner">
-        <ShieldAlert size={16} />
-        <div><strong>{gatekeeper.text}</strong></div>
+
+  const allRules = catalog.length > 0 ? catalog : Object.keys(ruleLabels).map((id) => ({
+    rule_id: id,
+    severity: "Medium",
+    trigger: "",
+    evidence_type: "",
+    applicable_scope: "",
+    suggested_action: "",
+    limitations: "",
+    default_weight: 0,
+    enabled_by_default: true,
+  }));
+
+  return (
+    <div className="scoring-page">
+      <div className="scoring-summary-card">
+        <div>
+          <span>当前分析评分</span>
+          <strong>{report.score}<small style={{ fontSize: 16 }}>/100</small></strong>
+          <span className={`risk-pill ${riskClass(report.risk_level)}`} style={{ marginLeft: 8 }}>
+            {riskLabel(report.risk_level)}
+          </span>
+        </div>
+        <div>
+          <span>计分依据（已得权重 / 可得权重）</span>
+          <strong>{report.score_basis.earned_points} <small style={{ fontSize: 16 }}>/ {report.score_basis.maximum_points}</small></strong>
+        </div>
+        <div>
+          <span>基线对比</span>
+          <strong>{baselineScore ?? report.score}</strong>
+          <small style={{ display: "block", color: "#59636e", marginTop: 4 }}>
+            {report.config_snapshot ? `指纹 #${report.config_snapshot.config_digest.slice(0, 8)} · ${rerunTierLabel(report.snapshot_meta)}` : "基线得分"}
+          </small>
+        </div>
       </div>
-    )}
-    <section className="preset-section">
-      <div className="section-heading">
-        <div><h2>审查场景预设（Presets）</h2><p>选择预设可一键载入对应的 29 条规则权重矩阵、分级阈值与内部判定参数，随后可继续细粒度微调</p></div>
-      </div>
-      <div className="preset-grid">
-        {presets.map((item) => (
-          <button
-            type="button"
-            key={item.preset}
-            className={`preset-card ${config.preset === item.preset ? "active" : ""}`}
-            onClick={() => onSelectPreset(item)}
-          >
-            <div className="preset-card-head">
-              <strong>{item.name}</strong>
-              <code>{item.preset}</code>
+
+      {gatekeeper && (
+        <div className="gatekeeper-banner">
+          <ShieldAlert size={20} style={{ flexShrink: 0 }} />
+          <div><strong>{gatekeeper.text}</strong></div>
+        </div>
+      )}
+
+      {/* Preset Cards */}
+      <section>
+        <div style={{ marginBottom: 12 }}>
+          <h2 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 600 }}>审查场景预设 (Presets)</h2>
+          <p style={{ margin: 0, color: "#59636e", fontSize: 13 }}>选择预设可快速载入 29 条规则的推荐权重与阈值组合，选定后可随时在下方微调。</p>
+        </div>
+        <div className="preset-grid">
+          {presets.map((item) => (
+            <button
+              type="button"
+              key={item.preset}
+              className={`preset-card ${config.preset === item.preset ? "active" : ""}`}
+              onClick={() => onSelectPreset(item)}
+            >
+              <div>
+                <strong>{item.name}</strong>
+                <code style={{ display: "block", marginTop: 2 }}>{item.preset}</code>
+              </div>
+              <p>{item.description}</p>
+              <small>阈值 {item.thresholds.medium}/{item.thresholds.high} · 深度&gt;{item.rule_thresholds?.["code.deep_control_flow"]?.max_depth ?? 4} · 密钥≥{item.rule_thresholds?.["code.hardcoded_secret"]?.min_length ?? 8}</small>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Weights and Thresholds Layout */}
+      <div className="scoring-layout">
+        <section className="scoring-weights-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>规则启用开关与启发式权重</h2>
+              <p style={{ margin: "3px 0 0", color: "#59636e", fontSize: 13 }}>已启用 {config.enabled_rules.length} / {allRules.length} 条规则</p>
             </div>
-            <p>{item.description}</p>
-            <small>阈值 {item.thresholds.medium}/{item.thresholds.high} · 深度&gt;{item.rule_thresholds?.["code.deep_control_flow"]?.max_depth ?? 4} · 密钥≥{item.rule_thresholds?.["code.hardcoded_secret"]?.min_length ?? 8}</small>
+            <button className="secondary-button" onClick={onReset} title="恢复基线">
+              <RotateCcw size={14} /> 恢复默认
+            </button>
+          </div>
+
+          <div className="weight-rule-list">
+            {allRules.map((rule) => (
+              <div className="weight-rule" key={rule.rule_id}>
+                <label className="weight-rule-toggle">
+                  <input
+                    type="checkbox"
+                    checked={config.enabled_rules.includes(rule.rule_id)}
+                    onChange={() => onToggle(rule.rule_id)}
+                  />
+                  <div>
+                    <strong>{ruleLabels[rule.rule_id] ?? rule.rule_id}</strong>
+                    <small>{rule.rule_id}</small>
+                  </div>
+                </label>
+                <div className="weight-slider">
+                  <input
+                    type="range"
+                    min={0}
+                    max={5}
+                    step={1}
+                    value={config.rule_weights[rule.rule_id] ?? rule.default_weight}
+                    disabled={!config.enabled_rules.includes(rule.rule_id)}
+                    onChange={(e) => onWeight(rule.rule_id, Number(e.target.value))}
+                  />
+                  <output>{config.rule_weights[rule.rule_id] ?? rule.default_weight}</output>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <aside className="threshold-panel">
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>复核等级阈值</h2>
+          <p style={{ margin: "4px 0 12px", color: "#59636e", fontSize: 12 }}>调整人工复核优先级划分分段</p>
+
+          <label>
+            建议复核 (medium)
+            <input
+              type="number"
+              min={0}
+              max={99}
+              value={config.thresholds.medium}
+              onChange={(e) => setConfig((c) => ({ ...c, thresholds: { ...c.thresholds, medium: Number(e.target.value) } }))}
+            />
+          </label>
+          <label>
+            优先复核 (high)
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={config.thresholds.high}
+              onChange={(e) => setConfig((c) => ({ ...c, thresholds: { ...c.thresholds, high: Number(e.target.value) } }))}
+            />
+          </label>
+
+          <div style={{ height: 1, background: "#d0d7de", margin: "18px 0 14px" }} />
+
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>规则内部判定阈值</h2>
+          <p style={{ margin: "4px 0 12px", color: "#59636e", fontSize: 12 }}>修改将触发 Tier 1 局部重跑（复用 AST，重算规则）</p>
+
+          <label>
+            深层控制流深度 (2~10)
+            <input
+              type="number"
+              min={2}
+              max={10}
+              value={deepDepth}
+              onChange={(e) => {
+                const val = Math.max(2, Math.min(10, Number(e.target.value) || 4));
+                setConfig((c) => ({ ...c, rule_thresholds: { ...c.rule_thresholds, "code.deep_control_flow": { max_depth: val } } }));
+              }}
+            />
+          </label>
+
+          <label>
+            敏感字面量长度 (4~32)
+            <input
+              type="number"
+              min={4}
+              max={32}
+              value={secretLen}
+              onChange={(e) => {
+                const val = Math.max(4, Math.min(32, Number(e.target.value) || 8));
+                setConfig((c) => ({ ...c, rule_thresholds: { ...c.rule_thresholds, "code.hardcoded_secret": { min_length: val } } }));
+              }}
+            />
+          </label>
+
+          <button
+            className="primary-button"
+            onClick={onApply}
+            disabled={busy}
+            style={{ width: "100%", marginTop: 18 }}
+          >
+            {busy ? <LoaderCircle size={15} className="spin" /> : <Settings2 size={15} />}
+            应用并重算当前分析
           </button>
-        ))}
+        </aside>
       </div>
-    </section>
-    <div className="scoring-layout"><section className="scoring-controls"><div className="section-heading"><div><h2>规则权重与启用开关（{config.enabled_rules.length} / {catalog.length} 已启用）</h2><p>开关和权重将封存至本次分析报告快照，确保结论可复现</p></div><button className="icon-button" title="恢复默认基线" onClick={onReset}><RotateCcw size={16} /></button></div>
-      <div className="weight-rule-list">{catalog.map((rule) => <div className="weight-rule" key={rule.rule_id}>
-        <label className="rule-toggle"><input type="checkbox" checked={config.enabled_rules.includes(rule.rule_id)} onChange={() => onToggle(rule.rule_id)} /><span className="checkmark"><Check size={12} /></span><span className={`finding-symbol domain-${ruleDomain(rule.rule_id)}`}>{domainIcon(ruleDomain(rule.rule_id))}</span><span><strong>{ruleLabels[rule.rule_id] ?? rule.rule_id}</strong><small>{rule.rule_id}</small></span></label>
-        <div className="weight-slider"><input type="range" min={0} max={5} step={1} value={config.rule_weights[rule.rule_id] ?? rule.default_weight} disabled={!config.enabled_rules.includes(rule.rule_id)} onChange={(event) => onWeight(rule.rule_id, Number(event.target.value))} aria-label={`${rule.rule_id} 权重`} /><output>{config.rule_weights[rule.rule_id] ?? rule.default_weight}</output></div>
-      </div>)}</div>
-      <div className="auxiliary-weight"><label><span><strong>生产代码变更未见测试路径变更</strong><small>与规则行使用同一个权重，不另外重复加分</small></span><input type="checkbox" checked={config.test_collaboration_enabled} onChange={(event) => setConfig((current) => {
-        const enabled = event.target.checked;
-        const hasRule = current.enabled_rules.includes("workflow.test_collaboration_gap");
-        const enabledRules = enabled
-          ? (hasRule ? current.enabled_rules : [...current.enabled_rules, "workflow.test_collaboration_gap"])
-          : current.enabled_rules.filter((item) => item !== "workflow.test_collaboration_gap");
-        return { ...current, test_collaboration_enabled: enabled, enabled_rules: enabledRules };
-      })} /></label><div className="weight-slider"><input type="range" min={0} max={5} step={1} value={config.test_collaboration_weight} disabled={!config.test_collaboration_enabled} onChange={(event) => {
-        const value = Number(event.target.value);
-        setConfig((current) => ({
-          ...current,
-          test_collaboration_weight: value,
-          rule_weights: { ...current.rule_weights, "workflow.test_collaboration_gap": value },
-        }));
-      }} aria-label="测试协同缺失权重" /><output>{config.test_collaboration_weight}</output></div></div>
-    </section>
-    <aside className="threshold-panel">
-      <h2>等级分段阈值</h2>
-      <p>调整复核优先级分段（0 ≤ 建议复核 &lt; 优先复核 ≤ 100）。</p>
-      <label>建议复核 (medium)<input type="number" min={0} max={99} value={config.thresholds.medium} onChange={(event) => setConfig((current) => ({ ...current, thresholds: { ...current.thresholds, medium: Number(event.target.value) } }))} /></label>
-      <label>优先复核 (high)<input type="number" min={1} max={100} value={config.thresholds.high} onChange={(event) => setConfig((current) => ({ ...current, thresholds: { ...current.thresholds, high: Number(event.target.value) } }))} /></label>
-      <div className="rule-threshold-divider" />
-      <h2>规则内部判定阈值</h2>
-      <p>修改内部参数将触发 Tier 1 局部重跑（直接复用 AST，重算 Stage05 规则）。</p>
-      <label>深层控制流最大深度 (2~10)<input type="number" min={2} max={10} value={deepDepth} onChange={(event) => {
-        const val = Math.max(2, Math.min(10, Number(event.target.value) || 4));
-        setConfig((current) => ({
-          ...current,
-          rule_thresholds: {
-            ...current.rule_thresholds,
-            "code.deep_control_flow": { max_depth: val },
-          },
-        }));
-      }} /></label>
-      <label>敏感字面量最小长度 (4~32)<input type="number" min={4} max={32} value={secretLen} onChange={(event) => {
-        const val = Math.max(4, Math.min(32, Number(event.target.value) || 8));
-        setConfig((current) => ({
-          ...current,
-          rule_thresholds: {
-            ...current.rule_thresholds,
-            "code.hardcoded_secret": { min_length: val },
-          },
-        }));
-      }} /></label>
-      <button className="primary-button apply-score" onClick={onApply} disabled={busy}>{busy ? <LoaderCircle size={15} className="spin" /> : <Settings2 size={15} />}应用并重算当前分析</button>
-    </aside></div>
-    <div className="score-boundary"><CircleHelp size={17} /><div><strong>评分是人工复核优先级，不是缺陷概率。</strong><p>规则按命中与配置权重计分，不按 evidence 条数重复累加。导出的 Markdown / JSON 报告将强制封存当前运行配置快照，确保审查结论可追溯、可复现。</p></div></div>
-  </div>;
+    </div>
+  );
 }
 
 function fileStatusLabel(status: string) {
@@ -1032,7 +2146,8 @@ function fileStatusLabel(status: string) {
   if (status === "renamed") return "重命名";
   return "修改";
 }
-function severityLabel(value: string) { return value === "high" ? "高" : value === "medium" ? "中" : "低"; }
+function severityLabel(value: string) { return value === "high" || value === "Critical" ? "高" : value === "medium" || value === "Medium" ? "中" : "低"; }
+
 function renderMarkdown(report: Report) {
   const snap = report.config_snapshot;
   const cfg = configFromReport(report);
