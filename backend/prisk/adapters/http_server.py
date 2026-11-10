@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from ..domain.config import list_presets
+from ..services.analysis_cache import get_analysis_cache
 from ..services.branch_analysis import analyze_branches
 from ..services.demo_service import DemoData
 from ..services.project_service import ProjectError, ProjectRegistry
@@ -51,6 +52,8 @@ def create_handler(data: DemoData, projects: ProjectRegistry | None = None) -> t
                 self._send(200, {"status": "ok"})
             elif parsed.path == "/api/config/presets":
                 self._send(200, {"status": "ok", "presets": list_presets()})
+            elif parsed.path == "/api/cache/stats":
+                self._send(200, {"status": "ok", "cache": get_analysis_cache().stats()})
             elif parsed.path == "/api/dataset":
                 self._send(200, data.dataset())
             elif parsed.path.startswith("/api/pr/"):
@@ -84,6 +87,7 @@ def create_handler(data: DemoData, projects: ProjectRegistry | None = None) -> t
                     report = analyze_branches(
                         Path(project["path"]), str(body["base_ref"]), str(body["head_ref"]),
                         project=project, config=body.get("config"),
+                        refresh=bool(body.get("refresh", False)),
                     )
                     self._send(200, report)
                     return

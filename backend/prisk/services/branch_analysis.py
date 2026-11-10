@@ -10,6 +10,7 @@ from .project_service import ProjectError
 from ..domain.rules import evaluate_rules, rule_domain
 from ..domain.structure import extract_changed_structures
 from .demo_service import collaboration_points, normalize_config, summed_rule_points
+from .analysis_cache import get_analysis_cache
 from ..domain.gatekeeper import apply_gatekeeper_lift
 
 
@@ -66,38 +67,72 @@ def analyze_branches(
     *,
     project: dict[str, Any] | None = None,
     config: dict[str, Any] | None = None,
+    refresh: bool = False,
 ) -> dict[str, Any]:
     repo = repo_path.expanduser().resolve()
     base_sha = _resolve_ref(repo, base_ref)
     head_sha = _resolve_ref(repo, head_ref)
     if base_sha == head_sha:
         raise ProjectError("same_ref", "base 和 head 指向同一个提交")
-    record = {
-        "repo": project.get("name", repo.name) if project else repo.name,
-        "pr_number": 0,
-        "base_sha": base_sha,
-        "head_sha": head_sha,
-        "source": {"base_ref": base_ref, "head_ref": head_ref},
-    }
-    change = build_change_object(record, repo)
-    if change.get("status") != "ok":
-        errors = change.get("errors", [])
-        message = errors[0].get("message", "无法读取分支差异") if errors else "无法读取分支差异"
-        raise ProjectError("diff_error", message)
-    for file_item in change.get("files", []):
-        path = str(file_item.get("new_path") or file_item.get("old_path") or "")
-        role = classify_path(path)
-        if role == "other" and file_item.get("is_python"):
-            file_item["role"] = "business"
-    counts = {role: sum(item.get("role") == role for item in change["files"]) for role in ("business", "test", "other")}
-    change["summary"].update({
-        "business_files": counts["business"], "test_files": counts["test"], "other_files": counts["other"],
-        "business_changed": counts["business"] > 0, "test_changed": counts["test"] > 0,
-        "test_cochanged": counts["business"] > 0 and counts["test"] > 0,
-    })
-    structure = extract_changed_structures(change, repo)
+
+    cache = get_analysis_cache()
+    cache_key = f"{repo}:{base_sha}..{head_sha}"
     config_value = normalize_config(config)
-    rules = evaluate_rules(structure, config_value)
+
+    cached = None if refresh else cache.get(cache_key)
+    diff_reused = False
+    ast_reused = False
+    rules_reused = False
+
+    if cached is None:
+        rerun_tier = "full_run"
+        record = {
+            "repo": project.get("name", repo.name) if project else repo.name,
+            "pr_number": 0,
+            "base_sha": base_sha,
+            "head_sha": head_sha,
+            "source": {"base_ref": base_ref, "head_ref": head_ref},
+        }
+        change = build_change_object(record, repo)
+        if change.get("status") != "ok":
+            errors = change.get("errors", [])
+            message = errors[0].get("message", "无法读取分支差异") if errors else "无法读取分支差异"
+            raise ProjectError("diff_error", message)
+        for file_item in change.get("files", []):
+            path = str(file_item.get("new_path") or file_item.get("old_path") or "")
+            role = classify_path(path)
+            if role == "other" and file_item.get("is_python"):
+                file_item["role"] = "business"
+        counts = {role: sum(item.get("role") == role for item in change["files"]) for role in ("business", "test", "other")}
+        change["summary"].update({
+            "business_files": counts["business"], "test_files": counts["test"], "other_files": counts["other"],
+            "business_changed": counts["business"] > 0, "test_changed": counts["test"] > 0,
+            "test_cochanged": counts["business"] > 0 and counts["test"] > 0,
+        })
+        structure = extract_changed_structures(change, repo)
+        rules = evaluate_rules(structure, config_value)
+        cache.put(cache_key, change, structure, rules, config_value)
+    else:
+        diff_reused = True
+        ast_reused = True
+        change = cached.change
+        structure = cached.structure
+
+        rules_config_changed = (
+            set(config_value.get("enabled_rules", [])) != set(cached.config.get("enabled_rules", []))
+            or config_value.get("rule_thresholds") != cached.config.get("rule_thresholds")
+        )
+
+        if rules_config_changed:
+            rerun_tier = "stage05_rules_rerun"
+            cache.record_tier1()
+            rules = evaluate_rules(structure, config_value)
+            cache.update_rules(cache_key, rules, config_value)
+        else:
+            rerun_tier = "stage07_rescore_only"
+            cache.record_tier2()
+            rules_reused = True
+            rules = cached.rule_record
     score, level, score_basis = _score(rules, config_value, stage_record=structure)
     nodes = {node.get("node_id"): node for item in structure.get("files", []) for node in item.get("nodes", []) if node.get("node_id")}
     findings = []
@@ -115,9 +150,18 @@ def analyze_branches(
                 "node_end_line": node.get("end_line", item.get("end_line")),
             })
         findings.append({**finding, "evidence": evidence})
+    snapshot_meta = {
+        "cache_hit": cached is not None,
+        "rerun_tier": rerun_tier,
+        "diff_reused": diff_reused,
+        "ast_reused": ast_reused,
+        "rules_reused": rules_reused,
+        "cache_key": cache_key,
+    }
     return {
         "schema_version": "stage08.branch-report.v1",
         "status": "ok",
+        "snapshot_meta": snapshot_meta,
         "project": project or {"name": repo.name, "path": str(repo)},
         "base_ref": base_ref,
         "head_ref": head_ref,

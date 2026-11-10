@@ -75,11 +75,23 @@ class DemoData:
         stage04 = self.stage04.get(pr_number, {})
         config_value = normalize_config(config)
         if config and ("rule_thresholds" in config) and stage04:
+            rerun_tier = "stage05_rules_rerun"
+            rules_reused = False
             rule_record = evaluate_rules(stage04, config_value)
         else:
+            rerun_tier = "stage07_rescore_only"
+            rules_reused = True
             rule_record = self.stage05.get(pr_number)
             if rule_record is None:
                 raise KeyError(f"PR #{pr_number} 不存在")
+        snapshot_meta = {
+            "cache_hit": True,
+            "rerun_tier": rerun_tier,
+            "diff_reused": True,
+            "ast_reused": True,
+            "rules_reused": rules_reused,
+            "cache_key": f"demo:pr_{pr_number}",
+        }
         findings = rule_record.get("findings", [])
         enabled = set(config_value["enabled_rules"])
         selected = [finding for finding in findings if finding.get("rule_id") in enabled]
@@ -138,6 +150,7 @@ class DemoData:
             outcome_availability = "unavailable"
         return {
             "schema_version": "stage07.report.v2",
+            "snapshot_meta": snapshot_meta,
             "status": rule_record.get("status", "error"),
             "repo": stage03.get("repo", rule_record.get("repo")),
             "pr_number": pr_number,
