@@ -68,4 +68,32 @@ class BranchApiTests(unittest.TestCase):
         presets = {item["preset"]: item for item in payload["presets"]}
         self.assertIn("security_focus", presets)
         self.assertIn("balanced", presets)
+    def test_cache_stats_and_refresh_flag(self):
+        status, payload = self.request("GET", "/api/cache/stats")
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "ok")
+        self.assertIn("capacity", payload["cache"])
+        self.assertIn("hits", payload["cache"])
 
+        status, loaded = self.request("POST", "/api/projects/load", {"path": str(self.repo)})
+        key = loaded["project"]["project_id"]
+
+        status, report1 = self.request("POST", "/api/branch-analysis", {
+            "project_id": key, "base_ref": "main", "head_ref": "feature/api"
+        })
+        self.assertEqual(status, 200)
+        self.assertFalse(report1["snapshot_meta"]["cache_hit"])
+
+        # Second request hits cache
+        status, report2 = self.request("POST", "/api/branch-analysis", {
+            "project_id": key, "base_ref": "main", "head_ref": "feature/api"
+        })
+        self.assertEqual(status, 200)
+        self.assertTrue(report2["snapshot_meta"]["cache_hit"])
+
+        # Request with refresh=True bypasses cache
+        status, report3 = self.request("POST", "/api/branch-analysis", {
+            "project_id": key, "base_ref": "main", "head_ref": "feature/api", "refresh": True
+        })
+        self.assertEqual(status, 200)
+        self.assertFalse(report3["snapshot_meta"]["cache_hit"])
