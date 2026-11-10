@@ -50,8 +50,8 @@ date: "2026-11-10"
 ### 不做事项（技术边界）
 
 - 本任务不实现快照三点 Diff 与 AST 语法树的会话级重跑缓存（属于后续 Task 027 范围）。
-- 本任务不实现 `workflow.large_change_scope` 的三态检测器逻辑（留待 Task 028 在本任务动态参数地基上落地）。
-- 本任务不修改前端 Dashboard 的 UI 交互控件（属于 Task 029 范围）。
+- 本任务保持 `workflow.large_change_scope` 与 `data.django_transaction_boundary_changed` 的延后 `draft` 状态不变（遵循 `structural-feasibility.md` 边界）。
+- 本任务不修改前端 Dashboard 的 UI 交互控件与报告导出（属于 Task 028 范围）。
 
 ## 3. 技术方案与契约设计
 
@@ -93,7 +93,7 @@ date: "2026-11-10"
 | `workflow.test_collaboration_gap` | 1 | 1 | 1 | 5 | 1 |
 
 #### 2. 参数动态下发链路
-```
+```text
 normalize_audit_config(supplied)
     ├── 解析 preset，加载预设基准 weights 与 rule_thresholds
     ├── 合并用户的显式 override
@@ -156,5 +156,5 @@ normalize_audit_config(supplied)
 ## 6. 已知限制与残余风险
 
 - **静态分析边界**：规则阈值解耦仅针对支持纯局部判定或参数化的检测器，不扩展为跨文件过程内/过程间流分析；
-- **前端集成时延**：本任务仅提供后端 API，前端看板界面中预设选择器与阈值滑块的视觉呈现留待 Task 029；
-- **候补规则落地**：`workflow.large_change_scope` 的实际三态检测器将在 Task 028 中利用本任务建立的动态阈值机制正式接入。
+- **前端集成与报告固化**：本任务提供后端配置领域模型与 API，前端看板界面中预设选择器、阈值控件与报告配置快照固化由 Task 028 承接完成；
+- **延后草稿边界**：`workflow.large_change_scope` 与 `data.django_transaction_boundary_changed` 仍按 `structural-feasibility.md` 保持 `draft` 延后状态。

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from ..domain.changes import build_change_object, classify_path
+from ..domain.config import build_config_snapshot
 from .project_service import ProjectError
 from ..domain.rules import evaluate_rules, rule_domain
 from ..domain.structure import extract_changed_structures
@@ -78,6 +79,7 @@ def analyze_branches(
     cache = get_analysis_cache()
     cache_key = f"{repo}:{base_sha}..{head_sha}"
     config_value = normalize_config(config)
+    config_snapshot = build_config_snapshot(config or config_value)
 
     cached = None if refresh else cache.get(cache_key)
     diff_reused = False
@@ -162,6 +164,7 @@ def analyze_branches(
         "schema_version": "stage08.branch-report.v1",
         "status": "ok",
         "snapshot_meta": snapshot_meta,
+        "config_snapshot": config_snapshot,
         "project": project or {"name": repo.name, "path": str(repo)},
         "base_ref": base_ref,
         "head_ref": head_ref,
