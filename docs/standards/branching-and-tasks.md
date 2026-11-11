@@ -3,8 +3,8 @@
 | 适用版本 | v1.x |
 | --- | --- |
 | 状态 | Active |
-| 任务 | [025](../tasks/025-v12-milestone-closure.md) |
-| 分支 | `docs/025-v12-milestone-closure` |
+| 任务 | [030](../tasks/030-v13-milestone-closure.md) |
+| 分支 | `docs/030-v13-milestone-closure` |
 
 ## 每个变更都有任务
 
@@ -16,7 +16,8 @@
 
 - **001–018**：已全部评定为 Accepted，并已随 v1.1.0 里程碑归档移入 [docs/versions/v1.1.0/tasks/](../versions/v1.1.0/tasks/)。
 - **019–024**：已全部评定为 Accepted，并已随 v1.2.0 里程碑归档移入 [docs/versions/v1.2.0/tasks/](../versions/v1.2.0/tasks/)。
-- **025 及后续活动任务**：实时状态与**下一个未使用的任务编号**统一以 [活动任务工作区](../tasks/README.md) 及当前阶段入口（[v1.3 入口](../tasks/v1.3-entry.md)）为准（Task 025 占用后，下一个未使用编号为 **026**）。
+- **025–029**：已全部评定为 Accepted，并已随 v1.3.0 里程碑归档移入 [docs/versions/v1.3.0/tasks/](../versions/v1.3.0/tasks/)。
+- **030 及后续活动任务**：实时状态与**下一个未使用的任务编号**统一以 [活动任务工作区](../tasks/README.md) 及当前阶段入口（[v1.4 入口](../tasks/v1.4-entry.md)）为准（Task 030 占用后，下一个未使用编号为 **031**）。
 
 任务状态只使用 `Proposed`、`In Progress`、`Accepted`。任务不使用 `Archived` 作为其内部状态值。没有明确验收时保持 `In Progress` 或 `Proposed`。
 
@@ -26,8 +27,8 @@
 
 YAML 元数据写在文件开头的前言里：
 
-- `task_id`：三位数字字符串（如 `"025"`）
-- `target_version`：目标版本（如 `"v1.2.0"`）
+- `task_id`：三位数字字符串（如 `"030"`）
+- `target_version`：目标版本（如 `"v1.3.0"`）
 - `title`：任务标题
 - `status`：`Proposed` / `In Progress` / `Accepted`
 - `branch`：承载该工作的 Git 分支名
@@ -54,4 +55,4 @@ YAML 元数据写在文件开头的前言里：
 
 - 未完成或活动中的任务存放在 `docs/tasks/`。
 - 阶段里程碑或版本收工归档时，将对应的任务文件迁入 `docs/versions/<version>/tasks/`，并在版本目录主 README 中提供完整任务索引表。
-- 仓库当前已建立的归档目录包含 `docs/versions/v1.0.0/`、`docs/versions/v1.1.0/` 与 `docs/versions/v1.2.0/`。
+- 仓库当前已建立的归档目录包含 `docs/versions/v1.0.0/`、`docs/versions/v1.1.0/`、`docs/versions/v1.2.0/` 与 `docs/versions/v1.3.0/`。
