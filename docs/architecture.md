@@ -74,4 +74,14 @@ backend/prisk/cli/       正式命令实现
 
 ## 前端
 
-`frontend/` 使用 Next.js、React、TypeScript 和 Tailwind CSS。前端通过 rewrite 访问本地 API，不自行读取 Git 或阶段 JSONL。页面的分析单位是一次冻结 PR 或一次本地项目 base/head 分支审查，支持 29 条规则三态检视、5 套场景预设切换、规则内部阈值调节、局部重跑层级展示与固化配置快照的 Markdown/JSON 报告导出。
+`frontend/` 使用 Next.js、React、TypeScript 和 Tailwind CSS。前端通过 rewrite 访问本地 API，不自行读取 Git 或阶段 JSONL。页面的分析单位是一次冻结 PR 或一次本地项目 base/head 分支审查。
+
+工作台遵循 GitHub Primer Design System 交互与视觉规范：
+- **色彩与排版体系**：采用高对比度深炭黑文字（`#1f2328`）与清晰边框（`#d0d7de`），正文字号保持在 13px~14px，杜绝超小字号与低对比度显示；
+- **左侧边栏与规则导航**：宽度锁定为 280px 并施加省略约束，解决长路径/分支名溢出穿透；常驻 29 条规则目录导航树，按 6 大关注域分组折叠展示，实时标注 `Hit / NotFound / Unanalyzed` 状态徽标，支持关键词过滤与规则定义侧边抽屉面板；
+- **紧凑 GitHub PR 头部**：合并顶栏与 Heading 为双层结构，集中呈现审查标题、复核等级胶囊、Gatekeeper 一票抬升徽标、配置预设、SHA-256 指纹、局部重跑层级徽标与 UnderlineNav 标签栏；
+- **Files Changed 审查视图**：
+  - 左侧：Sticky 固定高度层级目录树（`position: sticky; top: 16px`），算法自动合并紧凑单子目录，支持文件夹独立折叠与过滤；
+  - 右侧：多文件连续 Diff 卡片流，每个卡片配备粘性表头、折叠开关、业务/测试属性标签、AST 状态、增删比例条与 GitHub 同款 `Viewed`（已审阅）复选框；
+  - 联动跳转：在风险规则列表中点击「定位到代码」，左侧目录树自动高亮该文件，右侧 Diff 流平滑滚动并将命中证据所在行施加金色高亮框聚焦。
+- **配置与报告闭环**：支持 5 套场景预设切换、规则内部阈值微调、局部重跑层级展示与强制刷新；导出的 Markdown 与 JSON 报告强制封存完整配置快照及可反序列化复现载荷。

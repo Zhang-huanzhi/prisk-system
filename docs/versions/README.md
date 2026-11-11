@@ -50,3 +50,19 @@
 - [基线摘要](v1.2.0/00-baseline-summary.md)
 - [v1.2 迭代入口总结](v1.2.0/v1.2-entry.md)
 - [已归档任务 019–024](v1.2.0/tasks/)
+
+## v1.3.0
+
+| 项目 | 内容 |
+| --- | --- |
+| 路径 | [docs/versions/v1.3.0/](v1.3.0/README.md) |
+| 范围 | 动态交互工作台、快照局部重跑与可复现审查报告（运行时配置解耦、5 套场景预设体系、规则内部参数动态注入、三级快照局部重跑缓存、可复现配置快照 `config.snapshot.v1` 固化与报告导出、GitHub Primer 审查工作台深度重构） |
+| 冻结 | Frozen / Milestone Archive |
+| 任务索引 | 包含 Task 025 至 029 任务记录，归档于 [tasks/](v1.3.0/tasks/) |
+
+### 档案文件
+
+- [README](v1.3.0/README.md)
+- [基线摘要](v1.3.0/00-baseline-summary.md)
+- [v1.3 迭代入口总结](v1.3.0/v1.3-entry.md)
+- [已归档任务 025–029](v1.3.0/tasks/)
