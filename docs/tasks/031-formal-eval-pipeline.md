@@ -2,7 +2,7 @@
 task_id: "031"
 target_version: "v1.4.0"
 title: "v1.4.0 正式实证评估协议、物理隔离校验与批量评估基础设施"
-status: "In Progress"
+status: "Accepted"
 branch: "feat/031-formal-eval-pipeline"
 date: "2026-11-13"
 ---
