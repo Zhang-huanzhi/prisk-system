@@ -178,9 +178,14 @@ def _hunk_counts(match: re.Match[str]) -> tuple[int, int, int, int]:
     return old_start, old_count, new_start, new_count
 
 
-def classify_path(path: str | None) -> str:
-    """按 02 阶段的 NetBox 规则将路径分类为 test/business/other。"""
+VALID_PATH_MODES = frozenset({"netbox", "generic"})
 
+
+def classify_path(path: str | None, *, path_mode: str = "netbox") -> str:
+    """按路径策略将路径分类为 test/business/other。"""
+
+    if path_mode not in VALID_PATH_MODES:
+        raise ValueError(f"不支持的路径分类模式: {path_mode}")
     normalized = (path or "").replace("\\", "/").lower()
     base = normalized.rsplit("/", 1)[-1]
     padded = f"/{normalized}"
@@ -191,6 +196,10 @@ def classify_path(path: str | None) -> str:
         or base.endswith("_test.py")
     ):
         return "test"
+    if path_mode == "generic":
+        if normalized.endswith(".py") and "/static/" not in padded:
+            return "business"
+        return "other"
     if normalized.startswith("netbox/") and normalized.endswith(".py") and "/static/" not in padded:
         return "business"
     return "other"
@@ -210,9 +219,13 @@ def _status_for_paths(
 def parse_unified_diff(
     diff_text: str,
     status_items: Iterable[dict[str, str | None]] = (),
+    *,
+    path_mode: str = "netbox",
 ) -> list[dict[str, Any]]:
     """解析 Git unified diff，保留文件、Hunk 和行级变更。"""
 
+    if path_mode not in VALID_PATH_MODES:
+        raise ValueError(f"不支持的路径分类模式: {path_mode}")
     statuses = list(status_items)
     files: list[dict[str, Any]] = []
     current: dict[str, Any] | None = None
@@ -245,7 +258,7 @@ def parse_unified_diff(
             status_item = _status_for_paths(statuses, header_old, header_new) or {}
             old_path = status_item.get("old_path") or header_old
             new_path = status_item.get("new_path") or header_new
-            role = classify_path(str(new_path or old_path or ""))
+            role = classify_path(str(new_path or old_path or ""), path_mode=path_mode)
             current = {
                 "old_path": old_path,
                 "new_path": new_path,
@@ -267,7 +280,7 @@ def parse_unified_diff(
             continue
         if raw_line.startswith("rename to "):
             current["new_path"] = raw_line[len("rename to ") :].replace("\\", "/")
-            current["role"] = classify_path(current["new_path"] or current["old_path"])
+            current["role"] = classify_path(current["new_path"] or current["old_path"], path_mode=path_mode)
             current["is_python"] = str(current["new_path"] or current["old_path"] or "").lower().endswith(".py")
             continue
         if raw_line.startswith("Binary files ") or raw_line.startswith("GIT binary patch"):
@@ -281,7 +294,7 @@ def parse_unified_diff(
             path = _strip_diff_path(raw_line[4:], "b/")
             current["new_path"] = path
             if path is not None:
-                current["role"] = classify_path(path)
+                current["role"] = classify_path(path, path_mode=path_mode)
                 current["is_python"] = path.lower().endswith(".py")
             continue
 
@@ -327,7 +340,7 @@ def parse_unified_diff(
         if key in known:
             continue
         path = status_item.get("new_path") or status_item.get("old_path")
-        role = classify_path(path)
+        role = classify_path(path, path_mode=path_mode)
         files.append(
             {
                 "old_path": status_item.get("old_path"),
@@ -351,7 +364,7 @@ def parse_unified_diff(
             item["old_path"] = None
         elif status == "deleted":
             item["new_path"] = None
-        item["role"] = classify_path(item.get("new_path") or item.get("old_path"))
+        item["role"] = classify_path(item.get("new_path") or item.get("old_path"), path_mode=path_mode)
         item["is_python"] = str(item.get("new_path") or item.get("old_path") or "").lower().endswith(".py")
         key = (status, item.get("old_path"), item.get("new_path"))
         previous = canonical.get(key)
@@ -433,7 +446,14 @@ def _validation(record: dict[str, Any], summary: dict[str, Any]) -> dict[str, An
     }
 
 
-def build_change_object(record: dict[str, Any], repo_path: Path) -> dict[str, Any]:
+def build_change_object(
+    record: dict[str, Any],
+    repo_path: Path,
+    *,
+    path_mode: str = "netbox",
+) -> dict[str, Any]:
+    if path_mode not in VALID_PATH_MODES:
+        raise ValueError(f"不支持的路径分类模式: {path_mode}")
     if "_input_error" in record:
         return _error_object(record, [record["_input_error"]])
 
@@ -469,7 +489,7 @@ def build_change_object(record: dict[str, Any], repo_path: Path) -> dict[str, An
         merge_base = resolve_merge_base(repo_path, base_sha, head_sha)
         status_items = read_name_status(repo_path, base_sha, head_sha)
         diff_text = read_diff_text(repo_path, base_sha, head_sha)
-        files = parse_unified_diff(diff_text, status_items)
+        files = parse_unified_diff(diff_text, status_items, path_mode=path_mode)
     except DatasetError as exc:
         return _error_object(
             record,
@@ -556,10 +576,15 @@ def build_from_jsonl(
     output_path: Path,
     manifest_path: Path | None = None,
     limit: int | None = None,
+    *,
+    path_mode: str = "netbox",
+    repo_name: str | None = None,
 ) -> dict[str, Any]:
+    if path_mode not in VALID_PATH_MODES:
+        raise ValueError(f"不支持的路径分类模式: {path_mode}")
     records = load_records(input_path)
     selected = select_records(records, limit)
-    objects = [build_change_object(record, repo_path) for record in selected]
+    objects = [build_change_object(record, repo_path, path_mode=path_mode) for record in selected]
     write_jsonl(objects, output_path)
 
     counts = Counter(item["status"] for item in objects)
@@ -569,11 +594,14 @@ def build_from_jsonl(
         if item.get("status") == "ok"
         and item.get("validation", {}).get("matches_source_change_facts") is False
     ]
+    inferred_repos = {str(item.get("repo")) for item in selected if item.get("repo")}
+    resolved_repo = repo_name or (next(iter(inferred_repos)) if len(inferred_repos) == 1 else "netbox-community/netbox")
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "input_path": str(input_path),
         "input_sha256": hashlib.sha256(input_path.read_bytes()).hexdigest(),
-        "repo": "netbox-community/netbox",
+        "repo": resolved_repo,
+        "path_mode": path_mode,
         "selection_limit": limit,
         "input_records": len(records),
         "selected_records": len(selected),

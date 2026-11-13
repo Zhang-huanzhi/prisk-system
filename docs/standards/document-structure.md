@@ -17,6 +17,7 @@
 | `docs/standards/` | 文档、任务、分支、开发流程及推进大纲 |
 | `docs/tasks/` | 活动中的任务与下一阶段入口 |
 | `docs/evaluation/pilot-v1.1/` | 真实 PR 先导试点协议与 16 条样本摸底（永久排除出 v1.4 正式集） |
+| `docs/evaluation/formal-v1.4/` | `v1.4.0` 正式实证评估协议、人工标注指南与 136 条永久排除清单 |
 | `docs/versions/` | 已冻结归档的阶段版本（`v1.0.0/`, `v1.1.0/`, `v1.2.0/`, `v1.3.0/`） |
 | `docs/rules/` | 研究规则卡片、规则索引与责任矩阵 |
 | `docs/schemas/` | 研究元数据 JSON Schema |

@@ -23,7 +23,7 @@
 
 ## 2. 新建与维护流程
 
-1. **确认编号**：在下方「当前活动任务表」及阶段入口文档中确认下一个未使用的三位任务编号（当前为 **031**）。任务编号跨版本全局唯一，不重编、不复用。
+1. **确认编号**：在下方「当前活动任务表」及阶段入口文档中确认下一个未使用的三位任务编号（当前为 **032**）。任务编号跨版本全局唯一，不重编、不复用。
 2. **复制模板**：复制 [`_task-template.md`](_task-template.md) 为 `docs/tasks/NNN-short-name.md`，并按 [`branching-and-tasks.md`](../standards/branching-and-tasks.md) 创建同名一对一分支 `<type>/NNN-short-name`（`<type>` 限 `feat`、`fix`、`docs`、`refactor`、`exp`、`chore`）。
 3. **填写前言与正文**：
    - YAML 前言必填 `task_id`、`target_version`、`title`、`status`（`Proposed` / `In Progress` / `Accepted`）、`branch`、`date`。
@@ -55,5 +55,6 @@
 | 任务 | 目标版本 | 状态 | 分支 (`branch`) | 任务记录 |
 | :---: | :---: | :---: | :--- | :--- |
 | 030 | v1.3.0 | Accepted | `docs/030-v13-milestone-closure` | [v1.3 阶段里程碑收工归档与文档对齐](030-v13-milestone-closure.md) |
+| 031 | v1.4.0 | In Progress | `feat/031-formal-eval-pipeline` | [v1.4.0 正式实证评估协议、物理隔离校验与批量评估基础设施](031-formal-eval-pipeline.md) |
 
-> 下一个未使用的任务编号为 **031**。任何新变更均须基于 [`_task-template.md`](_task-template.md) 创建新编号任务并建立一对一分支。
+> 下一个未使用的任务编号为 **032**。任何新变更均须基于 [`_task-template.md`](_task-template.md) 创建新编号任务并建立一对一分支。

@@ -1180,11 +1180,13 @@ def build_structure_dataset(
         for file_item in item.get("files", [])
         if file_item.get("role") in PYTHON_ROLES and file_item.get("is_python", True)
     )
+    inferred_repos = {str(item.get("repo")) for item in selected if item.get("repo")}
+    resolved_repo = next(iter(inferred_repos)) if len(inferred_repos) == 1 else "netbox-community/netbox"
     manifest = {
         "schema_version": STRUCTURE_SCHEMA_VERSION,
         "input_path": str(input_path),
         "input_sha256": hashlib.sha256(input_path.read_bytes()).hexdigest(),
-        "repo": "netbox-community/netbox",
+        "repo": resolved_repo,
         "selection_limit": limit,
         "input_records": len(records),
         "selected_records": len(selected),
