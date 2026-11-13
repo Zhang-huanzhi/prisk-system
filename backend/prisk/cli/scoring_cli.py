@@ -9,6 +9,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from ..domain.config import PRESET_LEGACY_BASELINE, PRESETS, build_config_snapshot
+from ..domain.evaluation import load_config_payload
 from ..paths import demo_data_root
 from ..services.demo_service import DemoData, build_scored_dataset
 
@@ -22,14 +24,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", required=True, type=Path, help="stage07-scored-reports.jsonl")
     parser.add_argument("--manifest", required=True, type=Path, help="stage07-manifest.json")
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--preset", choices=sorted(PRESETS), help="可选的评分配置预设（默认 legacy_baseline）")
+    parser.add_argument("--config", type=Path, help="可选的评分配置覆盖 JSON 文件路径")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        config_payload = load_config_payload(preset=args.preset, config_path=args.config)
         data = DemoData(args.stage03, args.stage04, args.stage05)
-        reports = build_scored_dataset(data)
+        reports = build_scored_dataset(data, config=config_payload)
         if args.limit is not None:
             if args.limit < 1:
                 raise ValueError("limit 必须大于 0")
@@ -54,6 +59,11 @@ def main(argv: list[str] | None = None) -> int:
             "scoring": "fixed transparent weights and thresholds; not calibrated defect probability",
             "output_path": str(args.output),
         }
+        if config_payload is not None:
+            manifest["config_snapshot"] = build_config_snapshot(
+                config_payload,
+                default_preset=PRESET_LEGACY_BASELINE,
+            )
         args.manifest.parent.mkdir(parents=True, exist_ok=True)
         args.manifest.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     except (OSError, ValueError, KeyError) as exc:

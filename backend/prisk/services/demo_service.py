@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ..domain.changes import load_records
+from ..domain.evaluation import collaboration_points, summed_rule_points
 from ..domain.rules import RULE_CATALOG, evaluate_rules, rule_domain
 from ..domain.test_collaboration import COLLABORATION_RULE_ID
 from ..domain.gatekeeper import apply_gatekeeper_lift
@@ -269,19 +270,6 @@ class DemoData:
 
 def normalize_config(config: dict[str, Any] | None) -> dict[str, Any]:
     return normalize_audit_config(config, default_preset=PRESET_LEGACY_BASELINE)
-
-
-def summed_rule_points(rule_ids: set[str] | list[str], weights: dict[str, int]) -> int:
-    """Sum catalog weights except the collaboration rule, whose point is separate."""
-    return sum(weights[rule_id] for rule_id in rule_ids if rule_id != COLLABORATION_RULE_ID)
-
-
-def collaboration_points(config: dict[str, Any], matched: bool) -> tuple[int, int]:
-    """Return the historical collaboration maximum and earned points, added once."""
-    if not config.get("test_collaboration_enabled"):
-        return 0, 0
-    weight = config["test_collaboration_weight"]
-    return weight, weight if matched else 0
 
 
 def write_json_report(report: dict[str, Any], path: Path) -> None:
