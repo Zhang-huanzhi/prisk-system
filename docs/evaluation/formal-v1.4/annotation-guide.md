@@ -1,6 +1,9 @@
-# Prisk v1.4 人工核验标注指南 (`annotation-guide.md`)
+# Prisk v1.4 人工核验与局部切片复核参考指南 (`annotation-guide.md`)
 
-本指南基于 [`pilot-v1.1/protocol.md`](../pilot-v1.1/protocol.md) 四值核验经验收敛而成，服务于 `v1.4.0` 正式集人工复核与准确率自动化统计。
+> [!NOTE]
+> **定位调整说明（Task 032 对齐）**：依据 [`validation-strategy.md`](validation-strategy.md) 与 [`docs/rules/rule-responsibility-matrix.md`](../../rules/rule-responsibility-matrix.md)，`v1.4.0` 有效性证明主路线不再强制研究者对全量 PR 执行单一作者全 Diff 逐条人工标注（以避免 Author Bias 与过重审校负担）。本文件保留作为 **路径 P6（极窄作用域切片规范核对与案例诠释）** 的可选辅助参考及 `prisk.eval.annotation.v1` 结构说明；是否启用及适用范围服从 [`validation-strategy.md`](validation-strategy.md) 第 6 节所有者终裁。
+
+本指南基于 [`pilot-v1.1/protocol.md`](../pilot-v1.1/protocol.md) 四值核验经验收敛而成，定义局部切片复核记录格式与自动化统计接口规范。
 
 ## 1. 四值判断词表（`finding_judgments[].judgment`）
 
@@ -13,7 +16,7 @@
 | `unanalyzed` | 不可分析 / 上下文不足 | 缺少父基类解析、语法退化、或所需跨文件引用超出当前局部上下文，无法在规则定义层面下定论 | 单独统计，**不计入 Precision 分母** |
 | `not_applicable` | 无适用结构表面 | 变更仅涉及非目标文件或无相应框架对象，不应作为误报归咎规则逻辑 | 单独统计，**不计入 Precision 分母** |
 
-> 标注原则：**先按规则卡片/代码实现定义核验结构条件是否真实成立**，不要以「作者后来有没有被回滚」逆推当前 Finding 是否为误报；若属于高噪但结构上确实命中了过宽规则，请仍记为 `false_looking_hit` 并填写 `noise_pattern` 归因，以便在 Task 033 定向收窄规则或降权。
+> 标注原则：**先按规则卡片/代码实现定义核验结构条件是否真实成立**，不要以「作者后来有没有被回滚」逆推当前 Finding 是否为误报；若属于高噪但结构上确实命中了过宽规则，请仍记为 `false_looking_hit` 并填写 `noise_pattern` 归因，以便在后续治噪与调参任务中定向收窄规则或降权。
 
 ---
 
@@ -60,11 +63,11 @@
 
 ---
 
-## 3. 29 条运行时规则分类核验要点
+## 3. 运行时规则阵营与核验边界要点
 
-当前运行时目录包含 **29 条已执行规则**（另 [`rule-registry.json`](../../../backend/data/rules/rule-registry.json) 中 5 条 `draft` 规则暂不运行、不参与正式核验）：
+当前运行时目录共包含 29 条规则，但研究与归因口径严格分治：**24 条 `implemented` 精细规则**为主体研究对象（另 [`rule-registry.json`](../../../backend/data/rules/rule-registry.json) 中 5 条 `draft` 规则暂不运行、不参与正式评估）；**5 条历史演示规则（`historical_baseline`）** 仅随 `legacy_baseline` 预设作系统整体历史对比。各阵营优先采用的客观验证手段见 [`validation-strategy.md`](validation-strategy.md)；本节仅在按路径 P6 辅助核对局部切片时作边界参考。
 
-### A. 历史基础结构规则（5 条，`historical_baseline`）
+### A. 历史基础结构规则（5 条，`historical_baseline` —— 仅作系统历史基线，不入 `v1.4` 单规则有效性结论）
 
 | Rule ID | 核验重点 |
 | :--- | :--- |
@@ -88,7 +91,7 @@
 | `code.assert_in_production` | 生产代码（非测试路径）出现 `assert` 断言 | 内部类型缩窄（mypy narrowing）与业务不变量校验差异 |
 | `code.mutable_default_argument` | 函数签名默认参数为字面量 `[]` / `{}` / `set()` 等可变对象 | 基本无误报，核对是否为生产路径且非不可变约定 |
 
-### C. 后端高危契约与破坏性变更规则（15 条，`backend_contract` / `breaking_impact`）
+### C. 框架契约与变更冲击规则（15 条：`backend_contract` 11 条 + `breaking_impact` 4 条）
 
 | Rule ID | 规则族 | Gatekeeper | 核验重点 |
 | :--- | :--- | :---: | :--- |
